@@ -1,0 +1,30 @@
+# User's personal job tracker data
+/job_tracker.csv
+
+# Keep template and example CSVs
+!template/job_tracker.csv
+!examples/job_tracker_example.csv
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Documents (user's personal files)
+*.docx
+*.pdf
