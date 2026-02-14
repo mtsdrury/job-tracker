@@ -45,9 +45,22 @@ Features:
 - **New Job / Remove:** add or remove jobs without touching the CSV directly.
 - **Summary tab:** pipeline stats (status breakdown, referral counts, cover letters, recent activity).
 
-The GUI auto-opens `job_tracker.csv` if it exists in the same directory. Otherwise, use the "Open..." button to pick a file.
+The GUI auto-opens `job_tracker.csv` if it exists in the same directory (or one level up). Otherwise, use the "Open..." button to pick a file.
 
 To change the theme, edit the `THEME` variable at the top of `gui.py`. Options include `darkly`, `superhero`, `cyborg`, `cosmo`, `litera`, and [more](https://ttkbootstrap.readthedocs.io/en/latest/themes/).
+
+### Standalone .exe (no Python required)
+
+A pre-built Windows executable is available on the [Releases](https://github.com/mtsdrury/job-tracker/releases) page. Download `Job Tracker.exe`, put it in the same folder as your `job_tracker.csv`, and double-click to run.
+
+To build the .exe yourself:
+
+```bash
+pip install pyinstaller
+build.bat
+```
+
+The output lands in `dist/Job Tracker.exe`. The .exe also looks one directory up for `job_tracker.csv`, so you can leave it in `dist/` if your CSV is in the project root.
 
 ## Column Reference
 
