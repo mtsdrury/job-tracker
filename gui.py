@@ -1382,6 +1382,10 @@ def main():
         app._load_file(default_csv)
     elif os.path.exists(parent_csv):
         app._load_file(os.path.normpath(parent_csv))
+    else:
+        write_tracker(default_csv, [])
+        app._load_file(default_csv)
+        messagebox.showinfo("Welcome", f"Created a new tracker at:\n{default_csv}")
 
     root.mainloop()
 

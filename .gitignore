@@ -6,6 +6,7 @@
 !examples/job_tracker_example.csv
 
 # Python
+.venv/
 __pycache__/
 *.py[cod]
 *$py.class

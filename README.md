@@ -1,28 +1,31 @@
 # Job Tracker
 
-A lightweight CLI tool and CSV template for managing your job search. No dependencies, no accounts, no databases. Just a Python script and a spreadsheet.
+A lightweight job search tracker with a GUI and CLI, built around a single CSV file. No dependencies, no accounts, no databases.
 
 ## Why This Exists
 
-Spreadsheets are the best job tracker for most people, but they get messy fast. Applications pile up, referral follow-ups slip through the cracks, and you lose track of what needs attention. This repo gives you a clean CSV template with sensible columns and a CLI that keeps it organized.
+Spreadsheets are the best job tracker for most people, but they get messy fast. Applications pile up, referral follow-ups slip through the cracks, and you lose track of what needs attention. This repo gives you a clean CSV template with sensible columns and two interfaces to keep it organized.
 
 ## Quick Start
 
+### Option 1: Standalone .exe (no Python required)
+
+1. Download `Job Tracker.exe` from the [Releases](https://github.com/mtsdrury/job-tracker/releases) page
+2. Double-click the .exe (it creates a blank `job_tracker.csv` on first run)
+
+### Option 2: Run from source
+
 ```bash
-# Clone the repo
 git clone https://github.com/mtsdrury/job-tracker.git
 cd job-tracker
 
-# Copy the blank template to start your tracker
-cp template/job_tracker.csv job_tracker.csv
+# GUI (creates a blank job_tracker.csv on first run)
+pip install ttkbootstrap
+python gui.py
 
-# See all available commands
+# CLI
 python tracker.py --help
-
-# Add your first job
 python tracker.py add --company "Acme Corp" --role "Data Scientist" --location "Los Angeles, CA"
-
-# View your tracker
 python tracker.py list
 ```
 
@@ -51,7 +54,7 @@ To change the theme, edit the `THEME` variable at the top of `gui.py`. Options i
 
 ### Standalone .exe (no Python required)
 
-A pre-built Windows executable is available on the [Releases](https://github.com/mtsdrury/job-tracker/releases) page. Download `Job Tracker.exe`, put it in the same folder as your `job_tracker.csv`, and double-click to run.
+A pre-built Windows executable is available on the [Releases](https://github.com/mtsdrury/job-tracker/releases) page. Download `Job Tracker.exe` and double-click to run. It creates a blank `job_tracker.csv` on first launch if one doesn't exist.
 
 To build the .exe yourself:
 
