@@ -54,10 +54,12 @@ def resolve_path(args_file):
 
 
 def read_tracker(path):
-    """Read the CSV and return a list of dicts."""
+    """Read the CSV and return a list of dicts.
+
+    Raises FileNotFoundError if the file does not exist.
+    """
     if not os.path.exists(path):
-        print(f"Error: File not found: {path}")
-        sys.exit(1)
+        raise FileNotFoundError(f"File not found: {path}")
     with open(path, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         return list(reader)
@@ -80,15 +82,17 @@ def write_tracker(path, rows):
 
 
 def parse_date(value):
-    """Parse a date string. Accepts YYYY-MM-DD or 'today'."""
+    """Parse a date string. Accepts YYYY-MM-DD or 'today'.
+
+    Raises ValueError if the format is invalid.
+    """
     if value.lower() == "today":
         return datetime.now().strftime("%Y-%m-%d")
     try:
         datetime.strptime(value, "%Y-%m-%d")
         return value
     except ValueError:
-        print(f"Error: Invalid date format '{value}'. Use YYYY-MM-DD or 'today'.")
-        sys.exit(1)
+        raise ValueError(f"Invalid date format '{value}'. Use YYYY-MM-DD or 'today'.")
 
 
 def parse_semicolons(value):
@@ -590,7 +594,11 @@ def main():
         "remove": cmd_remove,
     }
 
-    commands[args.command](args)
+    try:
+        commands[args.command](args)
+    except (FileNotFoundError, ValueError) as e:
+        print(f"Error: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

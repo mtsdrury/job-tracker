@@ -26,6 +26,29 @@ python tracker.py add --company "Acme Corp" --role "Data Scientist" --location "
 python tracker.py list
 ```
 
+## GUI
+
+A modern tkinter interface (powered by [ttkbootstrap](https://ttkbootstrap.readthedocs.io/)) that stays open while you apply to jobs.
+
+```bash
+pip install ttkbootstrap
+python gui.py
+```
+
+Features:
+- **Tabbed layout:** Jobs list, Detail editor, and Summary dashboard in separate tabs.
+- **Job list** with colored status tags and strikethrough for rejected/withdrawn jobs. Double-click to open details.
+- **Filters:** filter by application status, referral status (Has Referral, Messaged, Submitted, etc.), or search by company/role/referral name.
+- **Detail panel:** edit any field for the selected job and save back to CSV. Browse for cover letter files.
+- **Referral management:** add referrals via a popup form with name, LinkedIn URL, connection, and status fields.
+- **Incomplete fields indicator:** shows which fields are still empty so you can fill in gaps.
+- **New Job / Remove:** add or remove jobs without touching the CSV directly.
+- **Summary tab:** pipeline stats (status breakdown, referral counts, cover letters, recent activity).
+
+The GUI auto-opens `job_tracker.csv` if it exists in the same directory. Otherwise, use the "Open..." button to pick a file.
+
+To change the theme, edit the `THEME` variable at the top of `gui.py`. Options include `darkly`, `superhero`, `cyborg`, `cosmo`, `litera`, and [more](https://ttkbootstrap.readthedocs.io/en/latest/themes/).
+
 ## Column Reference
 
 | Column | Description | Example |
