@@ -1372,10 +1372,16 @@ def main():
     )
     app = TrackerApp(root)
 
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    if getattr(sys, 'frozen', False):
+        script_dir = os.path.dirname(sys.executable)
+    else:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
     default_csv = os.path.join(script_dir, "job_tracker.csv")
+    parent_csv = os.path.join(script_dir, "..", "job_tracker.csv")
     if os.path.exists(default_csv):
         app._load_file(default_csv)
+    elif os.path.exists(parent_csv):
+        app._load_file(os.path.normpath(parent_csv))
 
     root.mainloop()
 
