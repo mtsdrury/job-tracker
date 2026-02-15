@@ -45,7 +45,7 @@ Features:
 - **Detail panel:** edit any field for the selected job and save back to CSV. Browse for cover letter files.
 - **Referral management:** add referrals via a popup form with name, LinkedIn URL, connection, and status fields.
 - **Incomplete fields indicator:** shows which fields are still empty so you can fill in gaps.
-- **New Job / Remove:** add or remove jobs without touching the CSV directly.
+- **New Job / Remove:** add or remove jobs without touching the CSV directly. The New Job popup can auto-fill Company, Role, and Location from a pasted URL (uses schema.org JSON-LD when available).
 - **Summary tab:** pipeline stats (status breakdown, referral counts, cover letters, recent activity).
 
 The GUI auto-opens `job_tracker.csv` if it exists in the same directory (or one level up). Otherwise, use the "Open..." button to pick a file.

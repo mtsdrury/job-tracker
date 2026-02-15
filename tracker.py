@@ -8,10 +8,13 @@ No dependencies beyond the Python standard library.
 
 import argparse
 import csv
+import json
 import os
+import re
 import shutil
 import sys
 import tempfile
+import urllib.request
 from datetime import datetime, timedelta
 
 FIELDNAMES = [
@@ -100,6 +103,129 @@ def parse_semicolons(value):
     if not value:
         return []
     return [item.strip() for item in value.split(";") if item.strip()]
+
+
+def fetch_job_details(url):
+    """Fetch a job posting URL and extract Company, Role, Location, Job ID.
+
+    Looks for schema.org/JobPosting JSON-LD first, then falls back to parsing
+    the <title> tag. Returns a dict with keys: company, role, location, job_id,
+    job_url. Missing fields are empty strings.
+
+    Raises RuntimeError on network or parse errors.
+    """
+    result = {
+        "company": "",
+        "role": "",
+        "location": "",
+        "job_id": "",
+        "job_url": url,
+    }
+
+    try:
+        req = urllib.request.Request(
+            url,
+            headers={"User-Agent": "Mozilla/5.0 (job-tracker/1.0)"},
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            html = resp.read().decode("utf-8", errors="replace")
+    except Exception as e:
+        raise RuntimeError(f"Could not fetch URL: {e}")
+
+    # --- Try JSON-LD (schema.org/JobPosting) ---
+    ld_blocks = re.findall(
+        r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',
+        html,
+        re.DOTALL | re.IGNORECASE,
+    )
+
+    def find_job_posting(obj):
+        """Recursively search for a JobPosting object in parsed JSON-LD."""
+        if isinstance(obj, dict):
+            t = obj.get("@type", "")
+            if isinstance(t, list):
+                types = t
+            else:
+                types = [t]
+            if "JobPosting" in types:
+                return obj
+            # Check @graph arrays
+            for value in obj.values():
+                found = find_job_posting(value)
+                if found:
+                    return found
+        elif isinstance(obj, list):
+            for item in obj:
+                found = find_job_posting(item)
+                if found:
+                    return found
+        return None
+
+    posting = None
+    for block in ld_blocks:
+        try:
+            data = json.loads(block)
+        except (json.JSONDecodeError, ValueError):
+            continue
+        posting = find_job_posting(data)
+        if posting:
+            break
+
+    if posting:
+        result["role"] = posting.get("title", "")
+
+        # hiringOrganization can be a dict or a string
+        org = posting.get("hiringOrganization", "")
+        if isinstance(org, dict):
+            result["company"] = org.get("name", "")
+        elif isinstance(org, str):
+            result["company"] = org
+
+        # jobLocation can be a dict, a list of dicts, or nested
+        loc = posting.get("jobLocation", "")
+        if isinstance(loc, list) and loc:
+            loc = loc[0]
+        if isinstance(loc, dict):
+            addr = loc.get("address", loc)
+            if isinstance(addr, dict):
+                parts = []
+                city = addr.get("addressLocality", "")
+                region = addr.get("addressRegion", "")
+                if city:
+                    parts.append(city)
+                if region:
+                    parts.append(region)
+                result["location"] = ", ".join(parts) if parts else ""
+            elif isinstance(addr, str):
+                result["location"] = addr
+
+        # identifier can hold job ID
+        ident = posting.get("identifier", "")
+        if isinstance(ident, dict):
+            result["job_id"] = str(ident.get("value", ""))
+        elif isinstance(ident, str):
+            result["job_id"] = ident
+
+        return result
+
+    # --- Fallback: parse <title> tag ---
+    title_match = re.search(r"<title[^>]*>(.*?)</title>", html, re.DOTALL | re.IGNORECASE)
+    if title_match:
+        title_text = title_match.group(1).strip()
+        # Clean HTML entities
+        title_text = title_text.replace("&amp;", "&").replace("&#x27;", "'")
+        title_text = title_text.replace("&quot;", '"').replace("&#39;", "'")
+        title_text = re.sub(r"&[^;]+;", "", title_text)
+
+        # Common patterns: "Role - Company", "Role at Company", "Role | Company"
+        for sep in [" - ", " at ", " | ", " — "]:
+            if sep in title_text:
+                parts = title_text.split(sep, 1)
+                result["role"] = parts[0].strip()
+                result["company"] = parts[1].strip()
+                break
+
+    return result
 
 
 def match_company(rows, company_query):

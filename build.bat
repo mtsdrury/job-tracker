@@ -21,7 +21,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
-copy "template\job_tracker.csv" "dist\job_tracker.csv" >nul 2>&1
+if not exist "dist\job_tracker.csv" (
+    if not exist "job_tracker.csv" (
+        copy "template\job_tracker.csv" "dist\job_tracker.csv" >nul 2>&1
+    )
+)
 
 echo.
 echo Build succeeded! Output: dist\Job Tracker.exe

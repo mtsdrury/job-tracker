@@ -11,8 +11,10 @@ Usage:    python gui.py   (or python.exe gui.py on WSL)
 
 import os
 import sys
+import threading
 import tkinter as tk
 import tkinter.font as tkfont
+import webbrowser
 from tkinter import messagebox, filedialog
 from datetime import datetime, timedelta
 
@@ -30,6 +32,7 @@ from tracker import (
     read_tracker,
     write_tracker,
     parse_semicolons,
+    fetch_job_details,
 )
 
 # ---------------------------------------------------------------------------
@@ -386,6 +389,14 @@ class TrackerApp:
         )
         self.incomplete_label.pack(fill=X, padx=4)
 
+        # Next step banner (below incomplete fields)
+        self.next_step_frame = ttk.Frame(self.tab_detail)
+        self.next_step_label = ttk.Label(
+            self.next_step_frame, text="",
+            bootstyle="info", font=("", 9), anchor="w",
+        )
+        self.next_step_label.pack(fill=X, padx=4)
+
         # Save + Back buttons (fixed at bottom, outside scroll area)
         btn_frame = ttk.Frame(self.tab_detail, padding=(PAD_INNER, PAD_INNER))
         btn_frame.pack(side=BOTTOM, fill=X)
@@ -448,8 +459,16 @@ class TrackerApp:
             relief="flat", borderwidth=2,
         )
 
+        def section_header(parent, text):
+            """Create a section header label with a separator line underneath."""
+            header = ttk.Label(
+                parent, text=text, font=("", 11, "bold"), bootstyle="info",
+            )
+            header.pack(anchor="w", padx=8, pady=(8, 0))
+            ttk.Separator(parent).pack(fill=X, padx=8, pady=(4, 8))
+
         def field_row(parent, label, r, widget_type="entry", values=None, width=50):
-            ttk.Label(parent, text=label + ":", anchor="e").grid(
+            ttk.Label(parent, text=label + ":", anchor="e", width=20).grid(
                 row=r, column=0, sticky="ne", padx=(8, 6), pady=4,
             )
             if widget_type == "combo":
@@ -467,56 +486,96 @@ class TrackerApp:
             self.field_widgets[label] = w
             return r + 1
 
-        # --- Key Info ---
-        key_info = ttk.Labelframe(
-            f, text="Key Info", bootstyle="info", padding=(16, 8, 16, 12),
-        )
-        key_info.pack(fill=X, pady=(0, PAD_INNER))
-        key_info.columnconfigure(1, weight=1)
+        # === 1. Referrals ===
+        ref_frame = ttk.Frame(f)
+        ref_frame.pack(fill=X, pady=(0, PAD_INNER))
 
-        row = 0
-        row = field_row(key_info, "Application Status", row, "combo", VALID_STATUSES)
+        section_header(ref_frame, "Referrals")
 
-        # Date Applied with Today button
-        ttk.Label(key_info, text="Date Applied:", anchor="e").grid(
-            row=row, column=0, sticky="ne", padx=(8, 6), pady=4,
-        )
-        date_frame = ttk.Frame(key_info)
-        date_frame.grid(row=row, column=1, sticky="ew", padx=(0, 8), pady=4)
-        self.date_entry = ttk.Entry(date_frame, width=14)
-        self.date_entry.pack(side=LEFT)
+        ref_btn_frame = ttk.Frame(ref_frame)
+        ref_btn_frame.pack(anchor="w", padx=8, pady=(0, 4))
         ttk.Button(
-            date_frame, text="Today", command=self._set_today,
+            ref_btn_frame, text="+ Add Referral", command=self._add_referral_popup,
+            bootstyle="success-outline", padding=(8, 2),
+        ).pack(side=LEFT, padx=(0, 6))
+        ttk.Button(
+            ref_btn_frame, text="Edit Referral", command=self._edit_referral_popup,
             bootstyle="info-outline", padding=(8, 2),
-        ).pack(side=LEFT, padx=(6, 0))
-        self.field_widgets["Date Applied"] = self.date_entry
-        row += 1
+        ).pack(side=LEFT, padx=(0, 6))
+        ttk.Button(
+            ref_btn_frame, text="Draft Message", command=self._draft_message_popup,
+            bootstyle="warning-outline", padding=(8, 2),
+        ).pack(side=LEFT)
 
-        row = field_row(key_info, "Location", row)
-        row = field_row(key_info, "Resume Version", row, "combo", [
+        # Column headers row (matches data row layout)
+        ref_header_row = ttk.Frame(ref_frame)
+        ref_header_row.pack(fill=X, padx=8)
+
+        ttk.Label(
+            ref_header_row, text="Name", font=("", 9, "bold"),
+            bootstyle="secondary", anchor="w",
+        ).pack(side=LEFT, expand=True, fill=X)
+        ttk.Separator(ref_header_row, orient=VERTICAL).pack(
+            side=LEFT, fill=Y, padx=6, pady=2,
+        )
+        ttk.Label(
+            ref_header_row, text="Connection", font=("", 9, "bold"),
+            bootstyle="secondary", anchor="w", width=12,
+        ).pack(side=LEFT)
+        ttk.Separator(ref_header_row, orient=VERTICAL).pack(
+            side=LEFT, fill=Y, padx=6, pady=2,
+        )
+        ttk.Label(
+            ref_header_row, text="Status", font=("", 9, "bold"),
+            bootstyle="secondary", anchor="w",
+        ).pack(side=LEFT, expand=True, fill=X)
+        ttk.Separator(ref_header_row, orient=VERTICAL).pack(
+            side=LEFT, fill=Y, padx=6, pady=2,
+        )
+        ttk.Label(
+            ref_header_row, text="LinkedIn", font=("", 9, "bold"),
+            bootstyle="secondary", anchor="w", width=10,
+        ).pack(side=LEFT)
+
+        ttk.Separator(ref_frame).pack(fill=X, padx=8, pady=(2, 0))
+
+        # Data rows frame (rebuilt on refresh)
+        self.referral_rows_frame = ttk.Frame(ref_frame)
+        self.referral_rows_frame.pack(fill=X, padx=8, pady=(0, 8))
+
+        # Track selected referral index
+        self._selected_referral_idx = None
+
+        # Hidden entries for raw referral data (used by save/load)
+        for field in ("Referral Names", "Referral LinkedIns",
+                       "Referral Connections", "Referral Statuses"):
+            hidden = ttk.Entry(f)
+            self.field_widgets[field] = hidden
+
+        # === 2. Resume & Cover Letter ===
+        rcl_frame = ttk.Frame(f)
+        rcl_frame.pack(fill=X, pady=(0, PAD_INNER))
+
+        section_header(rcl_frame, "Resume & Cover Letter")
+
+        rcl_grid = ttk.Frame(rcl_frame)
+        rcl_grid.pack(fill=X, padx=8, pady=(0, 8))
+        rcl_grid.columnconfigure(1, weight=1)
+
+        rcl_row = 0
+        rcl_row = field_row(rcl_grid, "Resume Version", rcl_row, "combo", [
             "Data Scientist", "ML Builder", "Research Engineer", "",
         ])
-        row = field_row(key_info, "Job ID", row)
-        row = field_row(key_info, "Job URL", row)
-
-        # --- Cover Letter ---
-        cl_section = ttk.Labelframe(
-            f, text="Cover Letter", bootstyle="info", padding=(16, 8, 16, 12),
-        )
-        cl_section.pack(fill=X, pady=(0, PAD_INNER))
-        cl_section.columnconfigure(1, weight=1)
-
-        cl_row = 0
-        cl_row = field_row(
-            cl_section, "Cover Letter Written", cl_row, "combo", ["Yes", "No", ""],
+        rcl_row = field_row(
+            rcl_grid, "Cover Letter Written", rcl_row, "combo", ["Yes", "No", ""],
         )
 
         # Cover Letter File with Browse
-        ttk.Label(cl_section, text="Cover Letter File:", anchor="e").grid(
-            row=cl_row, column=0, sticky="ne", padx=(8, 6), pady=4,
+        ttk.Label(rcl_grid, text="Cover Letter File:", anchor="e", width=20).grid(
+            row=rcl_row, column=0, sticky="ne", padx=(8, 6), pady=4,
         )
-        cl_frame = ttk.Frame(cl_section)
-        cl_frame.grid(row=cl_row, column=1, sticky="ew", padx=(0, 8), pady=4)
+        cl_frame = ttk.Frame(rcl_grid)
+        cl_frame.grid(row=rcl_row, column=1, sticky="ew", padx=(0, 8), pady=4)
         cl_entry = ttk.Entry(cl_frame)
         cl_entry.pack(side=LEFT, fill=X, expand=True)
         ttk.Button(
@@ -529,43 +588,63 @@ class TrackerApp:
         ).pack(side=LEFT, padx=(6, 0))
         self.field_widgets["Cover Letter File"] = cl_entry
 
-        # --- Referrals ---
-        ref_section = ttk.Labelframe(
-            f, text="Referrals", bootstyle="info", padding=(16, 8, 16, 12),
-        )
-        ref_section.pack(fill=X, pady=(0, PAD_INNER))
-        ref_section.columnconfigure(0, weight=1)
+        # === 3. Application Info ===
+        app_frame = ttk.Frame(f)
+        app_frame.pack(fill=X, pady=(0, PAD_INNER))
 
+        section_header(app_frame, "Application Info")
+
+        app_grid = ttk.Frame(app_frame)
+        app_grid.pack(fill=X, padx=8, pady=(0, 8))
+        app_grid.columnconfigure(1, weight=1)
+
+        row = 0
+        row = field_row(app_grid, "Application Status", row, "combo", VALID_STATUSES)
+
+        # Date Applied with Today button
+        ttk.Label(app_grid, text="Date Applied:", anchor="e", width=20).grid(
+            row=row, column=0, sticky="ne", padx=(8, 6), pady=4,
+        )
+        date_frame = ttk.Frame(app_grid)
+        date_frame.grid(row=row, column=1, sticky="ew", padx=(0, 8), pady=4)
+        self.date_entry = ttk.Entry(date_frame, width=14)
+        self.date_entry.pack(side=LEFT)
         ttk.Button(
-            ref_section, text="+ Add Referral", command=self._add_referral_popup,
-            bootstyle="success-outline", padding=(8, 2),
-        ).grid(row=0, column=0, sticky="w", pady=(0, 4))
+            date_frame, text="Today", command=self._set_today,
+            bootstyle="info-outline", padding=(8, 2),
+        ).pack(side=LEFT, padx=(6, 0))
+        self.field_widgets["Date Applied"] = self.date_entry
+        row += 1
 
-        self.referral_display = tk.Text(
-            ref_section, width=50, height=4, wrap=tk.WORD, font=("", 10),
-            state=tk.DISABLED, cursor="arrow", **text_kw,
-        )
-        self.referral_display.grid(
-            row=1, column=0, sticky="ew", pady=2,
-        )
+        row = field_row(app_grid, "Location", row)
+        row = field_row(app_grid, "Job ID", row)
 
-        # Hidden entries for raw referral data (used by save/load)
-        for field in ("Referral Names", "Referral LinkedIns",
-                       "Referral Connections", "Referral Statuses"):
-            hidden = ttk.Entry(f)
-            self.field_widgets[field] = hidden
-
-        # --- Notes ---
-        notes_section = ttk.Labelframe(
-            f, text="Notes", bootstyle="info", padding=(16, 8, 16, 12),
+        # Job URL with Fetch button
+        ttk.Label(app_grid, text="Job URL:", anchor="e", width=20).grid(
+            row=row, column=0, sticky="ne", padx=(8, 6), pady=4,
         )
-        notes_section.pack(fill=X, pady=(0, PAD_INNER))
+        url_frame = ttk.Frame(app_grid)
+        url_frame.grid(row=row, column=1, sticky="ew", padx=(0, 8), pady=4)
+        job_url_entry = ttk.Entry(url_frame, width=50)
+        job_url_entry.pack(side=LEFT, fill=X, expand=True)
+        ttk.Button(
+            url_frame, text="Fetch", command=self._fetch_from_detail_url,
+            bootstyle="info-outline", padding=(8, 2),
+        ).pack(side=LEFT, padx=(6, 0))
+        self.field_widgets["Job URL"] = job_url_entry
+        row += 1
+
+        # === 4. Notes ===
+        notes_frame = ttk.Frame(f)
+        notes_frame.pack(fill=X, pady=(0, PAD_INNER))
+
+        section_header(notes_frame, "Notes")
 
         notes_widget = tk.Text(
-            notes_section, width=50, height=5, wrap=tk.WORD, font=("", 10),
+            notes_frame, width=50, height=5, wrap=tk.WORD, font=("", 10),
             **text_kw,
         )
-        notes_widget.pack(fill=X)
+        notes_widget.pack(fill=X, padx=8, pady=(0, 8))
         self.field_widgets["Notes"] = notes_widget
 
     # ===================================================================
@@ -714,7 +793,7 @@ class TrackerApp:
             self.summary_inner, text="Recent Activity", bootstyle="info",
             padding=(PAD_SECTION, PAD_INNER, PAD_SECTION, PAD_INNER),
         )
-        activity_frame.pack(fill=X, padx=PAD_OUTER, pady=(0, PAD_OUTER))
+        activity_frame.pack(fill=X, padx=PAD_OUTER, pady=(0, PAD_SECTION))
 
         self.activity_week_label = ttk.Label(
             activity_frame, text="This week: 0", font=("", 11),
@@ -724,6 +803,13 @@ class TrackerApp:
             activity_frame, text="This month: 0", font=("", 11),
         )
         self.activity_month_label.pack(side=LEFT)
+
+        # --- Action Items ---
+        self.action_items_frame = ttk.Labelframe(
+            self.summary_inner, text="Action Items", bootstyle="warning",
+            padding=(PAD_SECTION, PAD_INNER, PAD_SECTION, PAD_INNER),
+        )
+        self.action_items_frame.pack(fill=X, padx=PAD_OUTER, pady=(0, PAD_OUTER))
 
     def _refresh_summary(self):
         """Regenerate and display summary stats via dashboard widgets."""
@@ -741,6 +827,8 @@ class TrackerApp:
             self.cl_bar_label.config(text="0/0")
             self.activity_week_label.config(text="This week: 0")
             self.activity_month_label.config(text="This month: 0")
+            for w in self.action_items_frame.winfo_children():
+                w.destroy()
             return
 
         total = len(self.rows)
@@ -816,6 +904,110 @@ class TrackerApp:
 
         self.activity_week_label.config(text=f"This week: {apps_week}")
         self.activity_month_label.config(text=f"This month: {apps_month}")
+
+        self._rebuild_action_items()
+
+    # -----------------------------------------------------------------------
+    # Action items
+    # -----------------------------------------------------------------------
+    def _rebuild_action_items(self):
+        """Build clickable action items from current tracker data."""
+        for w in self.action_items_frame.winfo_children():
+            w.destroy()
+
+        items = []
+        today = datetime.now()
+        not_applied_count = 0
+
+        for idx, row in enumerate(self.rows):
+            status = row.get("Application Status", "Not Yet Applied").strip()
+            company = row.get("Company", "")
+            role = row.get("Role", "")
+
+            # 1. Stale applications (Applied 21+ days ago)
+            if status == "Applied":
+                date_str = row.get("Date Applied", "").strip()
+                if date_str:
+                    try:
+                        applied = datetime.strptime(date_str, "%Y-%m-%d")
+                        days = (today - applied).days
+                        if days >= 21:
+                            items.append((
+                                f"Follow up: {company} - {role} (applied {days} days ago)",
+                                idx,
+                            ))
+                    except ValueError:
+                        pass
+
+            # 2. Un-messaged referrals
+            ref_names = parse_semicolons(row.get("Referral Names", ""))
+            ref_statuses = parse_semicolons(row.get("Referral Statuses", ""))
+            for i, name in enumerate(ref_names):
+                stat = ref_statuses[i].strip().lower() if i < len(ref_statuses) else ""
+                if not stat or "not yet" in stat:
+                    items.append((
+                        f"Message referral: {name} at {company}",
+                        idx,
+                    ))
+
+            # 3. Referrals waiting on response
+            for i, name in enumerate(ref_names):
+                stat = ref_statuses[i].strip().lower() if i < len(ref_statuses) else ""
+                if stat in ("messaged", "connect request sent"):
+                    items.append((
+                        f"Follow up with {name} at {company}",
+                        idx,
+                    ))
+
+            # 4. Missing cover letters (Not Yet Applied, no CL)
+            if status == "Not Yet Applied":
+                not_applied_count += 1
+                cl = row.get("Cover Letter Written", "").strip().lower()
+                if cl != "yes":
+                    items.append((
+                        f"Write cover letter: {company} - {role}",
+                        idx,
+                    ))
+
+        # 5. Large backlog
+        if not_applied_count > 3:
+            items.append((
+                f"Review backlog: {not_applied_count} jobs still Not Yet Applied",
+                None,
+            ))
+
+        if not items:
+            ttk.Label(
+                self.action_items_frame,
+                text="No action items. You're on top of things!",
+                bootstyle="success", font=("", 10),
+            ).pack(anchor="w", pady=2)
+            return
+
+        link_font = tkfont.Font(size=10, underline=True)
+
+        for text, job_idx in items:
+            if job_idx is not None:
+                lbl = ttk.Label(
+                    self.action_items_frame, text=f"\u2022 {text}",
+                    font=link_font, bootstyle="warning", cursor="hand2",
+                )
+                lbl.pack(anchor="w", pady=2)
+                lbl.bind(
+                    "<Button-1>",
+                    lambda e, i=job_idx: self._open_job_from_action(i),
+                )
+            else:
+                ttk.Label(
+                    self.action_items_frame, text=f"\u2022 {text}",
+                    font=("", 10), bootstyle="secondary",
+                ).pack(anchor="w", pady=2)
+
+    def _open_job_from_action(self, idx):
+        """Navigate to a job in the Detail tab from an action item click."""
+        self.selected_idx = idx
+        self._load_detail(self.rows[idx])
+        self.notebook.select(self.tab_detail)
 
     # -----------------------------------------------------------------------
     # Tab switching
@@ -943,10 +1135,11 @@ class TrackerApp:
                 widget.set("")
             else:
                 widget.delete(0, END)
-        self.referral_display.config(state=tk.NORMAL)
-        self.referral_display.delete("1.0", END)
-        self.referral_display.config(state=tk.DISABLED)
+        for w in self.referral_rows_frame.winfo_children():
+            w.destroy()
+        self._selected_referral_idx = None
         self.incomplete_frame.pack_forget()
+        self.next_step_frame.pack_forget()
 
     def _load_detail(self, row):
         company = row.get("Company", "")
@@ -1002,6 +1195,9 @@ class TrackerApp:
         else:
             self.incomplete_frame.pack_forget()
 
+        # Next step banner
+        self._update_next_step_banner(row)
+
     def _set_today(self):
         self.date_entry.delete(0, END)
         self.date_entry.insert(0, datetime.now().strftime("%Y-%m-%d"))
@@ -1020,31 +1216,145 @@ class TrackerApp:
 
     def _refresh_referral_display(self, row):
         names = parse_semicolons(row.get("Referral Names", ""))
-        linkedins = parse_semicolons(row.get("Referral LinkedIns", ""))
         connections = parse_semicolons(row.get("Referral Connections", ""))
         statuses = parse_semicolons(row.get("Referral Statuses", ""))
+        linkedins = parse_semicolons(row.get("Referral LinkedIns", ""))
 
-        self.referral_display.config(state=tk.NORMAL)
-        self.referral_display.delete("1.0", END)
+        # Clear existing rows
+        for w in self.referral_rows_frame.winfo_children():
+            w.destroy()
+        self._selected_referral_idx = None
 
         if not names:
-            self.referral_display.insert("1.0", "No referrals yet.")
-        else:
-            lines = []
-            for i, name in enumerate(names):
-                parts = [name]
-                conn = connections[i] if i < len(connections) and connections[i] else None
-                if conn:
-                    parts[0] += f" ({conn})"
-                stat = statuses[i] if i < len(statuses) and statuses[i] else "No status"
-                parts.append(stat)
-                li = linkedins[i] if i < len(linkedins) and linkedins[i] else None
-                if li:
-                    parts.append(li)
-                lines.append("  |  ".join(parts))
-            self.referral_display.insert("1.0", "\n".join(lines))
+            ttk.Label(
+                self.referral_rows_frame, text="No referrals yet.",
+                bootstyle="secondary", font=("", 9),
+            ).pack(anchor="w", pady=4)
+            return
 
-        self.referral_display.config(state=tk.DISABLED)
+        link_font = tkfont.Font(size=9, underline=True)
+
+        for i, name in enumerate(names):
+            conn = connections[i] if i < len(connections) else ""
+            stat = statuses[i] if i < len(statuses) else ""
+            li_url = linkedins[i].strip() if i < len(linkedins) else ""
+
+            row_frame = ttk.Frame(self.referral_rows_frame)
+            row_frame.pack(fill=X, pady=1)
+
+            name_lbl = ttk.Label(row_frame, text=name, anchor="w")
+            name_lbl.pack(side=LEFT, expand=True, fill=X)
+
+            ttk.Separator(row_frame, orient=VERTICAL).pack(
+                side=LEFT, fill=Y, padx=6, pady=2,
+            )
+            conn_lbl = ttk.Label(row_frame, text=conn, anchor="w", width=12)
+            conn_lbl.pack(side=LEFT)
+
+            ttk.Separator(row_frame, orient=VERTICAL).pack(
+                side=LEFT, fill=Y, padx=6, pady=2,
+            )
+            stat_lbl = ttk.Label(row_frame, text=stat, anchor="w")
+            stat_lbl.pack(side=LEFT, expand=True, fill=X)
+
+            # LinkedIn link (only if URL exists)
+            if li_url:
+                ttk.Separator(row_frame, orient=VERTICAL).pack(
+                    side=LEFT, fill=Y, padx=6, pady=2,
+                )
+                li_lbl = ttk.Label(
+                    row_frame, text="LinkedIn", font=link_font,
+                    bootstyle="info", anchor="w", cursor="hand2", width=10,
+                )
+                li_lbl.pack(side=LEFT)
+                li_lbl.bind("<Button-1>", lambda e, url=li_url: webbrowser.open(url))
+
+            # Click to select this referral
+            def _select(event, idx=i, frame=row_frame):
+                # Deselect previous
+                for child in self.referral_rows_frame.winfo_children():
+                    child.configure(bootstyle="default")
+                frame.configure(bootstyle="info")
+                self._selected_referral_idx = idx
+
+            selectable = [row_frame, name_lbl, conn_lbl, stat_lbl]
+            for widget in selectable:
+                widget.bind("<Button-1>", _select)
+                widget.bind("<Double-1>", lambda e, idx=i: self._edit_referral_popup())
+
+            # Add a thin separator between rows
+            if i < len(names) - 1:
+                ttk.Separator(self.referral_rows_frame).pack(fill=X, pady=1)
+
+    # -----------------------------------------------------------------------
+    # Next step banner
+    # -----------------------------------------------------------------------
+    def _update_next_step_banner(self, row):
+        """Show a contextual 'next step' suggestion below the header area."""
+        status = row.get("Application Status", "Not Yet Applied").strip()
+
+        # Hide for closed statuses
+        if status in ("Rejected", "Withdrawn"):
+            self.next_step_frame.pack_forget()
+            return
+
+        # Check for un-messaged referral
+        ref_names = parse_semicolons(row.get("Referral Names", ""))
+        ref_statuses = parse_semicolons(row.get("Referral Statuses", ""))
+        unmessaged_name = None
+        for i, name in enumerate(ref_names):
+            stat = ref_statuses[i].strip().lower() if i < len(ref_statuses) else ""
+            if not stat or "not yet" in stat:
+                unmessaged_name = name
+                break
+
+        next_text = None
+
+        if unmessaged_name:
+            next_text = f"\u27a4  Next: Message {unmessaged_name} on LinkedIn"
+        elif status == "Not Yet Applied":
+            cl = row.get("Cover Letter Written", "").strip().lower()
+            rv = row.get("Resume Version", "").strip()
+            if cl != "yes":
+                next_text = "\u27a4  Next: Write cover letter"
+            elif not rv:
+                next_text = "\u27a4  Next: Choose resume version"
+            else:
+                next_text = "\u27a4  Next: Submit application"
+        elif status == "Applied":
+            date_str = row.get("Date Applied", "").strip()
+            days_ago = None
+            if date_str:
+                try:
+                    applied = datetime.strptime(date_str, "%Y-%m-%d")
+                    days_ago = (datetime.now() - applied).days
+                except ValueError:
+                    pass
+            if days_ago is not None and days_ago >= 21:
+                next_text = "\u27a4  Next: Follow up on application"
+            else:
+                next_text = "\u27a4  Next: Waiting on response"
+        elif status == "Interview":
+            next_text = "\u27a4  Next: Prepare for interview"
+        elif status == "Offer":
+            next_text = "\u27a4  Next: Evaluate offer"
+
+        if next_text:
+            self.next_step_label.config(text=next_text)
+            self.next_step_frame.pack_forget()
+            # Pack after incomplete_frame if visible, else after header
+            if self.incomplete_frame.winfo_manager():
+                self.next_step_frame.pack(
+                    fill=X, padx=4, pady=(0, 2),
+                    after=self.incomplete_frame,
+                )
+            else:
+                self.next_step_frame.pack(
+                    fill=X, padx=4, pady=(0, 2),
+                    after=self.header_frame,
+                )
+        else:
+            self.next_step_frame.pack_forget()
 
     # -----------------------------------------------------------------------
     # Add referral popup
@@ -1203,6 +1513,399 @@ class TrackerApp:
         dlg.bind("<Return>", lambda e: _add())
 
     # -----------------------------------------------------------------------
+    # Edit referral popup
+    # -----------------------------------------------------------------------
+    def _edit_referral_popup(self):
+        if self.selected_idx is None:
+            messagebox.showwarning("No selection", "Select a job first.")
+            return
+
+        if self._selected_referral_idx is None:
+            messagebox.showwarning("No referral selected", "Click a referral to select it, then click Edit.")
+            return
+
+        ref_idx = self._selected_referral_idx
+        row = self.rows[self.selected_idx]
+
+        names = parse_semicolons(row.get("Referral Names", ""))
+        linkedins = parse_semicolons(row.get("Referral LinkedIns", ""))
+        connections = parse_semicolons(row.get("Referral Connections", ""))
+        statuses = parse_semicolons(row.get("Referral Statuses", ""))
+
+        cur_name = names[ref_idx] if ref_idx < len(names) else ""
+        cur_li = linkedins[ref_idx] if ref_idx < len(linkedins) else ""
+        cur_conn = connections[ref_idx] if ref_idx < len(connections) else ""
+        cur_stat = statuses[ref_idx] if ref_idx < len(statuses) else ""
+
+        dlg = tk.Toplevel(self.root)
+        dlg.title(f"Edit Referral - {cur_name}")
+        dlg.transient(self.root)
+
+        w, h = 500, 320
+        parent_x = self.root.winfo_rootx()
+        parent_y = self.root.winfo_rooty()
+        parent_w = self.root.winfo_width()
+        parent_h = self.root.winfo_height()
+        x = parent_x + (parent_w - w) // 2
+        y = parent_y + (parent_h - h) // 2
+        dlg.geometry(f"{w}x{h}+{x}+{y}")
+        dlg.minsize(400, 280)
+
+        dlg.grab_set()
+        dlg.attributes("-topmost", True)
+
+        body = ttk.Frame(dlg, padding=16)
+        body.pack(fill=BOTH, expand=True)
+
+        ttk.Label(body, text="Name:").grid(
+            row=0, column=0, sticky="e", padx=(0, 8), pady=(0, 6),
+        )
+        name_entry = ttk.Entry(body, width=32)
+        name_entry.grid(row=0, column=1, sticky="ew", pady=(0, 6))
+        name_entry.insert(0, cur_name)
+        name_entry.focus_set()
+
+        ttk.Label(body, text="LinkedIn URL:").grid(
+            row=1, column=0, sticky="e", padx=(0, 8), pady=(0, 6),
+        )
+        li_entry = ttk.Entry(body, width=32)
+        li_entry.grid(row=1, column=1, sticky="ew", pady=(0, 6))
+        li_entry.insert(0, cur_li)
+
+        ttk.Label(body, text="Connection:").grid(
+            row=2, column=0, sticky="e", padx=(0, 8), pady=(0, 6),
+        )
+        conn_combo = ttk.Combobox(
+            body, values=self.CONNECTION_OPTIONS, width=14,
+        )
+        conn_combo.set(cur_conn)
+        conn_combo.grid(row=2, column=1, sticky="w", pady=(0, 6))
+
+        ttk.Label(body, text="Status:").grid(
+            row=3, column=0, sticky="e", padx=(0, 8), pady=(0, 6),
+        )
+        status_combo = ttk.Combobox(
+            body, values=self.REFERRAL_STATUS_OPTIONS, width=28,
+            state="readonly",
+        )
+        if cur_stat in self.REFERRAL_STATUS_OPTIONS:
+            status_combo.set(cur_stat)
+        else:
+            status_combo.set(cur_stat if cur_stat else "Not yet messaged")
+        status_combo.grid(row=3, column=1, sticky="ew", pady=(0, 6))
+
+        body.columnconfigure(1, weight=1)
+
+        def _save():
+            name = name_entry.get().strip()
+            if not name:
+                messagebox.showwarning("Required", "Name is required.", parent=dlg)
+                return
+
+            # Pad lists to match ref_idx if needed
+            while len(names) <= ref_idx:
+                names.append("")
+            while len(linkedins) <= ref_idx:
+                linkedins.append("")
+            while len(connections) <= ref_idx:
+                connections.append("")
+            while len(statuses) <= ref_idx:
+                statuses.append("")
+
+            names[ref_idx] = name
+            linkedins[ref_idx] = li_entry.get().strip()
+            connections[ref_idx] = conn_combo.get().strip()
+            statuses[ref_idx] = status_combo.get().strip()
+
+            row["Referral Names"] = "; ".join(names)
+            row["Referral LinkedIns"] = "; ".join(linkedins)
+            row["Referral Connections"] = "; ".join(connections)
+            row["Referral Statuses"] = "; ".join(statuses)
+
+            for field in ("Referral Names", "Referral LinkedIns",
+                          "Referral Connections", "Referral Statuses"):
+                widget = self.field_widgets[field]
+                widget.delete(0, END)
+                widget.insert(0, row[field])
+
+            try:
+                write_tracker(self.csv_path, self.rows)
+            except Exception as e:
+                messagebox.showerror("Save failed", str(e), parent=dlg)
+                return
+
+            self._refresh_referral_display(row)
+            self._refresh_list()
+            dlg.destroy()
+
+        btn_frame = ttk.Frame(body)
+        btn_frame.grid(row=4, column=0, columnspan=2, pady=(12, 0))
+        ttk.Button(
+            btn_frame, text="Save", command=_save,
+            bootstyle="success", padding=(16, 4),
+        ).pack(side=LEFT, padx=(0, 6))
+        ttk.Button(
+            btn_frame, text="Cancel", command=dlg.destroy,
+            bootstyle="secondary", padding=(16, 4),
+        ).pack(side=LEFT)
+        dlg.bind("<Return>", lambda e: _save())
+
+    # -----------------------------------------------------------------------
+    # Draft LinkedIn message popup
+    # -----------------------------------------------------------------------
+    def _draft_message_popup(self):
+        if self.selected_idx is None:
+            messagebox.showwarning("No selection", "Select a job first.")
+            return
+
+        if self._selected_referral_idx is None:
+            messagebox.showwarning(
+                "No referral selected",
+                "Click a referral to select it, then click Draft Message.",
+            )
+            return
+
+        ref_idx = self._selected_referral_idx
+        row = self.rows[self.selected_idx]
+
+        names = parse_semicolons(row.get("Referral Names", ""))
+        connections = parse_semicolons(row.get("Referral Connections", ""))
+
+        name = names[ref_idx] if ref_idx < len(names) else ""
+        conn = connections[ref_idx] if ref_idx < len(connections) else ""
+        first_name = name.split()[0] if name else "there"
+
+        company = row.get("Company", "the company")
+        role = row.get("Role", "the role")
+
+        # Generate message based on connection type
+        conn_lower = conn.strip().lower()
+        if conn_lower == "gt":
+            message = (
+                f"Hi {first_name}, I hope you're doing well! "
+                f"I am also a GT MS student, finishing up this June. "
+                f"I came across the {role} role at {company} and it really "
+                f"stood out to me. How has your experience been? "
+                f"If you are open to it, I would greatly appreciate a referral."
+            )
+        elif conn_lower == "ucla":
+            message = (
+                f"Hi {first_name}, I hope you're doing well! "
+                f"I am also a UCLA alum, finishing up my MS at Georgia Tech "
+                f"this June. I came across the {role} role at {company} and "
+                f"it really stood out to me. How has your experience been? "
+                f"If you are open to it, I would greatly appreciate a referral."
+            )
+        else:
+            message = (
+                f"Hi {first_name}, I hope you're doing well! "
+                f"I am finishing up my MS at Georgia Tech this June. "
+                f"I came across the {role} role at {company} and it really "
+                f"stood out to me. How has your experience been? "
+                f"If you are open to it, I would greatly appreciate a referral."
+            )
+
+        # Build popup
+        dlg = tk.Toplevel(self.root)
+        dlg.title(f"Draft Message - {name}")
+        dlg.transient(self.root)
+
+        w, h = 520, 320
+        parent_x = self.root.winfo_rootx()
+        parent_y = self.root.winfo_rooty()
+        parent_w = self.root.winfo_width()
+        parent_h = self.root.winfo_height()
+        x = parent_x + (parent_w - w) // 2
+        y = parent_y + (parent_h - h) // 2
+        dlg.geometry(f"{w}x{h}+{x}+{y}")
+        dlg.minsize(400, 260)
+
+        dlg.grab_set()
+        dlg.attributes("-topmost", True)
+
+        body = ttk.Frame(dlg, padding=16)
+        body.pack(fill=BOTH, expand=True)
+
+        ttk.Label(
+            body, text=f"LinkedIn message for {name}",
+            font=("", 11, "bold"), bootstyle="info",
+        ).pack(anchor="w", pady=(0, 8))
+
+        text_widget = tk.Text(
+            body, wrap=tk.WORD, font=("", 10), height=8,
+            bg=str(self.colors.inputbg),
+            fg=str(self.colors.inputfg),
+            insertbackground=str(self.colors.inputfg),
+            selectbackground=str(self.colors.selectbg),
+            selectforeground=str(self.colors.selectfg),
+            relief="flat", borderwidth=2,
+        )
+        text_widget.insert("1.0", message)
+        text_widget.configure(state="disabled")
+        text_widget.pack(fill=BOTH, expand=True, pady=(0, 8))
+
+        btn_frame = ttk.Frame(body)
+        btn_frame.pack(fill=X)
+
+        copy_btn = ttk.Button(
+            btn_frame, text="Copy to Clipboard",
+            bootstyle="success", padding=(12, 4),
+        )
+        copy_btn.pack(side=LEFT, padx=(0, 6))
+
+        def _copy():
+            content = text_widget.get("1.0", END).strip()
+            self.root.clipboard_clear()
+            self.root.clipboard_append(content)
+            copy_btn.config(text="Copied!")
+            dlg.after(1500, lambda: copy_btn.config(text="Copy to Clipboard"))
+
+        copy_btn.config(command=_copy)
+
+        edit_btn = ttk.Button(
+            btn_frame, text="Edit",
+            bootstyle="info-outline", padding=(12, 4),
+        )
+        edit_btn.pack(side=LEFT, padx=(0, 6))
+
+        def _toggle_edit():
+            if text_widget.cget("state") == "disabled":
+                text_widget.configure(state="normal")
+                edit_btn.config(text="Lock")
+            else:
+                text_widget.configure(state="disabled")
+                edit_btn.config(text="Edit")
+
+        edit_btn.config(command=_toggle_edit)
+
+        ttk.Button(
+            btn_frame, text="Close", command=dlg.destroy,
+            bootstyle="secondary", padding=(12, 4),
+        ).pack(side=RIGHT)
+
+    # -----------------------------------------------------------------------
+    # Fetch confirmation popup (shared by New Job + Detail tab)
+    # -----------------------------------------------------------------------
+    def _show_fetch_results(self, details, parent, apply_callback):
+        """Show what was fetched and let the user pick which fields to apply.
+
+        details: dict from fetch_job_details()
+        parent: the parent window (dialog or root)
+        apply_callback: called with a dict of only the checked fields
+        """
+        # Filter to fields that actually have values
+        field_labels = {
+            "company": "Company",
+            "role": "Role",
+            "location": "Location",
+            "job_id": "Job ID",
+        }
+        found = {k: v for k, v in details.items() if v and k in field_labels}
+
+        if not found:
+            messagebox.showinfo(
+                "No data found",
+                "Could not extract any job details from this URL.",
+                parent=parent,
+            )
+            return
+
+        dlg = tk.Toplevel(parent)
+        dlg.title("Fetched Job Details")
+        dlg.transient(parent)
+        dlg.grab_set()
+        dlg.attributes("-topmost", True)
+
+        w, h = 420, 60 + len(found) * 40 + 50
+        px = parent.winfo_rootx() + (parent.winfo_width() - w) // 2
+        py = parent.winfo_rooty() + (parent.winfo_height() - h) // 2
+        dlg.geometry(f"{w}x{h}+{px}+{py}")
+        dlg.resizable(False, False)
+
+        body = ttk.Frame(dlg, padding=16)
+        body.pack(fill=BOTH, expand=True)
+
+        ttk.Label(
+            body, text="Check the fields you want to apply:",
+            font=("", 10), bootstyle="secondary",
+        ).pack(anchor="w", pady=(0, 8))
+
+        checks = {}
+        for key, value in found.items():
+            var = tk.BooleanVar(value=True)
+            cb = ttk.Checkbutton(
+                body,
+                text=f"{field_labels[key]}:  {value}",
+                variable=var,
+                bootstyle="round-toggle",
+            )
+            cb.pack(anchor="w", pady=2)
+            checks[key] = var
+
+        def _apply():
+            selected = {k: details[k] for k, var in checks.items() if var.get()}
+            dlg.destroy()
+            if selected:
+                apply_callback(selected)
+
+        btn_frame = ttk.Frame(body)
+        btn_frame.pack(pady=(12, 0))
+        ttk.Button(
+            btn_frame, text="Apply", command=_apply,
+            bootstyle="success", padding=(16, 4),
+        ).pack(side=LEFT, padx=(0, 6))
+        ttk.Button(
+            btn_frame, text="Cancel", command=dlg.destroy,
+            bootstyle="secondary", padding=(16, 4),
+        ).pack(side=LEFT)
+
+    # -----------------------------------------------------------------------
+    # Fetch from Detail tab's Job URL field
+    # -----------------------------------------------------------------------
+    def _fetch_from_detail_url(self):
+        if self.selected_idx is None:
+            messagebox.showwarning("No selection", "Select a job first.")
+            return
+
+        url = self.field_widgets["Job URL"].get().strip()
+        if not url:
+            messagebox.showwarning("No URL", "Enter a URL in the Job URL field first.")
+            return
+
+        # Map fetch result keys to Detail tab field widgets
+        widget_map = {
+            "company": None,       # Company is in the header, not an editable field
+            "role": None,          # Same for Role
+            "location": "Location",
+            "job_id": "Job ID",
+        }
+
+        def _apply_fields(selected):
+            for key, value in selected.items():
+                field_name = widget_map.get(key)
+                if not field_name:
+                    continue
+                widget = self.field_widgets.get(field_name)
+                if widget:
+                    widget.delete(0, END)
+                    widget.insert(0, value)
+
+        def _background():
+            try:
+                details = fetch_job_details(url)
+            except Exception as e:
+                self.root.after(0, lambda: messagebox.showwarning(
+                    "Fetch failed",
+                    f"Could not extract job details:\n{e}",
+                ))
+                return
+            self.root.after(0, lambda: self._show_fetch_results(
+                details, self.root, _apply_fields,
+            ))
+
+        threading.Thread(target=_background, daemon=True).start()
+
+    # -----------------------------------------------------------------------
     # Save current job
     # -----------------------------------------------------------------------
     def _save_current(self):
@@ -1271,29 +1974,107 @@ class TrackerApp:
 
         dlg = tk.Toplevel(self.root)
         dlg.title("New Job")
-        dlg.geometry("380x180")
-        dlg.resizable(False, False)
         dlg.transient(self.root)
         dlg.grab_set()
+
+        # Size and center on parent window
+        w, h = 480, 260
+        parent_x = self.root.winfo_rootx()
+        parent_y = self.root.winfo_rooty()
+        parent_w = self.root.winfo_width()
+        parent_h = self.root.winfo_height()
+        x = parent_x + (parent_w - w) // 2
+        y = parent_y + (parent_h - h) // 2
+        dlg.geometry(f"{w}x{h}+{x}+{y}")
+        dlg.minsize(400, 240)
 
         body = ttk.Frame(dlg, padding=16)
         body.pack(fill=BOTH, expand=True)
 
-        ttk.Label(body, text="Company:").grid(
+        # Row 0: URL + Fetch
+        ttk.Label(body, text="URL:").grid(
             row=0, column=0, padx=(0, 8), pady=(0, 6), sticky="e",
         )
-        company_entry = ttk.Entry(body, width=30)
-        company_entry.grid(row=0, column=1, pady=(0, 6), sticky="ew")
-        company_entry.focus_set()
+        url_frame = ttk.Frame(body)
+        url_frame.grid(row=0, column=1, pady=(0, 6), sticky="ew")
+        url_entry = ttk.Entry(url_frame, width=34)
+        url_entry.pack(side=LEFT, fill=X, expand=True)
+        url_entry.focus_set()
 
-        ttk.Label(body, text="Role:").grid(
+        fetch_btn = ttk.Button(url_frame, text="Fetch", bootstyle="info", padding=(8, 2))
+        fetch_btn.pack(side=LEFT, padx=(6, 0))
+
+        # Row 1: Company
+        ttk.Label(body, text="Company:").grid(
             row=1, column=0, padx=(0, 8), pady=(0, 6), sticky="e",
         )
-        role_entry = ttk.Entry(body, width=30)
-        role_entry.grid(row=1, column=1, pady=(0, 6), sticky="ew")
+        company_entry = ttk.Entry(body, width=34)
+        company_entry.grid(row=1, column=1, pady=(0, 6), sticky="ew")
+
+        # Row 2: Role
+        ttk.Label(body, text="Role:").grid(
+            row=2, column=0, padx=(0, 8), pady=(0, 6), sticky="e",
+        )
+        role_entry = ttk.Entry(body, width=34)
+        role_entry.grid(row=2, column=1, pady=(0, 6), sticky="ew")
+
+        # Row 3: Location
+        ttk.Label(body, text="Location:").grid(
+            row=3, column=0, padx=(0, 8), pady=(0, 6), sticky="e",
+        )
+        location_entry = ttk.Entry(body, width=34)
+        location_entry.grid(row=3, column=1, pady=(0, 6), sticky="ew")
 
         body.columnconfigure(1, weight=1)
 
+        # --- Fetch logic (threaded) ---
+        def _do_fetch():
+            raw_url = url_entry.get().strip()
+            if not raw_url:
+                messagebox.showwarning("No URL", "Paste a URL first.", parent=dlg)
+                return
+
+            fetch_btn.config(text="Fetching...", state="disabled")
+
+            def _background():
+                try:
+                    details = fetch_job_details(raw_url)
+                except Exception as e:
+                    dlg.after(0, lambda: _on_fetch_error(str(e)))
+                    return
+                dlg.after(0, lambda: _on_fetch_done(details))
+
+            def _on_fetch_done(details):
+                fetch_btn.config(text="Fetch", state="normal")
+                entry_map = {
+                    "company": company_entry,
+                    "role": role_entry,
+                    "location": location_entry,
+                }
+
+                def _apply_fields(selected):
+                    for key, value in selected.items():
+                        entry = entry_map.get(key)
+                        if entry:
+                            entry.delete(0, END)
+                            entry.insert(0, value)
+
+                self._show_fetch_results(details, dlg, _apply_fields)
+
+            def _on_fetch_error(msg):
+                fetch_btn.config(text="Fetch", state="normal")
+                messagebox.showwarning(
+                    "Fetch failed",
+                    f"Could not extract job details:\n{msg}",
+                    parent=dlg,
+                )
+
+            threading.Thread(target=_background, daemon=True).start()
+
+        fetch_btn.config(command=_do_fetch)
+        url_entry.bind("<Return>", lambda e: _do_fetch())
+
+        # --- Add logic ---
         def _add():
             company = company_entry.get().strip()
             role = role_entry.get().strip()
@@ -1305,6 +2086,8 @@ class TrackerApp:
             new_row = {field: "" for field in FIELDNAMES}
             new_row["Company"] = company
             new_row["Role"] = role
+            new_row["Location"] = location_entry.get().strip()
+            new_row["Job URL"] = url_entry.get().strip()
             new_row["Application Status"] = "Not Yet Applied"
             new_row["Cover Letter Written"] = "No"
             self.rows.append(new_row)
@@ -1328,8 +2111,11 @@ class TrackerApp:
         ttk.Button(
             body, text="Add", command=_add,
             bootstyle="success", padding=(16, 4),
-        ).grid(row=2, column=0, columnspan=2, pady=(12, 0))
-        dlg.bind("<Return>", lambda e: _add())
+        ).grid(row=4, column=0, columnspan=2, pady=(12, 0))
+        # Enter in company/role/location fields triggers Add
+        company_entry.bind("<Return>", lambda e: _add())
+        role_entry.bind("<Return>", lambda e: _add())
+        location_entry.bind("<Return>", lambda e: _add())
 
     # -----------------------------------------------------------------------
     # Remove job
@@ -1377,15 +2163,12 @@ def main():
     else:
         script_dir = os.path.dirname(os.path.abspath(__file__))
     default_csv = os.path.join(script_dir, "job_tracker.csv")
-    parent_csv = os.path.join(script_dir, "..", "job_tracker.csv")
-    if os.path.exists(default_csv):
+    parent_csv = os.path.normpath(os.path.join(script_dir, "..", "job_tracker.csv"))
+    # Check parent directory first (handles running from dist/)
+    if os.path.exists(parent_csv):
+        app._load_file(parent_csv)
+    elif os.path.exists(default_csv):
         app._load_file(default_csv)
-    elif os.path.exists(parent_csv):
-        app._load_file(os.path.normpath(parent_csv))
-    else:
-        write_tracker(default_csv, [])
-        app._load_file(default_csv)
-        messagebox.showinfo("Welcome", f"Created a new tracker at:\n{default_csv}")
 
     root.mainloop()
 
