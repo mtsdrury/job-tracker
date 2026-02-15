@@ -10,7 +10,7 @@ Spreadsheets are the best job tracker for most people, but they get messy fast. 
 
 ### Option 1: Standalone .exe (no Python required)
 
-1. Download `Job Tracker.exe` from the [Releases](https://github.com/mtsdrury/job-tracker/releases) page
+1. Download `Job Tracker.exe` from the root of this repo or the [Releases](https://github.com/mtsdrury/job-tracker/releases) page
 2. Double-click the .exe (it creates a blank `job_tracker.csv` on first run)
 
 ### Option 2: Run from source
@@ -21,12 +21,12 @@ cd job-tracker
 
 # GUI (creates a blank job_tracker.csv on first run)
 pip install ttkbootstrap
-python gui.py
+python src/gui.py
 
 # CLI
-python tracker.py --help
-python tracker.py add --company "Acme Corp" --role "Data Scientist" --location "Los Angeles, CA"
-python tracker.py list
+python src/tracker.py --help
+python src/tracker.py add --company "Acme Corp" --role "Data Scientist" --location "Los Angeles, CA"
+python src/tracker.py list
 ```
 
 ## GUI
@@ -35,7 +35,7 @@ A modern tkinter interface (powered by [ttkbootstrap](https://ttkbootstrap.readt
 
 ```bash
 pip install ttkbootstrap
-python gui.py
+python src/gui.py
 ```
 
 Features:
@@ -50,20 +50,18 @@ Features:
 
 The GUI auto-opens `job_tracker.csv` if it exists in the same directory (or one level up). Otherwise, use the "Open..." button to pick a file.
 
-To change the theme, edit the `THEME` variable at the top of `gui.py`. Options include `darkly`, `superhero`, `cyborg`, `cosmo`, `litera`, and [more](https://ttkbootstrap.readthedocs.io/en/latest/themes/).
+To change the theme, edit the `THEME` variable in `src/gui/constants.py`. Options include `darkly`, `superhero`, `cyborg`, `cosmo`, `litera`, and [more](https://ttkbootstrap.readthedocs.io/en/latest/themes/).
 
-### Standalone .exe (no Python required)
+### Building the .exe
 
-A pre-built Windows executable is available on the [Releases](https://github.com/mtsdrury/job-tracker/releases) page. Download `Job Tracker.exe` and double-click to run. It creates a blank `job_tracker.csv` on first launch if one doesn't exist.
-
-To build the .exe yourself:
+To build the standalone executable yourself:
 
 ```bash
 pip install pyinstaller
-build.bat
+src\packaging\build.bat
 ```
 
-The output lands in `dist/Job Tracker.exe`. The .exe also looks one directory up for `job_tracker.csv`, so you can leave it in `dist/` if your CSV is in the project root.
+The output lands in `dist/Job Tracker.exe` and is automatically copied to the repo root.
 
 ## Column Reference
 
@@ -98,16 +96,16 @@ The output lands in `dist/Job Tracker.exe`. The .exe also looks one directory up
 
 ## CLI Reference
 
-All commands use `python tracker.py <command>`. Use `-f path/to/file.csv` to point at a different CSV file.
+All commands use `python src/tracker.py <command>`. Use `-f path/to/file.csv` to point at a different CSV file.
 
-### `add` — Add a new job
+### `add` -- Add a new job
 
 ```bash
 # Minimal (just company and role)
-python tracker.py add --company "TechStart" --role "ML Engineer"
+python src/tracker.py add --company "TechStart" --role "ML Engineer"
 
 # Full details
-python tracker.py add \
+python src/tracker.py add \
   --company "TechStart" \
   --role "ML Engineer" \
   --location "Remote" \
@@ -131,41 +129,41 @@ python tracker.py add \
 | `--referral` | No | Referral name(s), semicolon-separated |
 | `--notes` | No | Notes |
 
-### `update` — Update a job's fields
+### `update` -- Update a job's fields
 
 ```bash
 # Update status by company name
-python tracker.py update --company "TechStart" --status "Interview"
+python src/tracker.py update --company "TechStart" --status "Interview"
 
 # Update by row number (useful for ambiguous company matches)
-python tracker.py update --row 3 --date-applied today --status "Applied"
+python src/tracker.py update --row 3 --date-applied today --status "Applied"
 
 # Add a referral to an existing job
-python tracker.py update --company "Acme" --referral "Jane Smith" --referral-status "Messaged"
+python src/tracker.py update --company "Acme" --referral "Jane Smith" --referral-status "Messaged"
 
 # Update notes
-python tracker.py update --company "TechStart" --notes "Onsite scheduled for March 1"
+python src/tracker.py update --company "TechStart" --notes "Onsite scheduled for March 1"
 ```
 
 Identify the job with `--company` (case-insensitive substring match) or `--row` (1-based row number). If `--company` matches multiple rows, you'll be prompted to use `--row`.
 
-### `list` — List jobs
+### `list` -- List jobs
 
 ```bash
 # List all jobs
-python tracker.py list
+python src/tracker.py list
 
 # Filter by status
-python tracker.py list --status "Applied"
+python src/tracker.py list --status "Applied"
 
 # Filter by company
-python tracker.py list --company "tech"
+python src/tracker.py list --company "tech"
 ```
 
-### `summary` — Pipeline summary
+### `summary` -- Pipeline summary
 
 ```bash
-python tracker.py summary
+python src/tracker.py summary
 ```
 
 Prints:
@@ -175,14 +173,14 @@ Prints:
 - Cover letter count
 - Applications this week and this month
 
-### `report` — Weekly report
+### `report` -- Weekly report
 
 ```bash
 # Last week
-python tracker.py report
+python src/tracker.py report
 
 # Last 2 weeks
-python tracker.py report --weeks 2
+python src/tracker.py report --weeks 2
 ```
 
 Prints:
@@ -194,17 +192,17 @@ Prints:
   - Un-messaged referrals
   - Large "Not Yet Applied" backlogs
 
-### `remove` — Remove a job
+### `remove` -- Remove a job
 
 ```bash
 # Remove by company (asks for confirmation)
-python tracker.py remove --company "TechStart"
+python src/tracker.py remove --company "TechStart"
 
 # Skip confirmation
-python tracker.py remove --company "TechStart" -y
+python src/tracker.py remove --company "TechStart" -y
 
 # Remove by row number
-python tracker.py remove --row 4
+python src/tracker.py remove --row 4
 ```
 
 ## Job Search Strategy Tips
@@ -215,7 +213,7 @@ python tracker.py remove --row 4
 
 **Quality over quantity.** Five thoughtful, well-researched applications will outperform fifty spray-and-pray submissions. Spend time tailoring your resume and writing targeted cover letters for the roles that actually fit.
 
-**Keep your pipeline clean.** Update statuses promptly after interviews, rejections, or withdrawals. Run `python tracker.py report` weekly to catch stale applications and un-followed-up referrals. A messy tracker defeats the purpose of having one.
+**Keep your pipeline clean.** Update statuses promptly after interviews, rejections, or withdrawals. Run `python src/tracker.py report` weekly to catch stale applications and un-followed-up referrals. A messy tracker defeats the purpose of having one.
 
 ## Contributing
 

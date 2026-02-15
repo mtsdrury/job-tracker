@@ -2,8 +2,11 @@
 /job_tracker.csv
 
 # Keep template and example CSVs
-!template/job_tracker.csv
-!examples/job_tracker_example.csv
+!data/template.csv
+!data/example.csv
+
+# Message templates (user-specific)
+message_templates.json
 
 # Python
 .venv/
@@ -14,7 +17,9 @@ __pycache__/
 dist/
 build/
 *.spec
+!src/packaging/job_tracker.spec
 *.exe
+!/Job Tracker.exe
 
 # OS files
 .DS_Store
