@@ -2,6 +2,8 @@
 
 import os
 import tkinter as tk
+import urllib.parse
+import webbrowser
 from tkinter import messagebox, filedialog
 from datetime import datetime
 
@@ -156,6 +158,11 @@ class DetailTabMixin:
         ttk.Button(
             ref_btn_frame, text="Draft Message", command=self._draft_message_popup,
             bootstyle="warning-outline", padding=(8, 2),
+        ).pack(side=LEFT, padx=(0, 6))
+        ttk.Button(
+            ref_btn_frame, text="Search LinkedIn",
+            command=self._search_linkedin_for_referral,
+            bootstyle="info-outline", padding=(8, 2),
         ).pack(side=LEFT)
 
         # Column headers row (matches data row layout)
@@ -371,6 +378,20 @@ class DetailTabMixin:
 
         # Next step banner
         self._update_next_step_banner(row)
+
+    def _search_linkedin_for_referral(self):
+        """Open LinkedIn people search for the current job's company."""
+        if self.selected_idx is None:
+            messagebox.showwarning("No selection", "Select a job first.")
+            return
+        company = self.rows[self.selected_idx].get("Company", "").strip()
+        if not company:
+            messagebox.showwarning("No company", "This job has no company name.")
+            return
+        query = urllib.parse.quote(company)
+        webbrowser.open(
+            f"https://www.linkedin.com/search/results/people/?keywords={query}",
+        )
 
     def _set_today(self):
         self.date_entry.delete(0, END)

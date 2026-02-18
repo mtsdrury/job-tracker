@@ -12,13 +12,17 @@ from gui.constants import PAD_INNER
 from gui.list_tab import ListTabMixin
 from gui.detail_tab import DetailTabMixin
 from gui.summary_tab import SummaryTabMixin
+from gui.actions_tab import ActionsMixin
 from gui.referrals import ReferralsMixin
 from gui.templates import TemplatesMixin
 from gui.popups import PopupsMixin
+from gui.kanban_tab import KanbanMixin
+from gui.analytics_tab import AnalyticsMixin
 
 
-class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin,
-                 ReferralsMixin, TemplatesMixin, PopupsMixin):
+class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
+                 ReferralsMixin, TemplatesMixin, PopupsMixin, KanbanMixin,
+                 AnalyticsMixin):
 
     def __init__(self, root):
         self.root = root
@@ -67,13 +71,23 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin,
         self.tab_detail = ttk.Frame(self.notebook, padding=6)
         self.notebook.add(self.tab_detail, text="  Detail  ")
 
-        # Tab 3: Summary
+        # Tab 3: Actions
+        self.tab_actions = ttk.Frame(self.notebook, padding=6)
+        self.notebook.add(self.tab_actions, text="  Actions  ")
+
+        # Tab 4: Summary
         self.tab_summary = ttk.Frame(self.notebook, padding=6)
         self.notebook.add(self.tab_summary, text="  Summary  ")
 
+        # Tab 5: Analytics
+        self.tab_analytics = ttk.Frame(self.notebook, padding=6)
+        self.notebook.add(self.tab_analytics, text="  Analytics  ")
+
         self._build_list_tab()
         self._build_detail_tab()
+        self._build_actions_tab()
         self._build_summary_tab()
+        self._build_analytics_tab()
 
         # Refresh summary when its tab is selected
         self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
@@ -86,10 +100,17 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin,
     def _on_mousewheel(self, event):
         """Route mousewheel events to the active tab's scrollable canvas."""
         current_tab = self.notebook.index(self.notebook.select())
+        if current_tab == 0 and getattr(self, '_current_view', 'list') == 'kanban':
+            self._on_kanban_mousewheel(event)
+            return
         if current_tab == 1:
             canvas = self.detail_canvas
         elif current_tab == 2:
+            canvas = self.actions_canvas
+        elif current_tab == 3:
             canvas = self.summary_canvas
+        elif current_tab == 4:
+            canvas = self.analytics_canvas
         else:
             return
 
@@ -105,8 +126,12 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin,
     # -------------------------------------------------------------------
     def _on_tab_changed(self, event):
         current = self.notebook.index(self.notebook.select())
-        if current == 2:  # Summary tab
+        if current == 2:  # Actions tab
+            self._refresh_actions()
+        elif current == 3:  # Summary tab
             self._refresh_summary()
+        elif current == 4:  # Analytics tab
+            self._refresh_analytics()
 
     def _on_double_click(self, event):
         """Double-click a job in the list to open it in the detail tab."""

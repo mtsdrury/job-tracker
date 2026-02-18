@@ -9,7 +9,7 @@ import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 
 from tracker import parse_semicolons, write_tracker
-from gui.helpers import incomplete_fields
+from gui.helpers import incomplete_fields, parse_referral_status
 
 
 class ReferralsMixin:
@@ -17,10 +17,11 @@ class ReferralsMixin:
     REFERRAL_STATUS_OPTIONS = [
         "Not yet messaged",
         "Connect request sent",
-        "Messaged",
-        "Emailed + connected",
-        "Responded - sent resume",
-        "Responded - sharing internally",
+        "Message sent",
+        "Emailed",
+        "Responded",
+        "Resume sent",
+        "Sharing internally",
         "Referral submitted",
     ]
 
@@ -182,7 +183,12 @@ class ReferralsMixin:
             append_field("Referral Names", name)
             append_field("Referral LinkedIns", li_entry.get().strip())
             append_field("Referral Connections", conn_combo.get().strip())
-            append_field("Referral Statuses", status_combo.get().strip())
+
+            chosen_status = status_combo.get().strip()
+            if chosen_status.lower() != "not yet messaged" and chosen_status:
+                from datetime import datetime
+                chosen_status = f"{chosen_status} {datetime.now().strftime('%Y-%m-%d')}"
+            append_field("Referral Statuses", chosen_status)
 
             note = note_entry.get().strip()
             if note:
@@ -259,7 +265,8 @@ class ReferralsMixin:
         cur_name = names[ref_idx] if ref_idx < len(names) else ""
         cur_li = linkedins[ref_idx] if ref_idx < len(linkedins) else ""
         cur_conn = connections[ref_idx] if ref_idx < len(connections) else ""
-        cur_stat = statuses[ref_idx] if ref_idx < len(statuses) else ""
+        cur_stat_raw = statuses[ref_idx] if ref_idx < len(statuses) else ""
+        cur_base, cur_date = parse_referral_status(cur_stat_raw)
 
         dlg = tk.Toplevel(self.root)
         dlg.title(f"Edit Referral - {cur_name}")
@@ -312,10 +319,10 @@ class ReferralsMixin:
             body, values=self.REFERRAL_STATUS_OPTIONS, width=28,
             state="readonly",
         )
-        if cur_stat in self.REFERRAL_STATUS_OPTIONS:
-            status_combo.set(cur_stat)
+        if cur_base in self.REFERRAL_STATUS_OPTIONS:
+            status_combo.set(cur_base)
         else:
-            status_combo.set(cur_stat if cur_stat else "Not yet messaged")
+            status_combo.set(cur_base if cur_base else "Not yet messaged")
         status_combo.grid(row=3, column=1, sticky="ew", pady=(0, 6))
 
         body.columnconfigure(1, weight=1)
@@ -339,7 +346,17 @@ class ReferralsMixin:
             names[ref_idx] = name
             linkedins[ref_idx] = li_entry.get().strip()
             connections[ref_idx] = conn_combo.get().strip()
-            statuses[ref_idx] = status_combo.get().strip()
+
+            new_base = status_combo.get().strip()
+            if new_base.lower() == "not yet messaged":
+                statuses[ref_idx] = new_base
+            elif new_base != cur_base:
+                # Status changed: append today's date
+                from datetime import datetime
+                statuses[ref_idx] = f"{new_base} {datetime.now().strftime('%Y-%m-%d')}"
+            else:
+                # Same base status: keep original string (preserves existing date)
+                statuses[ref_idx] = cur_stat_raw
 
             row["Referral Names"] = "; ".join(names)
             row["Referral LinkedIns"] = "; ".join(linkedins)
@@ -374,7 +391,7 @@ class ReferralsMixin:
         ).pack(side=LEFT)
         dlg.bind("<Return>", lambda e: _save())
 
-    def _draft_message_popup(self):
+    def _draft_message_popup(self, default_tone=None):
         if self.selected_idx is None:
             messagebox.showwarning("No selection", "Select a job first.")
             return
@@ -390,18 +407,17 @@ class ReferralsMixin:
         row = self.rows[self.selected_idx]
 
         names = parse_semicolons(row.get("Referral Names", ""))
+        connections = parse_semicolons(row.get("Referral Connections", ""))
+        linkedins = parse_semicolons(row.get("Referral LinkedIns", ""))
         name = names[ref_idx] if ref_idx < len(names) else ""
+        connection = connections[ref_idx] if ref_idx < len(connections) else ""
+        li_url = linkedins[ref_idx].strip() if ref_idx < len(linkedins) else ""
         first_name = name.split()[0] if name else "there"
         company = row.get("Company", "the company")
         role = row.get("Role", "the role")
 
-        templates = self._load_templates()
-        if not templates:
-            # First-time flow: create a template, then open draft popup
-            def _on_created(template):
-                self._open_draft_with_templates(
-                    first_name, company, role, name, preselect=template["name"],
-                )
-            self._create_template_popup(callback=_on_created)
-        else:
-            self._open_draft_with_templates(first_name, company, role, name)
+        self._open_draft_popup(
+            first_name, company, role, name,
+            connection=connection, default_tone=default_tone,
+            linkedin_url=li_url,
+        )

@@ -1,7 +1,25 @@
 """Helper functions for the GUI: completeness checks, filter logic."""
 
+import re
+
 from tracker import parse_semicolons
 from gui.constants import COMPLETENESS_FIELDS
+
+_DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}$")
+
+
+def parse_referral_status(status_str):
+    """Parse a referral status string into (base_status, date_or_none).
+
+    If the last 10 characters match YYYY-MM-DD, splits them off.
+    Returns e.g. ("Message sent", "2026-02-15") or ("Not yet messaged", None).
+    """
+    s = status_str.strip()
+    if len(s) >= 10 and _DATE_RE.search(s):
+        date_part = s[-10:]
+        base = s[:-10].strip()
+        return (base, date_part) if base else (s, None)
+    return (s, None)
 
 
 def incomplete_fields(row):
@@ -32,17 +50,20 @@ def matches_referral_filter(row, ref_filter):
         if not statuses:
             return True
         for s in statuses:
-            if not s or "not yet" in s.lower():
+            base, _ = parse_referral_status(s)
+            if not base or "not yet" in base.lower():
                 return True
         return False
-    if ref_filter == "Messaged":
+    if ref_filter == "Contacted":
         for s in statuses:
-            if "messaged" in s.lower():
+            base, _ = parse_referral_status(s)
+            if base and "not yet" not in base.lower():
                 return True
         return False
     if ref_filter == "Submitted":
         for s in statuses:
-            if "submitted" in s.lower():
+            base, _ = parse_referral_status(s)
+            if "submitted" in base.lower():
                 return True
         return False
     return True

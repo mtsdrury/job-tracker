@@ -8,6 +8,7 @@ import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 
 from tracker import VALID_STATUSES, parse_semicolons
+from gui.helpers import parse_referral_status
 from gui.constants import (
     PAD_OUTER, PAD_SECTION, PAD_INNER,
     STATUS_BOOTSTYLES, RESUME_BOOTSTYLES,
@@ -315,8 +316,9 @@ class SummaryTabMixin:
 
             # 3. Referrals waiting on response
             for i, name in enumerate(ref_names):
-                stat = ref_statuses[i].strip().lower() if i < len(ref_statuses) else ""
-                if stat in ("messaged", "connect request sent"):
+                raw = ref_statuses[i].strip() if i < len(ref_statuses) else ""
+                base, _ = parse_referral_status(raw)
+                if base.lower() in ("connect request sent", "message sent", "emailed"):
                     items.append((
                         f"Follow up with {name} at {company}",
                         idx,

@@ -35,10 +35,8 @@ RESUME_BOOTSTYLES = {
     "Research Engineer": "warning",
 }
 
-# Message template system
-MAX_TEMPLATES = 10
-TEMPLATES_FILENAME = "message_templates.json"
-TONE_OPTIONS = ["Casual", "Professional", "Friendly Professional"]
+# Message drafting
+TONE_OPTIONS = ["Casual", "Professional", "Friendly Professional", "Follow-up"]
 CONNECTION_TEMPLATES = {
     "GT": "I am also a GT MS student, finishing up this June",
     "UCLA": "I am also a UCLA alum, finishing up my MS at Georgia Tech this June",
@@ -56,12 +54,22 @@ COMPLETENESS_FIELDS = [
     "Notes",
 ]
 
+# Kanban view constants
+KANBAN_CARD_PAD = 6
+KANBAN_CARD_MARGIN = 4
+KANBAN_DRAG_THRESHOLD = 5
+
 # Referral filter options
 REFERRAL_FILTERS = [
     "All",
     "Has Referral",
     "No Referral",
     "Not Yet Messaged",
-    "Messaged",
+    "Contacted",
     "Submitted",
 ]
+
+# Matplotlib chart theme (for dark background)
+CHART_TEXT = "#dee2e6"
+CHART_GRID = "#3a3f47"
+CHART_ACCENT = "#5dade2"

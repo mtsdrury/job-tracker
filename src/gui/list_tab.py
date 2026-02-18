@@ -1,4 +1,4 @@
-"""ListTabMixin: job list tab with treeview, filters, and refresh logic."""
+"""ListTabMixin: job list tab with treeview, kanban toggle, filters, and refresh logic."""
 
 import tkinter as tk
 import tkinter.font as tkfont
@@ -70,16 +70,36 @@ class ListTabMixin:
             bootstyle="secondary-outline",
         ).grid(row=2, column=3, sticky="e", pady=(6, 0), padx=(4, 0))
 
+        # --- View toggle: List / Kanban ---
+        toggle_frame = ttk.Frame(self.tab_list)
+        toggle_frame.pack(fill=X, pady=(0, PAD_INNER))
+
+        self._current_view = "list"
+        self._list_btn = ttk.Button(
+            toggle_frame, text="List", command=self._show_list_view,
+            bootstyle="info", width=8,
+        )
+        self._list_btn.pack(side=LEFT, padx=(0, 2))
+        self._kanban_btn = ttk.Button(
+            toggle_frame, text="Kanban", command=self._show_kanban_view,
+            bootstyle="info-outline", width=8,
+        )
+        self._kanban_btn.pack(side=LEFT)
+
+        # --- View container ---
+        self.view_container = ttk.Frame(self.tab_list)
+        self.view_container.pack(fill=BOTH, expand=True)
+
+        # List view frame (treeview + scrollbar)
+        self.list_view_frame = ttk.Frame(self.view_container)
+        self.list_view_frame.pack(fill=BOTH, expand=True)
+
         # Treeview row height
         self.root.style.configure("Treeview", rowheight=28)
 
-        # Job list treeview
-        list_frame = ttk.Frame(self.tab_list)
-        list_frame.pack(fill=BOTH, expand=True)
-
         columns = ("company", "role", "status", "date_applied")
         self.tree = ttk.Treeview(
-            list_frame, columns=columns, show="headings", selectmode="browse",
+            self.list_view_frame, columns=columns, show="headings", selectmode="browse",
         )
         self.tree.heading("company", text="Company")
         self.tree.heading("role", text="Role")
@@ -91,7 +111,7 @@ class ListTabMixin:
         self.tree.column("date_applied", width=100, minwidth=80)
 
         scrollbar = ttk.Scrollbar(
-            list_frame, orient=VERTICAL, command=self.tree.yview,
+            self.list_view_frame, orient=VERTICAL, command=self.tree.yview,
         )
         self.tree.configure(yscrollcommand=scrollbar.set)
         self.tree.pack(side=LEFT, fill=BOTH, expand=True)
@@ -111,6 +131,11 @@ class ListTabMixin:
                 self.tree.tag_configure(tag, foreground=color, font=strike_font)
             else:
                 self.tree.tag_configure(tag, foreground=color)
+
+        # Kanban view frame (built by KanbanMixin._build_kanban_view)
+        self.kanban_view_frame = ttk.Frame(self.view_container)
+        # Not packed by default; _show_kanban_view will pack it
+        self._build_kanban_view()
 
         # Status bar
         self.list_status_bar = ttk.Label(
@@ -135,6 +160,34 @@ class ListTabMixin:
             bootstyle="info-outline",
         ).pack(side=LEFT)
 
+    # ------------------------------------------------------------------
+    # View toggle methods
+    # ------------------------------------------------------------------
+    def _show_list_view(self):
+        """Switch to the list (treeview) view."""
+        if self._current_view == "list":
+            return
+        self._current_view = "list"
+        self.kanban_view_frame.pack_forget()
+        self.list_view_frame.pack(fill=BOTH, expand=True)
+        self._list_btn.configure(bootstyle="info")
+        self._kanban_btn.configure(bootstyle="info-outline")
+        self._refresh_list()
+
+    def _show_kanban_view(self):
+        """Switch to the kanban board view."""
+        if self._current_view == "kanban":
+            return
+        self._current_view = "kanban"
+        self.list_view_frame.pack_forget()
+        self.kanban_view_frame.pack(fill=BOTH, expand=True)
+        self._list_btn.configure(bootstyle="info-outline")
+        self._kanban_btn.configure(bootstyle="info")
+        self._refresh_kanban()
+
+    # ------------------------------------------------------------------
+    # Filters and refresh
+    # ------------------------------------------------------------------
     def _clear_filters(self):
         self.status_filter.set("All")
         self.referral_filter.set("All")
@@ -195,3 +248,7 @@ class ListTabMixin:
             self.list_status_bar.config(text=f"{total} jobs")
         else:
             self.list_status_bar.config(text=f"Showing {filtered} of {total} jobs")
+
+        # Keep kanban in sync when it's the active view
+        if getattr(self, '_current_view', 'list') == 'kanban':
+            self._refresh_kanban()

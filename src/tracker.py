@@ -472,7 +472,7 @@ def cmd_summary(args):
 
     # Referral stats
     has_referral = 0
-    referral_messaged = 0
+    referral_contacted = 0
     referral_submitted = 0
     for row in rows:
         names = parse_semicolons(row.get("Referral Names", ""))
@@ -480,16 +480,20 @@ def cmd_summary(args):
         if names:
             has_referral += 1
         for rs in statuses:
-            rs_lower = rs.lower()
-            if "messaged" in rs_lower or "submitted" in rs_lower:
-                referral_messaged += 1
-            if "submitted" in rs_lower:
+            rs_lower = rs.strip().lower()
+            # Strip trailing date (YYYY-MM-DD) if present
+            base = rs_lower
+            if len(rs_lower) >= 10 and re.match(r"\d{4}-\d{2}-\d{2}$", rs_lower[-10:]):
+                base = rs_lower[:-10].strip()
+            if base and "not yet" not in base:
+                referral_contacted += 1
+            if "submitted" in base:
                 referral_submitted += 1
 
     print(f"\nReferrals:")
     print(f"  Jobs with referrals: {has_referral}/{total}")
     if has_referral > 0:
-        print(f"  Referrals messaged:  {referral_messaged}")
+        print(f"  Referrals contacted: {referral_contacted}")
         print(f"  Referrals submitted: {referral_submitted}")
         hit_rate = has_referral / total * 100
         print(f"  Referral hit rate:   {hit_rate:.0f}%")
