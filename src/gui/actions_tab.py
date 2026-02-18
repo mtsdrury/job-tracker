@@ -10,7 +10,10 @@ import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 
 from tracker import parse_semicolons, write_tracker
-from gui.constants import PAD_OUTER, PAD_SECTION, PAD_INNER
+from gui.constants import (
+    PAD_OUTER, PAD_SECTION, PAD_INNER,
+    ACTION_SORT_OPTIONS, ACTION_PRIORITIES,
+)
 from gui.helpers import incomplete_fields, parse_referral_status
 
 # Accent colors per action type
@@ -20,17 +23,8 @@ _COLORS = {
     "find_referral": "#adb5bd",
     "write_cl": "#5dade2",
     "submit_app": "#58d68d",
+    "followup_app": "#5dade2",
     "fill_missing": "#adb5bd",
-}
-
-# Sort priority (lower = higher urgency)
-_PRIORITY = {
-    "message_referral": 1,
-    "followup_referral": 2,
-    "find_referral": 3,
-    "write_cl": 4,
-    "submit_app": 5,
-    "fill_missing": 6,
 }
 
 # Outreach statuses that trigger follow-up after 3 days
@@ -71,11 +65,28 @@ class ActionsMixin:
         self.actions_canvas.pack(side=LEFT, fill=BOTH, expand=True)
         actions_scroll.pack(side=RIGHT, fill=Y)
 
-        # Header
+        # Header row with sort dropdown
+        header_row = ttk.Frame(self.actions_inner)
+        header_row.pack(fill=X, padx=PAD_OUTER, pady=(PAD_OUTER, 4))
+
         ttk.Label(
-            self.actions_inner, text="Actions",
+            header_row, text="Actions",
             font=("", 16, "bold"), bootstyle="primary",
-        ).pack(anchor="w", padx=PAD_OUTER, pady=(PAD_OUTER, 4))
+        ).pack(side=LEFT)
+
+        # Sort strategy dropdown
+        self._action_sort_strategy = ACTION_SORT_OPTIONS[0]
+        ttk.Label(
+            header_row, text="Sort:", bootstyle="secondary", font=("", 10),
+        ).pack(side=RIGHT, padx=(0, 4))
+        self._action_sort_combo = ttk.Combobox(
+            header_row, values=ACTION_SORT_OPTIONS, state="readonly", width=18,
+        )
+        self._action_sort_combo.set(self._action_sort_strategy)
+        self._action_sort_combo.pack(side=RIGHT)
+        self._action_sort_combo.bind(
+            "<<ComboboxSelected>>", self._on_action_sort_changed,
+        )
 
         self.actions_subtitle = ttk.Label(
             self.actions_inner, text="0 action items",
@@ -118,11 +129,33 @@ class ActionsMixin:
 
         for idx, row in enumerate(self.rows):
             status = row.get("Application Status", "Not Yet Applied").strip()
-            if status in ("Applied", "Rejected", "Withdrawn"):
+            if status in ("Rejected", "Withdrawn"):
                 continue
 
             company = row.get("Company", "")
             role = row.get("Role", "")
+
+            # Applied jobs only generate follow-up actions
+            if status == "Applied":
+                date_str = row.get("Date Applied", "").strip()
+                if date_str:
+                    try:
+                        applied_date = datetime.strptime(date_str, "%Y-%m-%d")
+                        days_since = (today - applied_date).days
+                        if days_since >= 14:
+                            job_url = row.get("Job URL", "").strip()
+                            items.append((
+                                "followup_app",
+                                f"Follow up on application: {company}",
+                                f"{role} ({days_since} days since applied)",
+                                idx,
+                                {"company": company, "role": role,
+                                 "days_since": days_since, "job_url": job_url},
+                            ))
+                    except ValueError:
+                        pass
+                continue
+
             ref_names = parse_semicolons(row.get("Referral Names", ""))
             ref_statuses = parse_semicolons(row.get("Referral Statuses", ""))
             ref_connections = parse_semicolons(row.get("Referral Connections", ""))
@@ -189,19 +222,29 @@ class ActionsMixin:
                         {"company": company, "role": role, "job_url": job_url},
                     ))
 
-            # 5. Submit application (has resume + CL, still Not Yet Applied)
+            # 5. Submit application (has resume + CL + URL, still Not Yet Applied)
             if status == "Not Yet Applied":
                 rv = row.get("Resume Version", "").strip()
                 cl = row.get("Cover Letter Written", "").strip().lower()
-                if rv and cl == "yes":
-                    job_url = row.get("Job URL", "").strip()
+                job_url = row.get("Job URL", "").strip()
+                if rv and cl == "yes" and job_url:
+                    date_posted = row.get("Date Posted", "").strip()
+                    days_since_posted = None
+                    if date_posted:
+                        try:
+                            posted = datetime.strptime(date_posted, "%Y-%m-%d")
+                            days_since_posted = (today - posted).days
+                        except ValueError:
+                            pass
                     items.append((
                         "submit_app",
                         f"Submit application: {company}",
                         role,
                         idx,
                         {"company": company, "role": role,
-                         "resume_version": rv, "job_url": job_url},
+                         "resume_version": rv, "job_url": job_url,
+                         "date_posted": date_posted,
+                         "days_since_posted": days_since_posted},
                     ))
 
             # 6. Fill missing info
@@ -220,8 +263,9 @@ class ActionsMixin:
                     {"company": company, "role": role, "missing": missing},
                 ))
 
-        # Sort by priority tier, then newest jobs first within each tier
-        items.sort(key=lambda item: (_PRIORITY.get(item[0], 99), -item[3]))
+        # Sort by selected strategy, then newest jobs first within each tier
+        priorities = ACTION_PRIORITIES.get(self._action_sort_strategy, ACTION_PRIORITIES["Closest to Done"])
+        items.sort(key=lambda item: (priorities.get(item[0], 99), -item[3]))
 
         # Update subtitle
         count = len(items)
@@ -378,6 +422,8 @@ class ActionsMixin:
             self._detail_message_referral(frame, card_bg, row_idx, extra)
         elif action_type == "followup_referral":
             self._detail_followup_referral(frame, card_bg, row_idx, extra)
+        elif action_type == "followup_app":
+            self._detail_followup_app(frame, card_bg, row_idx, extra)
         elif action_type == "write_cl":
             self._detail_write_cl(frame, card_bg, row_idx, extra)
         elif action_type == "find_referral":
@@ -560,20 +606,35 @@ class ActionsMixin:
             bg=bg, fg="#adb5bd", anchor="w",
         ).pack(anchor="w")
 
+        days = extra.get("days_since_posted")
+        if days is not None and days > 7:
+            urgency_color = "#ec7063" if days > 14 else "#f5b041"
+            tk.Label(
+                info_frame,
+                text=f"\u26a0  Posted {days} days ago ({extra['date_posted']})",
+                font=("", 9, "bold"), bg=bg, fg=urgency_color, anchor="w",
+            ).pack(anchor="w", pady=(2, 0))
+        elif extra.get("date_posted"):
+            tk.Label(
+                info_frame,
+                text=f"Posted: {extra['date_posted']}"
+                     + (f" ({days}d ago)" if days is not None else ""),
+                font=("", 9), bg=bg, fg="#adb5bd", anchor="w",
+            ).pack(anchor="w")
+
         btn_frame = tk.Frame(frame, bg=bg)
         btn_frame.pack(fill=X, pady=(8, 0))
 
-        if extra["job_url"]:
-            ttk.Button(
-                btn_frame, text="Open Job Posting",
-                bootstyle="info-outline", padding=(10, 3),
-                command=lambda: self._action_open_url(extra["job_url"]),
-            ).pack(side=LEFT, padx=(0, 6))
+        ttk.Button(
+            btn_frame, text="Go to Details",
+            bootstyle="secondary-outline", padding=(10, 3),
+            command=lambda: self._action_open_detail(row_idx),
+        ).pack(side=LEFT, padx=(0, 6))
 
         ttk.Button(
-            btn_frame, text="Mark as Applied",
+            btn_frame, text="Apply",
             bootstyle="success-outline", padding=(10, 3),
-            command=lambda: self._action_mark_applied(row_idx),
+            command=lambda: self._action_open_url(extra["job_url"]),
         ).pack(side=LEFT)
 
     def _detail_fill_missing(self, frame, bg, row_idx, extra):
@@ -602,6 +663,48 @@ class ActionsMixin:
             bootstyle="secondary-outline", padding=(10, 3),
             command=lambda: self._action_open_detail(row_idx),
         ).pack(side=LEFT)
+
+    def _detail_followup_app(self, frame, bg, row_idx, extra):
+        info_frame = tk.Frame(frame, bg=bg)
+        info_frame.pack(fill=X)
+
+        tk.Label(
+            info_frame, text=f"Company: {extra['company']}", font=("", 9),
+            bg=bg, fg="#dee2e6", anchor="w",
+        ).pack(anchor="w")
+        tk.Label(
+            info_frame, text=f"Role: {extra['role']}", font=("", 9),
+            bg=bg, fg="#adb5bd", anchor="w",
+        ).pack(anchor="w")
+        tk.Label(
+            info_frame,
+            text=f"Applied {extra['days_since']} days ago",
+            font=("", 9), bg=bg, fg="#5dade2", anchor="w",
+        ).pack(anchor="w")
+
+        btn_frame = tk.Frame(frame, bg=bg)
+        btn_frame.pack(fill=X, pady=(8, 0))
+
+        if extra["job_url"]:
+            ttk.Button(
+                btn_frame, text="Open Job Posting",
+                bootstyle="info-outline", padding=(10, 3),
+                command=lambda: self._action_open_url(extra["job_url"]),
+            ).pack(side=LEFT, padx=(0, 6))
+
+        ttk.Button(
+            btn_frame, text="Open in Detail",
+            bootstyle="secondary-outline", padding=(10, 3),
+            command=lambda: self._action_open_detail(row_idx),
+        ).pack(side=LEFT)
+
+    # ------------------------------------------------------------------
+    # Sort strategy handler
+    # ------------------------------------------------------------------
+    def _on_action_sort_changed(self, event=None):
+        """Update sort strategy from dropdown and refresh action cards."""
+        self._action_sort_strategy = self._action_sort_combo.get()
+        self._refresh_actions()
 
     # ------------------------------------------------------------------
     # Quick action handlers

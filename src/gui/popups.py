@@ -25,6 +25,7 @@ class PopupsMixin:
             "role": "Role",
             "location": "Location",
             "job_id": "Job ID",
+            "date_posted": "Date Posted",
         }
         found = {k: v for k, v in details.items() if v and k in field_labels}
 
@@ -101,6 +102,7 @@ class PopupsMixin:
             "role": None,          # Same for Role
             "location": "Location",
             "job_id": "Job ID",
+            "date_posted": "Date Posted",
         }
 
         def _apply_fields(selected):
@@ -188,6 +190,9 @@ class PopupsMixin:
 
         body.columnconfigure(1, weight=1)
 
+        # Track fetched date_posted (not shown in form but saved with the row)
+        _fetched_date_posted = ""
+
         # --- Fetch logic (threaded) ---
         def _do_fetch():
             raw_url = url_entry.get().strip()
@@ -207,6 +212,9 @@ class PopupsMixin:
 
             def _on_fetch_done(details):
                 fetch_btn.config(text="Fetch", state="normal")
+                # Store date_posted from fetch for use when creating the row
+                nonlocal _fetched_date_posted
+                _fetched_date_posted = details.get("date_posted", "")
                 entry_map = {
                     "company": company_entry,
                     "role": role_entry,
@@ -249,6 +257,7 @@ class PopupsMixin:
             new_row["Role"] = role
             new_row["Location"] = location_entry.get().strip()
             new_row["Job URL"] = url_entry.get().strip()
+            new_row["Date Posted"] = _fetched_date_posted
             new_row["Application Status"] = "Not Yet Applied"
             new_row["Cover Letter Written"] = "No"
             self.rows.append(new_row)

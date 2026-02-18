@@ -1,14 +1,12 @@
-"""SummaryTabMixin: pipeline dashboard, stats, and action items."""
+"""SummaryTabMixin: pipeline dashboard with analytics charts."""
 
 import tkinter as tk
-import tkinter.font as tkfont
 from datetime import datetime, timedelta
 
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 
 from tracker import VALID_STATUSES, parse_semicolons
-from gui.helpers import parse_referral_status
 from gui.constants import (
     PAD_OUTER, PAD_SECTION, PAD_INNER,
     STATUS_BOOTSTYLES, RESUME_BOOTSTYLES,
@@ -51,7 +49,7 @@ class SummaryTabMixin:
 
         # --- Header ---
         ttk.Label(
-            self.summary_inner, text="Pipeline Summary",
+            self.summary_inner, text="Analytics",
             font=("", 16, "bold"), bootstyle="primary",
         ).pack(anchor="w", padx=PAD_OUTER, pady=(PAD_OUTER, 4))
 
@@ -171,15 +169,11 @@ class SummaryTabMixin:
         )
         self.activity_month_label.pack(side=LEFT)
 
-        # --- Action Items ---
-        self.action_items_frame = ttk.Labelframe(
-            self.summary_inner, text="Action Items", bootstyle="warning",
-            padding=(PAD_SECTION, PAD_INNER, PAD_SECTION, PAD_INNER),
-        )
-        self.action_items_frame.pack(fill=X, padx=PAD_OUTER, pady=(0, PAD_OUTER))
+        # --- Analytics charts (from AnalyticsMixin) ---
+        self._build_analytics_section()
 
     def _refresh_summary(self):
-        """Regenerate and display summary stats via dashboard widgets."""
+        """Regenerate and display summary stats and analytics charts."""
         if not self.rows:
             self.summary_subtitle.config(text="No jobs in the tracker")
             for status in VALID_STATUSES:
@@ -194,8 +188,7 @@ class SummaryTabMixin:
             self.cl_bar_label.config(text="0/0")
             self.activity_week_label.config(text="This week: 0")
             self.activity_month_label.config(text="This month: 0")
-            for w in self.action_items_frame.winfo_children():
-                w.destroy()
+            self._refresh_analytics()
             return
 
         total = len(self.rows)
@@ -272,103 +265,4 @@ class SummaryTabMixin:
         self.activity_week_label.config(text=f"This week: {apps_week}")
         self.activity_month_label.config(text=f"This month: {apps_month}")
 
-        self._rebuild_action_items()
-
-    def _rebuild_action_items(self):
-        """Build clickable action items from current tracker data."""
-        for w in self.action_items_frame.winfo_children():
-            w.destroy()
-
-        items = []
-        today = datetime.now()
-        not_applied_count = 0
-
-        for idx, row in enumerate(self.rows):
-            status = row.get("Application Status", "Not Yet Applied").strip()
-            company = row.get("Company", "")
-            role = row.get("Role", "")
-
-            # 1. Stale applications (Applied 21+ days ago)
-            if status == "Applied":
-                date_str = row.get("Date Applied", "").strip()
-                if date_str:
-                    try:
-                        applied = datetime.strptime(date_str, "%Y-%m-%d")
-                        days = (today - applied).days
-                        if days >= 21:
-                            items.append((
-                                f"Follow up: {company} - {role} (applied {days} days ago)",
-                                idx,
-                            ))
-                    except ValueError:
-                        pass
-
-            # 2. Un-messaged referrals
-            ref_names = parse_semicolons(row.get("Referral Names", ""))
-            ref_statuses = parse_semicolons(row.get("Referral Statuses", ""))
-            for i, name in enumerate(ref_names):
-                stat = ref_statuses[i].strip().lower() if i < len(ref_statuses) else ""
-                if not stat or "not yet" in stat:
-                    items.append((
-                        f"Message referral: {name} at {company}",
-                        idx,
-                    ))
-
-            # 3. Referrals waiting on response
-            for i, name in enumerate(ref_names):
-                raw = ref_statuses[i].strip() if i < len(ref_statuses) else ""
-                base, _ = parse_referral_status(raw)
-                if base.lower() in ("connect request sent", "message sent", "emailed"):
-                    items.append((
-                        f"Follow up with {name} at {company}",
-                        idx,
-                    ))
-
-            # 4. Missing cover letters (Not Yet Applied, no CL)
-            if status == "Not Yet Applied":
-                not_applied_count += 1
-                cl = row.get("Cover Letter Written", "").strip().lower()
-                if cl != "yes":
-                    items.append((
-                        f"Write cover letter: {company} - {role}",
-                        idx,
-                    ))
-
-        # 5. Large backlog
-        if not_applied_count > 3:
-            items.append((
-                f"Review backlog: {not_applied_count} jobs still Not Yet Applied",
-                None,
-            ))
-
-        if not items:
-            ttk.Label(
-                self.action_items_frame,
-                text="No action items. You're on top of things!",
-                bootstyle="success", font=("", 10),
-            ).pack(anchor="w", pady=2)
-            return
-
-        link_font = tkfont.Font(size=10, underline=True)
-        for text, job_idx in items:
-            if job_idx is not None:
-                lbl = ttk.Label(
-                    self.action_items_frame, text=f"\u2022 {text}",
-                    font=link_font, bootstyle="warning", cursor="hand2",
-                )
-                lbl.pack(anchor="w", pady=2)
-                lbl.bind(
-                    "<Button-1>",
-                    lambda e, i=job_idx: self._open_job_from_action(i),
-                )
-            else:
-                ttk.Label(
-                    self.action_items_frame, text=f"\u2022 {text}",
-                    font=("", 10), bootstyle="secondary",
-                ).pack(anchor="w", pady=2)
-
-    def _open_job_from_action(self, idx):
-        """Navigate to a job in the Detail tab from an action item click."""
-        self.selected_idx = idx
-        self._load_detail(self.rows[idx])
-        self.notebook.select(self.tab_detail)
+        self._refresh_analytics()

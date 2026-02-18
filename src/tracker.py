@@ -23,6 +23,7 @@ FIELDNAMES = [
     "Location",
     "Job ID",
     "Job URL",
+    "Date Posted",
     "Resume Version",
     "Cover Letter Written",
     "Cover Letter File",
@@ -120,6 +121,7 @@ def fetch_job_details(url):
         "location": "",
         "job_id": "",
         "job_url": url,
+        "date_posted": "",
     }
 
     try:
@@ -205,6 +207,12 @@ def fetch_job_details(url):
             result["job_id"] = str(ident.get("value", ""))
         elif isinstance(ident, str):
             result["job_id"] = ident
+
+        # datePosted (normalize to YYYY-MM-DD)
+        date_posted = posting.get("datePosted", "")
+        if isinstance(date_posted, str) and date_posted:
+            # Handle full ISO datetime (e.g. "2026-02-10T00:00:00Z") or date
+            result["date_posted"] = date_posted[:10]
 
         return result
 

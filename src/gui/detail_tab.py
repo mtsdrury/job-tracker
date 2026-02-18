@@ -274,6 +274,7 @@ class DetailTabMixin:
         self.field_widgets["Date Applied"] = self.date_entry
         row += 1
 
+        row = field_row(app_grid, "Date Posted", row)
         row = field_row(app_grid, "Location", row)
         row = field_row(app_grid, "Job ID", row)
 
@@ -335,6 +336,7 @@ class DetailTabMixin:
         field_to_csv = {
             "Application Status": "Application Status",
             "Date Applied": "Date Applied",
+            "Date Posted": "Date Posted",
             "Location": "Location",
             "Resume Version": "Resume Version",
             "Job ID": "Job ID",
@@ -497,6 +499,7 @@ class DetailTabMixin:
         field_to_csv = {
             "Application Status": "Application Status",
             "Date Applied": "Date Applied",
+            "Date Posted": "Date Posted",
             "Location": "Location",
             "Resume Version": "Resume Version",
             "Job ID": "Job ID",

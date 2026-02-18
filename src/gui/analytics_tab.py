@@ -1,4 +1,7 @@
-"""AnalyticsMixin: embedded Matplotlib charts and Pandas-driven analytics."""
+"""AnalyticsMixin: embedded Matplotlib charts and Pandas-driven analytics.
+
+Charts are built into the Summary tab's scrollable canvas, not a separate tab.
+"""
 
 import tkinter as tk
 from datetime import datetime
@@ -12,85 +15,32 @@ from gui.constants import (
     STATUS_COLORS, CHART_TEXT, CHART_GRID, CHART_ACCENT,
 )
 
-# Pipeline stages in funnel order (top to bottom)
-_FUNNEL_STAGES = ["Not Yet Applied", "Applied", "Interview", "Offer"]
-_TERMINAL_STAGES = ["Rejected", "Withdrawn"]
-
-
 class AnalyticsMixin:
 
-    def _build_analytics_tab(self):
-        """Build scrollable container with placeholder frames for each chart."""
-        bg_color = str(self.colors.bg)
-        self.analytics_canvas = tk.Canvas(
-            self.tab_analytics, bg=bg_color, highlightthickness=0, borderwidth=0,
-        )
-        analytics_scroll = ttk.Scrollbar(
-            self.tab_analytics, orient=VERTICAL, command=self.analytics_canvas.yview,
-        )
-        self.analytics_inner = ttk.Frame(self.analytics_canvas)
-
-        self.analytics_inner.bind(
-            "<Configure>",
-            lambda e: self.analytics_canvas.configure(
-                scrollregion=self.analytics_canvas.bbox("all"),
-            ),
-        )
-        self.analytics_canvas_window = self.analytics_canvas.create_window(
-            (0, 0), window=self.analytics_inner, anchor="nw",
-        )
-        self.analytics_canvas.configure(yscrollcommand=analytics_scroll.set)
-
-        self.analytics_canvas.bind(
-            "<Configure>",
-            lambda e: self.analytics_canvas.itemconfig(
-                self.analytics_canvas_window, width=e.width,
-            ),
-        )
-
-        self.analytics_canvas.pack(side=LEFT, fill=BOTH, expand=True)
-        analytics_scroll.pack(side=RIGHT, fill=Y)
-
-        # Header
-        ttk.Label(
-            self.analytics_inner, text="Analytics",
-            font=("", 16, "bold"), bootstyle="primary",
-        ).pack(anchor="w", padx=PAD_OUTER, pady=(PAD_OUTER, 4))
-
-        self.analytics_subtitle = ttk.Label(
-            self.analytics_inner, text="",
-            font=("", 10), bootstyle="secondary",
-        )
-        self.analytics_subtitle.pack(anchor="w", padx=PAD_OUTER, pady=(0, PAD_SECTION))
-
-        # Summary stats frame
+    def _build_analytics_section(self):
+        """Add chart Labelframes to the summary tab's inner frame."""
+        # Key Metrics (text stat cards)
         self.stats_frame = ttk.Labelframe(
-            self.analytics_inner, text="Key Metrics", bootstyle="info",
+            self.summary_inner, text="Key Metrics", bootstyle="info",
             padding=(PAD_SECTION, PAD_INNER, PAD_SECTION, PAD_INNER),
         )
         self.stats_frame.pack(fill=X, padx=PAD_OUTER, pady=(0, PAD_SECTION))
 
         # Chart containers
-        self.funnel_frame = ttk.Labelframe(
-            self.analytics_inner, text="Application Funnel", bootstyle="info",
+        self.referral_chart_frame = ttk.Labelframe(
+            self.summary_inner, text="Referral Impact", bootstyle="info",
             padding=PAD_INNER,
         )
-        self.funnel_frame.pack(fill=X, padx=PAD_OUTER, pady=(0, PAD_SECTION))
-
-        self.referral_frame = ttk.Labelframe(
-            self.analytics_inner, text="Referral Impact", bootstyle="info",
-            padding=PAD_INNER,
-        )
-        self.referral_frame.pack(fill=X, padx=PAD_OUTER, pady=(0, PAD_SECTION))
+        self.referral_chart_frame.pack(fill=X, padx=PAD_OUTER, pady=(0, PAD_SECTION))
 
         self.resume_perf_frame = ttk.Labelframe(
-            self.analytics_inner, text="Resume Version Performance", bootstyle="info",
+            self.summary_inner, text="Resume Version Performance", bootstyle="info",
             padding=PAD_INNER,
         )
         self.resume_perf_frame.pack(fill=X, padx=PAD_OUTER, pady=(0, PAD_SECTION))
 
         self.timeline_frame = ttk.Labelframe(
-            self.analytics_inner, text="Application Timeline", bootstyle="info",
+            self.summary_inner, text="Application Timeline", bootstyle="info",
             padding=PAD_INNER,
         )
         self.timeline_frame.pack(fill=X, padx=PAD_OUTER, pady=(0, PAD_OUTER))
@@ -107,11 +57,9 @@ class AnalyticsMixin:
             self._mpl_loaded = True
 
         if not self.rows:
-            self.analytics_subtitle.config(text="No jobs in the tracker")
             self._draw_empty_state(self.stats_frame, "No data to analyze")
-            self._draw_empty_state(self.funnel_frame, "No jobs tracked yet")
             self._draw_empty_state(
-                self.referral_frame,
+                self.referral_chart_frame,
                 "Need jobs both with and without referrals to compare",
             )
             self._draw_empty_state(
@@ -123,10 +71,8 @@ class AnalyticsMixin:
             return
 
         df = self._build_analytics_df()
-        self.analytics_subtitle.config(text=f"Analyzing {len(df)} jobs")
 
-        self._draw_summary_stats(df)
-        self._draw_funnel_chart(df)
+        self._draw_key_metrics(df)
         self._draw_referral_impact(df)
         self._draw_resume_performance(df)
         self._draw_timeline(df)
@@ -217,9 +163,9 @@ class AnalyticsMixin:
         ).pack(fill=X, pady=PAD_SECTION)
 
     # ------------------------------------------------------------------
-    # Summary stats (text cards)
+    # Key Metrics (text stat cards)
     # ------------------------------------------------------------------
-    def _draw_summary_stats(self, df):
+    def _draw_key_metrics(self, df):
         """Render key metric cards above the charts."""
         for w in self.stats_frame.winfo_children():
             w.destroy()
@@ -234,7 +180,6 @@ class AnalyticsMixin:
                 applied_total += status_counts.get(s, 0)
 
         interview_count = status_counts.get("Interview", 0)
-        offer_count = status_counts.get("Offer", 0)
 
         # Interview conversion rate
         if applied_total > 0:
@@ -312,98 +257,7 @@ class AnalyticsMixin:
         ).pack(anchor="w")
 
     # ------------------------------------------------------------------
-    # Chart 1: Application Funnel
-    # ------------------------------------------------------------------
-    def _draw_funnel_chart(self, df):
-        """Horizontal bar chart of pipeline stages with conversion %."""
-        if len(df) == 0:
-            self._draw_empty_state(self.funnel_frame, "No jobs tracked yet")
-            return
-
-        status_counts = df["status"].value_counts()
-
-        # Funnel stages (top to bottom)
-        stages = list(reversed(_FUNNEL_STAGES))
-        counts = [status_counts.get(s, 0) for s in stages]
-        colors = [STATUS_COLORS.get(s, CHART_ACCENT) for s in stages]
-
-        # Terminal stages
-        terminal_stages = []
-        terminal_counts = []
-        terminal_colors = []
-        for s in _TERMINAL_STAGES:
-            c = status_counts.get(s, 0)
-            if c > 0:
-                terminal_stages.append(s)
-                terminal_counts.append(c)
-                terminal_colors.append(STATUS_COLORS.get(s, CHART_ACCENT))
-
-        total_bars = len(stages) + (1 if terminal_stages else 0) + (len(terminal_stages))
-        fig_height = max(3, total_bars * 0.55 + 1)
-        fig, ax = self._create_chart_figure(figsize=(8, fig_height))
-
-        # Draw funnel bars
-        y_positions = list(range(len(stages)))
-        bars = ax.barh(y_positions, counts, color=colors, height=0.6, zorder=3)
-        ax.set_yticks(y_positions)
-        ax.set_yticklabels(stages)
-
-        # Annotate counts and conversion %
-        max_count = max(max(counts, default=1), 1)
-        for i, (bar, count) in enumerate(zip(bars, counts)):
-            ax.text(
-                bar.get_width() + max_count * 0.02, bar.get_y() + bar.get_height() / 2,
-                str(count), va="center", ha="left", color=CHART_TEXT,
-                fontsize=10, fontweight="bold",
-            )
-
-        # Conversion % between adjacent funnel stages (from bottom to top)
-        original_stages = _FUNNEL_STAGES
-        original_counts = [status_counts.get(s, 0) for s in original_stages]
-        for i in range(len(original_stages) - 1):
-            prev_count = original_counts[i]
-            next_count = original_counts[i + 1]
-            if prev_count > 0:
-                pct = next_count / prev_count * 100
-                # Position between the two bars (reversed y-axis)
-                y_idx_prev = len(stages) - 1 - i
-                y_idx_next = len(stages) - 1 - (i + 1)
-                mid_y = (y_idx_prev + y_idx_next) / 2
-                ax.text(
-                    max_count * 0.85, mid_y,
-                    f"{pct:.0f}%",
-                    va="center", ha="center", color=CHART_TEXT,
-                    fontsize=9, fontstyle="italic", alpha=0.7,
-                )
-
-        # Draw terminal stages below a gap
-        if terminal_stages:
-            gap_y = -1
-            ax.axhline(y=gap_y + 0.5, color=CHART_GRID, linewidth=1, linestyle="--", alpha=0.5)
-            for j, (stage, count, color) in enumerate(
-                zip(terminal_stages, terminal_counts, terminal_colors)
-            ):
-                y_pos = gap_y - j
-                ax.barh(y_pos, count, color=color, height=0.6, alpha=0.6, zorder=3)
-                ax.text(
-                    count + max_count * 0.02, y_pos,
-                    f"{count}  {stage}", va="center", ha="left",
-                    color=CHART_TEXT, fontsize=9, alpha=0.7,
-                )
-
-            all_y = y_positions + [gap_y - j for j in range(len(terminal_stages))]
-            all_labels = stages + [""] * len(terminal_stages)
-            ax.set_yticks(all_y)
-            ax.set_yticklabels(all_labels)
-
-        ax.set_xlim(0, max_count * 1.3)
-        ax.set_xlabel("Count")
-        ax.grid(axis="y", visible=False)
-        fig.tight_layout()
-        self._embed_figure(fig, self.funnel_frame)
-
-    # ------------------------------------------------------------------
-    # Chart 2: Referral Impact
+    # Chart: Referral Impact
     # ------------------------------------------------------------------
     def _draw_referral_impact(self, df):
         """Grouped bar chart comparing outcomes for referral vs no-referral jobs."""
@@ -412,7 +266,7 @@ class AnalyticsMixin:
 
         if len(ref_jobs) == 0 or len(no_ref_jobs) == 0:
             self._draw_empty_state(
-                self.referral_frame,
+                self.referral_chart_frame,
                 "Need jobs both with and without referrals to compare",
             )
             return
@@ -432,7 +286,7 @@ class AnalyticsMixin:
 
         if ref_n == 0 and noref_n == 0:
             self._draw_empty_state(
-                self.referral_frame,
+                self.referral_chart_frame,
                 "No applications submitted yet to compare outcomes",
             )
             return
@@ -472,13 +326,13 @@ class AnalyticsMixin:
                     color=CHART_TEXT, fontsize=9, fontweight="bold",
                 )
 
-        legend = ax.legend(
+        ax.legend(
             loc="upper right", facecolor=str(self.colors.bg),
             edgecolor=CHART_GRID, labelcolor=CHART_TEXT, fontsize=9,
         )
 
         fig.tight_layout()
-        self._embed_figure(fig, self.referral_frame)
+        self._embed_figure(fig, self.referral_chart_frame)
 
     # ------------------------------------------------------------------
     # Chart 3: Resume Version Performance
@@ -540,7 +394,7 @@ class AnalyticsMixin:
 
         ax.set_xlim(0, max(left) * 1.25 if max(left) > 0 else 1)
 
-        legend = ax.legend(
+        ax.legend(
             loc="upper right", facecolor=str(self.colors.bg),
             edgecolor=CHART_GRID, labelcolor=CHART_TEXT, fontsize=8,
             ncol=min(len(statuses_to_show), 3),
