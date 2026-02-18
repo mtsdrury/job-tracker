@@ -1,5 +1,6 @@
 """ReferralsMixin: referral display, add/edit popups, draft message dispatch."""
 
+import threading
 import tkinter as tk
 import tkinter.font as tkfont
 from tkinter import messagebox
@@ -8,7 +9,7 @@ import webbrowser
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 
-from tracker import parse_semicolons, write_tracker
+from tracker import parse_semicolons, write_tracker, fetch_linkedin_name
 from gui.helpers import incomplete_fields, parse_referral_status
 
 
@@ -126,19 +127,29 @@ class ReferralsMixin:
         body = ttk.Frame(dlg, padding=16)
         body.pack(fill=BOTH, expand=True)
 
-        ttk.Label(body, text="Name:").grid(
+        # Row 0: LinkedIn URL + Fetch
+        ttk.Label(body, text="LinkedIn URL:").grid(
             row=0, column=0, sticky="e", padx=(0, 8), pady=(0, 6),
         )
-        name_entry = ttk.Entry(body, width=32)
-        name_entry.grid(row=0, column=1, sticky="ew", pady=(0, 6))
-        name_entry.focus_set()
+        li_frame = ttk.Frame(body)
+        li_frame.grid(row=0, column=1, sticky="ew", pady=(0, 6))
+        li_entry = ttk.Entry(li_frame, width=28)
+        li_entry.pack(side=LEFT, fill=X, expand=True)
+        li_entry.focus_set()
 
-        ttk.Label(body, text="LinkedIn URL:").grid(
+        fetch_btn = ttk.Button(
+            li_frame, text="Fetch", bootstyle="info", padding=(8, 2),
+        )
+        fetch_btn.pack(side=LEFT, padx=(6, 0))
+
+        # Row 1: Name (auto-filled from fetch)
+        ttk.Label(body, text="Name:").grid(
             row=1, column=0, sticky="e", padx=(0, 8), pady=(0, 6),
         )
-        li_entry = ttk.Entry(body, width=32)
-        li_entry.grid(row=1, column=1, sticky="ew", pady=(0, 6))
+        name_entry = ttk.Entry(body, width=32)
+        name_entry.grid(row=1, column=1, sticky="ew", pady=(0, 6))
 
+        # Row 2: Connection
         ttk.Label(body, text="Connection:").grid(
             row=2, column=0, sticky="e", padx=(0, 8), pady=(0, 6),
         )
@@ -147,6 +158,7 @@ class ReferralsMixin:
         )
         conn_combo.grid(row=2, column=1, sticky="w", pady=(0, 6))
 
+        # Row 3: Status
         ttk.Label(body, text="Status:").grid(
             row=3, column=0, sticky="e", padx=(0, 8), pady=(0, 6),
         )
@@ -157,6 +169,7 @@ class ReferralsMixin:
         status_combo.set("Not yet messaged")
         status_combo.grid(row=3, column=1, sticky="ew", pady=(0, 6))
 
+        # Row 4: Note
         ttk.Label(body, text="Note:").grid(
             row=4, column=0, sticky="ne", padx=(0, 8), pady=(0, 6),
         )
@@ -164,6 +177,40 @@ class ReferralsMixin:
         note_entry.grid(row=4, column=1, sticky="ew", pady=(0, 6))
 
         body.columnconfigure(1, weight=1)
+
+        # --- LinkedIn fetch logic ---
+        def _do_fetch():
+            url = li_entry.get().strip()
+            if not url:
+                messagebox.showwarning("No URL", "Paste a LinkedIn URL first.", parent=dlg)
+                return
+            fetch_btn.config(text="Fetching...", state="disabled")
+
+            def _background():
+                try:
+                    fetched_name = fetch_linkedin_name(url)
+                except Exception:
+                    fetched_name = ""
+                dlg.after(0, lambda: _on_fetch_done(fetched_name))
+
+            def _on_fetch_done(fetched_name):
+                fetch_btn.config(text="Fetch", state="normal")
+                if fetched_name:
+                    name_entry.delete(0, END)
+                    name_entry.insert(0, fetched_name)
+                    name_entry.focus_set()
+                else:
+                    messagebox.showinfo(
+                        "No name found",
+                        "Could not extract a name from this URL. "
+                        "You may need to enter it manually.",
+                        parent=dlg,
+                    )
+
+            threading.Thread(target=_background, daemon=True).start()
+
+        fetch_btn.config(command=_do_fetch)
+        li_entry.bind("<Return>", lambda e: _do_fetch())
 
         def _add():
             name = name_entry.get().strip()

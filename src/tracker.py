@@ -236,6 +236,70 @@ def fetch_job_details(url):
     return result
 
 
+def fetch_linkedin_name(url):
+    """Extract a person's name from a LinkedIn profile URL.
+
+    Tries fetching the page title first (e.g. "Jane Doe - Engineer | LinkedIn"),
+    then falls back to parsing the URL slug (e.g. /in/jane-doe-abc123/).
+    Returns the name as a string, or empty string if nothing could be extracted.
+    """
+    from urllib.parse import urlparse
+
+    name = ""
+
+    # 1. Try fetching the page title
+    try:
+        req = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/120.0.0.0 Safari/537.36"
+                ),
+            },
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            html = resp.read().decode("utf-8", errors="replace")
+        title_match = re.search(
+            r"<title[^>]*>(.*?)</title>", html, re.DOTALL | re.IGNORECASE,
+        )
+        if title_match:
+            title = title_match.group(1).strip()
+            # Clean HTML entities
+            title = title.replace("&amp;", "&").replace("&#x27;", "'")
+            title = title.replace("&quot;", '"').replace("&#39;", "'")
+            title = re.sub(r"&[^;]+;", "", title)
+            # Typical: "Jane Doe - Engineer at Google | LinkedIn"
+            if "|" in title:
+                title = title.split("|")[0].strip()
+            if " - " in title:
+                title = title.split(" - ")[0].strip()
+            if title and title.lower() != "linkedin":
+                name = title
+    except Exception:
+        pass
+
+    # 2. Fall back to URL slug parsing
+    if not name:
+        parsed = urlparse(url)
+        path = parsed.path.strip("/")
+        if path.startswith("in/"):
+            slug = path[3:].strip("/")
+            parts = slug.split("-")
+            name_parts = []
+            for part in parts:
+                # Stop at parts that look like random ID suffixes
+                if any(c.isdigit() for c in part) and len(part) > 2:
+                    break
+                if part.isalpha():
+                    name_parts.append(part.capitalize())
+            if name_parts:
+                name = " ".join(name_parts)
+
+    return name
+
+
 def match_company(rows, company_query):
     """Find rows matching a company name (case-insensitive substring).
 
