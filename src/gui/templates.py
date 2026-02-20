@@ -61,7 +61,8 @@ class TemplatesMixin:
         ).replace("{role}", role)
 
     def _open_draft_popup(self, first_name, company, role, referral_name,
-                          connection="", default_tone=None, linkedin_url=""):
+                          connection="", default_tone=None, linkedin_url="",
+                          on_close=None):
         """Open a draft message popup. Generates message from tone + connection."""
         dlg = tk.Toplevel(self.root)
         dlg.title(f"Draft Message - {referral_name}")
@@ -199,7 +200,13 @@ class TemplatesMixin:
 
         edit_btn.config(command=_toggle_edit)
 
+        def _close_dlg():
+            dlg.destroy()
+            if on_close:
+                on_close()
+
         ttk.Button(
-            btn_frame, text="Close", command=dlg.destroy,
+            btn_frame, text="Close", command=_close_dlg,
             bootstyle="secondary", padding=(12, 4),
         ).pack(side=RIGHT)
+        dlg.protocol("WM_DELETE_WINDOW", _close_dlg)

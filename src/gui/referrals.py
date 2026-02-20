@@ -100,9 +100,11 @@ class ReferralsMixin:
             if i < len(names) - 1:
                 ttk.Separator(self.referral_rows_frame).pack(fill=X, pady=1)
 
-    def _add_referral_popup(self):
+    def _add_referral_popup(self, on_complete=None):
         if self.selected_idx is None:
             messagebox.showwarning("No selection", "Select a job first.")
+            if on_complete:
+                on_complete(False)
             return
 
         dlg = tk.Toplevel(self.root)
@@ -279,6 +281,13 @@ class ReferralsMixin:
                 self.incomplete_frame.pack_forget()
 
             dlg.destroy()
+            if on_complete:
+                on_complete(True, name)
+
+        def _cancel():
+            dlg.destroy()
+            if on_complete:
+                on_complete(False)
 
         btn_frame = ttk.Frame(body)
         btn_frame.grid(row=5, column=0, columnspan=2, pady=(12, 0))
@@ -287,10 +296,11 @@ class ReferralsMixin:
             bootstyle="success", padding=(16, 4),
         ).pack(side=LEFT, padx=(0, 6))
         ttk.Button(
-            btn_frame, text="Cancel", command=dlg.destroy,
+            btn_frame, text="Cancel", command=_cancel,
             bootstyle="secondary", padding=(16, 4),
         ).pack(side=LEFT)
         dlg.bind("<Return>", lambda e: _add())
+        dlg.protocol("WM_DELETE_WINDOW", _cancel)
 
     def _edit_referral_popup(self):
         if self.selected_idx is None:
@@ -438,7 +448,7 @@ class ReferralsMixin:
         ).pack(side=LEFT)
         dlg.bind("<Return>", lambda e: _save())
 
-    def _draft_message_popup(self, default_tone=None):
+    def _draft_message_popup(self, default_tone=None, on_close=None):
         if self.selected_idx is None:
             messagebox.showwarning("No selection", "Select a job first.")
             return
@@ -466,5 +476,5 @@ class ReferralsMixin:
         self._open_draft_popup(
             first_name, company, role, name,
             connection=connection, default_tone=default_tone,
-            linkedin_url=li_url,
+            linkedin_url=li_url, on_close=on_close,
         )

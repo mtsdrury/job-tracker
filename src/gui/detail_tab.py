@@ -2,8 +2,6 @@
 
 import os
 import tkinter as tk
-import urllib.parse
-import webbrowser
 from tkinter import messagebox, filedialog
 from datetime import datetime
 
@@ -51,16 +49,17 @@ class DetailTabMixin:
         self.next_step_label.pack(fill=X, padx=4)
 
         # Save + Back buttons (fixed at bottom, outside scroll area)
-        btn_frame = ttk.Frame(self.tab_detail, padding=(PAD_INNER, PAD_INNER))
-        btn_frame.pack(side=BOTTOM, fill=X)
-        ttk.Separator(self.tab_detail).pack(side=BOTTOM, fill=X, padx=4)
+        self._detail_btn_frame = ttk.Frame(self.tab_detail, padding=(PAD_INNER, PAD_INNER))
+        self._detail_btn_frame.pack(side=BOTTOM, fill=X)
+        self._detail_separator = ttk.Separator(self.tab_detail)
+        self._detail_separator.pack(side=BOTTOM, fill=X, padx=4)
 
         ttk.Button(
-            btn_frame, text="Save", command=self._save_current,
+            self._detail_btn_frame, text="Save", command=self._save_current,
             bootstyle="success", padding=(24, 6),
         ).pack(side=LEFT, padx=(0, 8))
         ttk.Button(
-            btn_frame, text="Back to list",
+            self._detail_btn_frame, text="Back to list",
             command=lambda: self.notebook.select(self.tab_list),
             bootstyle="secondary-outline", padding=(16, 6),
         ).pack(side=LEFT)
@@ -70,7 +69,7 @@ class DetailTabMixin:
         self.detail_canvas = tk.Canvas(
             self.tab_detail, bg=bg_color, highlightthickness=0, borderwidth=0,
         )
-        detail_scroll = ttk.Scrollbar(
+        self._detail_scrollbar = ttk.Scrollbar(
             self.tab_detail, orient=VERTICAL, command=self.detail_canvas.yview,
         )
         self.detail_frame = ttk.Frame(self.detail_canvas)
@@ -84,7 +83,7 @@ class DetailTabMixin:
         self.detail_canvas_window = self.detail_canvas.create_window(
             (0, 0), window=self.detail_frame, anchor="nw",
         )
-        self.detail_canvas.configure(yscrollcommand=detail_scroll.set)
+        self.detail_canvas.configure(yscrollcommand=self._detail_scrollbar.set)
 
         # Stretch inner frame to canvas width
         self.detail_canvas.bind(
@@ -95,7 +94,7 @@ class DetailTabMixin:
         )
 
         self.detail_canvas.pack(side=LEFT, fill=BOTH, expand=True, padx=(4, 0), pady=4)
-        detail_scroll.pack(side=RIGHT, fill=Y, padx=(0, 4), pady=4)
+        self._detail_scrollbar.pack(side=RIGHT, fill=Y, padx=(0, 4), pady=4)
 
         self._build_detail_fields()
 
@@ -306,6 +305,25 @@ class DetailTabMixin:
         notes_widget.pack(fill=X, padx=8, pady=(0, 8))
         self.field_widgets["Notes"] = notes_widget
 
+    def _hide_detail_form(self):
+        """Hide the normal detail form widgets to make room for the pipeline."""
+        self.header_frame.pack_forget()
+        self.incomplete_frame.pack_forget()
+        self.next_step_frame.pack_forget()
+        self.detail_canvas.pack_forget()
+        self._detail_scrollbar.pack_forget()
+        self._detail_btn_frame.pack_forget()
+        self._detail_separator.pack_forget()
+
+    def _show_detail_form(self):
+        """Re-pack the normal detail form widgets in the correct order."""
+        self.header_frame.pack(fill=X, padx=4, pady=(4, 2))
+        # incomplete_frame and next_step_frame are packed dynamically by _load_detail
+        self._detail_btn_frame.pack(side=BOTTOM, fill=X)
+        self._detail_separator.pack(side=BOTTOM, fill=X, padx=4)
+        self.detail_canvas.pack(side=LEFT, fill=BOTH, expand=True, padx=(4, 0), pady=4)
+        self._detail_scrollbar.pack(side=RIGHT, fill=Y, padx=(0, 4), pady=4)
+
     def _clear_detail(self):
         self.detail_header.config(text="No job selected")
         self.detail_status_badge.config(text="", bootstyle="secondary")
@@ -324,6 +342,8 @@ class DetailTabMixin:
         self.next_step_frame.pack_forget()
 
     def _load_detail(self, row):
+        if getattr(self, "_pipeline_active", False):
+            return
         company = row.get("Company", "")
         role = row.get("Role", "")
         self.detail_header.config(text=f"{company}  -  {role}")
@@ -382,7 +402,7 @@ class DetailTabMixin:
         self._update_next_step_banner(row)
 
     def _search_linkedin_for_referral(self):
-        """Open LinkedIn people search for the current job's company."""
+        """Open LinkedIn alumni search for the current job's company."""
         if self.selected_idx is None:
             messagebox.showwarning("No selection", "Select a job first.")
             return
@@ -390,10 +410,7 @@ class DetailTabMixin:
         if not company:
             messagebox.showwarning("No company", "This job has no company name.")
             return
-        query = urllib.parse.quote(company)
-        webbrowser.open(
-            f"https://www.linkedin.com/search/results/people/?keywords={query}",
-        )
+        self._open_alumni_search(company)
 
     def _set_today(self):
         self.date_entry.delete(0, END)

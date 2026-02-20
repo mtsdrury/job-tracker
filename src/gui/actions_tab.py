@@ -1,7 +1,6 @@
 """ActionsMixin: accordion-style action items tab with quick actions."""
 
 import tkinter as tk
-import urllib.parse
 import webbrowser
 from datetime import datetime
 from tkinter import filedialog
@@ -289,6 +288,22 @@ class ActionsMixin:
                 title, subtitle, row_idx, extra,
             )
 
+        # Auto-expand next action after wizard completion
+        if getattr(self, "_auto_expand_next", False):
+            self._auto_expand_next = False
+            target_idx = getattr(self, "_wizard_next_job_idx", None)
+            # Find first action for the same job, or first action overall
+            first_key = None
+            for i, (action_type, title, subtitle, row_idx, extra) in enumerate(items):
+                k = f"{action_type}_{row_idx}_{i}"
+                if target_idx is not None and row_idx == target_idx:
+                    first_key = k
+                    break
+                if first_key is None:
+                    first_key = k
+            if first_key:
+                self._toggle_action(first_key)
+
     # ------------------------------------------------------------------
     # Card creation
     # ------------------------------------------------------------------
@@ -400,7 +415,7 @@ class ActionsMixin:
             if not info["built"]:
                 self._build_action_detail(
                     detail_frame, info["action_type"],
-                    info["row_idx"], info["extra"],
+                    info["row_idx"], info["extra"], key,
                 )
                 info["built"] = True
             detail_frame.pack(fill=X, pady=(8, 0))
@@ -410,7 +425,7 @@ class ActionsMixin:
     # ------------------------------------------------------------------
     # Detail builders per action type
     # ------------------------------------------------------------------
-    def _build_action_detail(self, frame, action_type, row_idx, extra):
+    def _build_action_detail(self, frame, action_type, row_idx, extra, key):
         """Populate the expanded detail area with context and buttons."""
         card_bg = "#3a3f47"
         sep_color = "#4a4f57"
@@ -419,21 +434,21 @@ class ActionsMixin:
         tk.Frame(frame, bg=sep_color, height=1).pack(fill=X, pady=(0, 8))
 
         if action_type == "message_referral":
-            self._detail_message_referral(frame, card_bg, row_idx, extra)
+            self._detail_message_referral(frame, card_bg, row_idx, extra, key)
         elif action_type == "followup_referral":
-            self._detail_followup_referral(frame, card_bg, row_idx, extra)
+            self._detail_followup_referral(frame, card_bg, row_idx, extra, key)
         elif action_type == "followup_app":
-            self._detail_followup_app(frame, card_bg, row_idx, extra)
+            self._detail_followup_app(frame, card_bg, row_idx, extra, key)
         elif action_type == "write_cl":
-            self._detail_write_cl(frame, card_bg, row_idx, extra)
+            self._detail_write_cl(frame, card_bg, row_idx, extra, key)
         elif action_type == "find_referral":
-            self._detail_find_referral(frame, card_bg, row_idx, extra)
+            self._detail_find_referral(frame, card_bg, row_idx, extra, key)
         elif action_type == "submit_app":
-            self._detail_submit_app(frame, card_bg, row_idx, extra)
+            self._detail_submit_app(frame, card_bg, row_idx, extra, key)
         elif action_type == "fill_missing":
-            self._detail_fill_missing(frame, card_bg, row_idx, extra)
+            self._detail_fill_missing(frame, card_bg, row_idx, extra, key)
 
-    def _detail_message_referral(self, frame, bg, row_idx, extra):
+    def _detail_message_referral(self, frame, bg, row_idx, extra, key):
         info_frame = tk.Frame(frame, bg=bg)
         info_frame.pack(fill=X)
 
@@ -457,7 +472,7 @@ class ActionsMixin:
         draft_btn = ttk.Button(
             btn_frame, text="Draft Message",
             bootstyle="warning-outline", padding=(10, 3),
-            command=lambda: self._action_draft_message(row_idx, extra["ref_idx"]),
+            command=lambda: self._action_wizard_draft_message(key, row_idx, extra["ref_idx"]),
         )
         draft_btn.pack(side=LEFT, padx=(0, 6))
 
@@ -467,7 +482,7 @@ class ActionsMixin:
             command=lambda: self._action_mark_message_sent(row_idx, extra["ref_idx"]),
         ).pack(side=LEFT)
 
-    def _detail_followup_referral(self, frame, bg, row_idx, extra):
+    def _detail_followup_referral(self, frame, bg, row_idx, extra, key):
         info_frame = tk.Frame(frame, bg=bg)
         info_frame.pack(fill=X)
 
@@ -486,9 +501,7 @@ class ActionsMixin:
         ttk.Button(
             btn_frame, text="Draft Follow-up",
             bootstyle="warning-outline", padding=(10, 3),
-            command=lambda: self._action_draft_message(
-                row_idx, extra["ref_idx"], tone="Follow-up",
-            ),
+            command=lambda: self._action_wizard_draft_followup(key, row_idx, extra["ref_idx"]),
         ).pack(side=LEFT, padx=(0, 6))
 
         ttk.Button(
@@ -527,7 +540,7 @@ class ActionsMixin:
             command=_update_status,
         ).pack(side=LEFT)
 
-    def _detail_write_cl(self, frame, bg, row_idx, extra):
+    def _detail_write_cl(self, frame, bg, row_idx, extra, key):
         info_frame = tk.Frame(frame, bg=bg)
         info_frame.pack(fill=X)
 
@@ -558,10 +571,10 @@ class ActionsMixin:
         ttk.Button(
             btn_frame, text="Browse CL File",
             bootstyle="success-outline", padding=(10, 3),
-            command=lambda: self._action_browse_cl(row_idx),
+            command=lambda: self._action_wizard_browse_cl(key, row_idx),
         ).pack(side=LEFT)
 
-    def _detail_find_referral(self, frame, bg, row_idx, extra):
+    def _detail_find_referral(self, frame, bg, row_idx, extra, key):
         info_frame = tk.Frame(frame, bg=bg)
         info_frame.pack(fill=X)
 
@@ -589,7 +602,7 @@ class ActionsMixin:
             command=lambda: self._action_add_referral(row_idx),
         ).pack(side=LEFT)
 
-    def _detail_submit_app(self, frame, bg, row_idx, extra):
+    def _detail_submit_app(self, frame, bg, row_idx, extra, key):
         info_frame = tk.Frame(frame, bg=bg)
         info_frame.pack(fill=X)
 
@@ -634,10 +647,10 @@ class ActionsMixin:
         ttk.Button(
             btn_frame, text="Apply",
             bootstyle="success-outline", padding=(10, 3),
-            command=lambda: self._action_open_url(extra["job_url"]),
+            command=lambda: self._action_wizard_apply(key, row_idx, extra["job_url"]),
         ).pack(side=LEFT)
 
-    def _detail_fill_missing(self, frame, bg, row_idx, extra):
+    def _detail_fill_missing(self, frame, bg, row_idx, extra, key):
         info_frame = tk.Frame(frame, bg=bg)
         info_frame.pack(fill=X)
 
@@ -664,7 +677,7 @@ class ActionsMixin:
             command=lambda: self._action_open_detail(row_idx),
         ).pack(side=LEFT)
 
-    def _detail_followup_app(self, frame, bg, row_idx, extra):
+    def _detail_followup_app(self, frame, bg, row_idx, extra, key):
         info_frame = tk.Frame(frame, bg=bg)
         info_frame.pack(fill=X)
 
@@ -770,11 +783,8 @@ class ActionsMixin:
         self._refresh_list()
 
     def _action_search_linkedin(self, company):
-        """Open LinkedIn people search for the company."""
-        query = urllib.parse.quote(company)
-        webbrowser.open(
-            f"https://www.linkedin.com/search/results/people/?keywords={query}",
-        )
+        """Open LinkedIn alumni search for the company."""
+        self._open_alumni_search(company)
 
     def _action_add_referral(self, row_idx):
         """Open the Add Referral popup for this job."""
@@ -792,3 +802,218 @@ class ActionsMixin:
         self.selected_idx = row_idx
         self._load_detail(self.rows[row_idx])
         self.notebook.select(self.tab_detail)
+
+    # ------------------------------------------------------------------
+    # Wizard handlers (open popup, then show follow-up on close)
+    # ------------------------------------------------------------------
+    def _action_wizard_draft_message(self, key, row_idx, ref_idx):
+        """Open draft popup, then show 'Did you send it?' follow-up."""
+        self.selected_idx = row_idx
+        self._selected_referral_idx = ref_idx
+        self._draft_message_popup(
+            on_close=lambda: self._wizard_after_draft(key, row_idx, ref_idx),
+        )
+
+    def _action_wizard_draft_followup(self, key, row_idx, ref_idx):
+        """Open draft follow-up popup, then show follow-up UI."""
+        self.selected_idx = row_idx
+        self._selected_referral_idx = ref_idx
+        self._draft_message_popup(
+            default_tone="Follow-up",
+            on_close=lambda: self._wizard_after_followup(key, row_idx, ref_idx),
+        )
+
+    def _action_wizard_browse_cl(self, key, row_idx):
+        """Open file dialog for CL, then show confirmation if file was picked."""
+        path = filedialog.askopenfilename(
+            title="Select Cover Letter",
+            filetypes=[
+                ("Word documents", "*.docx"),
+                ("Markdown", "*.md"),
+                ("All files", "*.*"),
+            ],
+        )
+        if not path:
+            return
+        import os
+        filename = os.path.basename(path)
+        row = self.rows[row_idx]
+        row["Cover Letter Written"] = "Yes"
+        row["Cover Letter File"] = filename
+        if self.csv_path:
+            write_tracker(self.csv_path, self.rows)
+        self._refresh_list()
+        self._wizard_show_cl_followup(key, row_idx)
+
+    def _action_wizard_apply(self, key, row_idx, job_url):
+        """Open the job URL, then show 'Did you submit?' follow-up."""
+        if job_url:
+            webbrowser.open(job_url)
+        self._wizard_show_apply_followup(key, row_idx)
+
+    # ------------------------------------------------------------------
+    # Wizard follow-up UI builders
+    # ------------------------------------------------------------------
+    def _wizard_replace_detail(self, key, builder_fn):
+        """Clear a card's detail frame children and call builder_fn to rebuild."""
+        info = self._action_details.get(key)
+        if not info:
+            return
+        detail_frame = info["detail_frame"]
+        for w in detail_frame.winfo_children():
+            w.destroy()
+        card_bg = "#3a3f47"
+        sep_color = "#4a4f57"
+        tk.Frame(detail_frame, bg=sep_color, height=1).pack(fill=X, pady=(0, 8))
+        builder_fn(detail_frame, card_bg)
+        self._suppress_active_actions(detail_frame)
+
+    def _wizard_after_draft(self, key, row_idx, ref_idx):
+        """After draft message popup closes, show 'Did you send it?' prompt."""
+        def _build(frame, bg):
+            tk.Label(
+                frame, text="Did you send the message?",
+                font=("", 10, "bold"), bg=bg, fg="#dee2e6", anchor="w",
+            ).pack(anchor="w", pady=(0, 8))
+            btn_frame = tk.Frame(frame, bg=bg)
+            btn_frame.pack(fill=X)
+            ttk.Button(
+                btn_frame, text="Yes, mark as sent",
+                bootstyle="success", padding=(10, 3),
+                command=lambda: self._wizard_mark_sent(key, row_idx, ref_idx),
+            ).pack(side=LEFT, padx=(0, 6))
+            ttk.Button(
+                btn_frame, text="Not yet",
+                bootstyle="secondary-outline", padding=(10, 3),
+                command=lambda: self._wizard_dismiss(key),
+            ).pack(side=LEFT)
+        self._wizard_replace_detail(key, _build)
+
+    def _wizard_after_followup(self, key, row_idx, ref_idx):
+        """After follow-up draft popup closes, show status update prompt."""
+        def _build(frame, bg):
+            tk.Label(
+                frame, text="Did you send the follow-up?",
+                font=("", 10, "bold"), bg=bg, fg="#dee2e6", anchor="w",
+            ).pack(anchor="w", pady=(0, 8))
+            btn_frame = tk.Frame(frame, bg=bg)
+            btn_frame.pack(fill=X)
+            ttk.Button(
+                btn_frame, text="Yes, mark as sent",
+                bootstyle="success", padding=(10, 3),
+                command=lambda: self._wizard_mark_sent(key, row_idx, ref_idx),
+            ).pack(side=LEFT, padx=(0, 6))
+            ttk.Label(
+                btn_frame, text="Or update status:", bg=bg, fg="#adb5bd",
+            ).pack(side=LEFT, padx=(12, 4))
+            status_combo = ttk.Combobox(
+                btn_frame,
+                values=[
+                    "Responded", "Resume sent",
+                    "Sharing internally", "Referral submitted",
+                ],
+                state="readonly", width=20,
+            )
+            status_combo.pack(side=LEFT, padx=(0, 4))
+            def _set_status():
+                new_stat = status_combo.get()
+                if new_stat:
+                    today = datetime.now().strftime("%Y-%m-%d")
+                    self._action_update_referral_status(
+                        row_idx, ref_idx, f"{new_stat} {today}",
+                    )
+                    self._wizard_complete(key, row_idx)
+            ttk.Button(
+                btn_frame, text="Set",
+                bootstyle="info-outline", padding=(8, 3),
+                command=_set_status,
+            ).pack(side=LEFT, padx=(0, 6))
+            ttk.Button(
+                btn_frame, text="Not yet",
+                bootstyle="secondary-outline", padding=(10, 3),
+                command=lambda: self._wizard_dismiss(key),
+            ).pack(side=LEFT)
+        self._wizard_replace_detail(key, _build)
+
+    def _wizard_show_cl_followup(self, key, row_idx):
+        """After CL file selected, show confirmation."""
+        def _build(frame, bg):
+            tk.Label(
+                frame, text="\u2713  Cover letter saved!",
+                font=("", 10, "bold"), bg=bg, fg="#58d68d", anchor="w",
+            ).pack(anchor="w", pady=(0, 8))
+            btn_frame = tk.Frame(frame, bg=bg)
+            btn_frame.pack(fill=X)
+            ttk.Button(
+                btn_frame, text="Go to next action",
+                bootstyle="info-outline", padding=(10, 3),
+                command=lambda: self._wizard_complete(key, row_idx),
+            ).pack(side=LEFT, padx=(0, 6))
+            ttk.Button(
+                btn_frame, text="Done",
+                bootstyle="secondary-outline", padding=(10, 3),
+                command=lambda: self._wizard_dismiss(key),
+            ).pack(side=LEFT)
+        self._wizard_replace_detail(key, _build)
+
+    def _wizard_show_apply_followup(self, key, row_idx):
+        """After opening job URL, show 'Did you submit?' prompt."""
+        def _build(frame, bg):
+            tk.Label(
+                frame, text="Did you submit the application?",
+                font=("", 10, "bold"), bg=bg, fg="#dee2e6", anchor="w",
+            ).pack(anchor="w", pady=(0, 8))
+            btn_frame = tk.Frame(frame, bg=bg)
+            btn_frame.pack(fill=X)
+            ttk.Button(
+                btn_frame, text="Yes, mark as applied",
+                bootstyle="success", padding=(10, 3),
+                command=lambda: self._wizard_mark_applied(key, row_idx),
+            ).pack(side=LEFT, padx=(0, 6))
+            ttk.Button(
+                btn_frame, text="Not yet",
+                bootstyle="secondary-outline", padding=(10, 3),
+                command=lambda: self._wizard_dismiss(key),
+            ).pack(side=LEFT)
+        self._wizard_replace_detail(key, _build)
+
+    # ------------------------------------------------------------------
+    # Wizard completion actions
+    # ------------------------------------------------------------------
+    def _wizard_mark_sent(self, key, row_idx, ref_idx):
+        """Mark referral as 'Message sent' and complete the wizard."""
+        today = datetime.now().strftime("%Y-%m-%d")
+        row = self.rows[row_idx]
+        statuses = parse_semicolons(row.get("Referral Statuses", ""))
+        while len(statuses) <= ref_idx:
+            statuses.append("")
+        statuses[ref_idx] = f"Message sent {today}"
+        row["Referral Statuses"] = "; ".join(statuses)
+        if self.csv_path:
+            write_tracker(self.csv_path, self.rows)
+        self._refresh_list()
+        self._wizard_complete(key, row_idx)
+
+    def _wizard_mark_applied(self, key, row_idx):
+        """Mark job as Applied and complete the wizard."""
+        row = self.rows[row_idx]
+        row["Application Status"] = "Applied"
+        row["Date Applied"] = datetime.now().strftime("%Y-%m-%d")
+        if self.csv_path:
+            write_tracker(self.csv_path, self.rows)
+        self._refresh_list()
+        self._wizard_complete(key, row_idx)
+
+    def _wizard_complete(self, key, row_idx):
+        """Refresh actions and auto-expand the next action for this job."""
+        self._auto_expand_next = True
+        self._wizard_next_job_idx = row_idx
+        self._refresh_actions()
+
+    def _wizard_dismiss(self, key):
+        """Collapse the card without data changes."""
+        info = self._action_details.get(key)
+        if info:
+            info["detail_frame"].pack_forget()
+            info["chevron"].config(text=">")
+        self._expanded_action_key = None

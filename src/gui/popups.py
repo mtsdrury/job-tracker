@@ -269,14 +269,14 @@ class PopupsMixin:
                 return
             dlg.destroy()
             self._refresh_list()
-            # Select and open the new job in detail tab
+            # Select and open the new job in pipeline mode
             new_idx = len(self.rows) - 1
             self.selected_idx = new_idx
             if str(new_idx) in self.tree.get_children():
                 self.tree.selection_set(str(new_idx))
                 self.tree.see(str(new_idx))
-            self._load_detail(self.rows[new_idx])
             self.notebook.select(self.tab_detail)
+            self._start_pipeline(new_idx)
 
         ttk.Button(
             body, text="Add", command=_add,

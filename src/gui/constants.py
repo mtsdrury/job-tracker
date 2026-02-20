@@ -33,6 +33,9 @@ ACTION_PRIORITIES = {
     },
 }
 
+# Config file (stored next to the CSV)
+CONFIG_FILENAME = "job_tracker_config.json"
+
 # Theme (ttkbootstrap theme name)
 THEME = "darkly"
 

@@ -1,0 +1,12 @@
+{
+  "schools": [
+    {
+      "name": "Georgia Institute of Technology",
+      "linkedin_slug": "georgia-institute-of-technology"
+    },
+    {
+      "name": "UCLA",
+      "linkedin_slug": "ucla"
+    }
+  ]
+}
