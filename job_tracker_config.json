@@ -2,16 +2,46 @@
   "schools": [
     {
       "name": "Georgia Institute of Technology",
-      "linkedin_id": "18060"
+      "linkedin_id": "3558"
     },
     {
       "name": "UCLA",
-      "linkedin_id": "17882"
+      "linkedin_id": "2477"
     }
   ],
   "resume_versions": [
     "Data Scientist",
     "ML Builder",
-    "Research Engineer"
+    "Research Engineer",
+    "Fashion Tech"
+  ],
+  "connections": [
+    {
+      "label": "GT",
+      "line": "I am also a GT MS student, finishing up this June"
+    },
+    {
+      "label": "UCLA",
+      "line": "I am also a UCLA alum, finishing up my MS at Georgia Tech this June"
+    }
+  ],
+  "default_connection_line": "I am finishing up my MS at Georgia Tech this May",
+  "tone_templates": [
+    {
+      "name": "Casual",
+      "body": "Hi {first_name}, I hope you're doing well! {connection}. I came across the {role} role at {company} and it sounds really great. How has your experience been with the company? If you are open to it, I would greatly appreciate a referral."
+    },
+    {
+      "name": "Professional",
+      "body": "Dear {first_name}, I hope this message finds you well. {connection}. I recently came across the {role} position at {company} and it aligns very well with my background. I would love to hear about your experience there. If you are open to it, I would be grateful for a referral."
+    },
+    {
+      "name": "Friendly Professional",
+      "body": "Hi {first_name}, I hope you're doing well! {connection}. I recently came across the {role} role at {company} and it caught my attention. I would love to hear about your experience there. If you are open to it, I would really appreciate a referral."
+    },
+    {
+      "name": "Follow-up",
+      "body": "Hi {first_name}, I hope you're doing well! I wanted to follow up on my previous message about the {role} role at {company}. I am still very interested in the position and would love to connect if you have a chance. Thank you for your time!"
+    }
   ]
 }

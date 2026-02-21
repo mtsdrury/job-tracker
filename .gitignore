@@ -23,7 +23,6 @@ build/
 *.spec
 !src/packaging/job_tracker.spec
 *.exe
-!/Job Tracker.exe
 
 # OS files
 .DS_Store

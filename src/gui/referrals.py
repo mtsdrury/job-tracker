@@ -267,20 +267,22 @@ class ReferralsMixin:
                 messagebox.showerror("Save failed", str(e), parent=dlg)
                 return
 
-            self._refresh_referral_display(row)
             self._refresh_list()
 
-            missing = incomplete_fields(row)
-            if missing:
-                self.incomplete_label.config(
-                    text="\u26a0  Missing: " + ", ".join(missing),
-                )
-                self.incomplete_frame.pack_forget()
-                self.incomplete_frame.pack(
-                    fill=X, padx=4, pady=(0, 2), after=self.header_frame,
-                )
-            else:
-                self.incomplete_frame.pack_forget()
+            # Only update detail-tab widgets when not in pipeline mode
+            if not getattr(self, "_pipeline_active", False):
+                self._refresh_referral_display(row)
+                missing = incomplete_fields(row)
+                if missing:
+                    self.incomplete_label.config(
+                        text="\u26a0  Missing: " + ", ".join(missing),
+                    )
+                    self.incomplete_frame.pack_forget()
+                    self.incomplete_frame.pack(
+                        fill=X, padx=4, pady=(0, 2), after=self.header_frame,
+                    )
+                else:
+                    self.incomplete_frame.pack_forget()
 
             dlg.destroy()
             if on_complete:
@@ -438,11 +440,50 @@ class ReferralsMixin:
             self._refresh_list()
             dlg.destroy()
 
+        def _delete():
+            confirm = messagebox.askyesno(
+                "Delete Referral",
+                f'Remove "{cur_name}" from this job\'s referrals?',
+                parent=dlg,
+            )
+            if not confirm:
+                return
+
+            names.pop(ref_idx)
+            linkedins.pop(ref_idx) if ref_idx < len(linkedins) else None
+            connections.pop(ref_idx) if ref_idx < len(connections) else None
+            statuses.pop(ref_idx) if ref_idx < len(statuses) else None
+
+            row["Referral Names"] = "; ".join(names)
+            row["Referral LinkedIns"] = "; ".join(linkedins)
+            row["Referral Connections"] = "; ".join(connections)
+            row["Referral Statuses"] = "; ".join(statuses)
+
+            for field in ("Referral Names", "Referral LinkedIns",
+                          "Referral Connections", "Referral Statuses"):
+                widget = self.field_widgets[field]
+                widget.delete(0, END)
+                widget.insert(0, row[field])
+
+            try:
+                write_tracker(self.csv_path, self.rows)
+            except Exception as e:
+                messagebox.showerror("Save failed", str(e), parent=dlg)
+                return
+
+            self._refresh_referral_display(row)
+            self._refresh_list()
+            dlg.destroy()
+
         btn_frame = ttk.Frame(body)
         btn_frame.grid(row=4, column=0, columnspan=2, pady=(12, 0))
         ttk.Button(
             btn_frame, text="Save", command=_save,
             bootstyle="success", padding=(16, 4),
+        ).pack(side=LEFT, padx=(0, 6))
+        ttk.Button(
+            btn_frame, text="Delete", command=_delete,
+            bootstyle="danger-outline", padding=(16, 4),
         ).pack(side=LEFT, padx=(0, 6))
         ttk.Button(
             btn_frame, text="Cancel", command=dlg.destroy,
