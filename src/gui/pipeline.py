@@ -247,7 +247,7 @@ class PipelineMixin:
         btn_row = ttk.Frame(f)
         btn_row.pack(anchor="w")
 
-        for version in ("Data Scientist", "ML Builder", "Research Engineer"):
+        for version in self._resume_versions:
             ttk.Button(
                 btn_row, text=version,
                 bootstyle="info-outline", padding=(12, 6),

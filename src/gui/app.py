@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import tkinter as tk
 import urllib.parse
 import webbrowser
@@ -11,7 +12,10 @@ import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 
 from tracker import read_tracker
-from gui.constants import PAD_INNER, CONFIG_FILENAME
+from gui.constants import (
+    PAD_INNER, CONFIG_FILENAME,
+    DEFAULT_TONE_TEMPLATES, DEFAULT_CONNECTIONS, DEFAULT_CONNECTION_LINE,
+)
 from gui.list_tab import ListTabMixin
 from gui.detail_tab import DetailTabMixin
 from gui.summary_tab import SummaryTabMixin
@@ -39,7 +43,11 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         self.rows = []
         self.filtered_indices = []
         self.selected_idx = None
-        self._schools = []  # list of {"name": ..., "linkedin_slug": ...}
+        self._schools = []  # list of {"name": ..., "linkedin_id": ...}
+        self._resume_versions = ["Data Scientist", "ML Builder", "Research Engineer"]
+        self._connections = list(DEFAULT_CONNECTIONS)
+        self._default_connection_line = DEFAULT_CONNECTION_LINE
+        self._tone_templates = list(DEFAULT_TONE_TEMPLATES)
 
         self.field_widgets = {}
 
@@ -63,6 +71,14 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         ).pack(side=RIGHT)
         ttk.Button(
             top, text="Schools", command=self._manage_schools,
+            bootstyle="secondary-outline",
+        ).pack(side=RIGHT, padx=(0, 6))
+        ttk.Button(
+            top, text="Resumes", command=self._manage_resume_versions,
+            bootstyle="secondary-outline",
+        ).pack(side=RIGHT, padx=(0, 6))
+        ttk.Button(
+            top, text="Templates", command=self._manage_templates,
             bootstyle="secondary-outline",
         ).pack(side=RIGHT, padx=(0, 6))
 
@@ -201,42 +217,82 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         path = self._config_path()
         if not path or not os.path.exists(path):
             self._schools = []
+            self._resume_versions = ["Data Scientist", "ML Builder", "Research Engineer"]
+            self._connections = list(DEFAULT_CONNECTIONS)
+            self._default_connection_line = DEFAULT_CONNECTION_LINE
+            self._tone_templates = list(DEFAULT_TONE_TEMPLATES)
             return
         try:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             self._schools = data.get("schools", [])
+            saved_versions = data.get("resume_versions")
+            if saved_versions:
+                self._resume_versions = saved_versions
+            saved_connections = data.get("connections")
+            if saved_connections is not None:
+                self._connections = saved_connections
+            else:
+                self._connections = list(DEFAULT_CONNECTIONS)
+            self._default_connection_line = data.get(
+                "default_connection_line", DEFAULT_CONNECTION_LINE,
+            )
+            saved_templates = data.get("tone_templates")
+            if saved_templates:
+                self._tone_templates = saved_templates
+            else:
+                self._tone_templates = list(DEFAULT_TONE_TEMPLATES)
         except (json.JSONDecodeError, OSError):
             self._schools = []
+            self._resume_versions = ["Data Scientist", "ML Builder", "Research Engineer"]
+            self._connections = list(DEFAULT_CONNECTIONS)
+            self._default_connection_line = DEFAULT_CONNECTION_LINE
+            self._tone_templates = list(DEFAULT_TONE_TEMPLATES)
+        self._update_resume_combo()
 
     def _save_config(self):
         path = self._config_path()
         if not path:
             return
-        data = {"schools": self._schools}
+        data = {
+            "schools": self._schools,
+            "resume_versions": self._resume_versions,
+            "connections": self._connections,
+            "default_connection_line": self._default_connection_line,
+            "tone_templates": self._tone_templates,
+        }
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
+
+    def _update_resume_combo(self):
+        """Refresh the Resume Version combobox values from config."""
+        w = self.field_widgets.get("Resume Version")
+        if w and isinstance(w, ttk.Combobox):
+            w["values"] = self._resume_versions + [""]
 
     # -------------------------------------------------------------------
     # LinkedIn alumni search
     # -------------------------------------------------------------------
     def _open_alumni_search(self, company):
-        """Open LinkedIn alumni searches for each configured school.
+        """Open LinkedIn people search filtered to configured school alumni.
 
+        Uses the schoolFilter URL parameter with numeric school entity IDs.
         Falls back to a generic people search if no schools are configured.
         """
         query = urllib.parse.quote(company)
-        if not self._schools:
+        ids = [s["linkedin_id"] for s in self._schools if s.get("linkedin_id")]
+        if not ids:
             webbrowser.open(
                 f"https://www.linkedin.com/search/results/people/?keywords={query}",
             )
             return
-        for school in self._schools:
-            slug = school.get("linkedin_slug", "")
-            if slug:
-                webbrowser.open(
-                    f"https://www.linkedin.com/school/{slug}/people/?keywords={query}",
-                )
+        # schoolFilter format: ["id1","id2"] URL-encoded
+        filter_value = "[" + ",".join(f'"{i}"' for i in ids) + "]"
+        encoded_filter = urllib.parse.quote(filter_value, safe="")
+        webbrowser.open(
+            f"https://www.linkedin.com/search/results/people/"
+            f"?keywords={query}&schoolFilter={encoded_filter}",
+        )
 
     # -------------------------------------------------------------------
     # Schools management popup
@@ -247,7 +303,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         dlg.transient(self.root)
         dlg.grab_set()
 
-        w, h = 500, 420
+        w, h = 560, 520
         parent_x = self.root.winfo_rootx()
         parent_y = self.root.winfo_rooty()
         parent_w = self.root.winfo_width()
@@ -255,7 +311,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         x = parent_x + (parent_w - w) // 2
         y = parent_y + (parent_h - h) // 2
         dlg.geometry(f"{w}x{h}+{x}+{y}")
-        dlg.minsize(400, 340)
+        dlg.minsize(440, 420)
 
         body = ttk.Frame(dlg, padding=16)
         body.pack(fill=BOTH, expand=True)
@@ -266,7 +322,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         ).pack(anchor="w", pady=(0, 4))
         ttk.Label(
             body,
-            text="LinkedIn alumni search will open for each school listed here.",
+            text="LinkedIn search results will be filtered to alumni of these schools.",
             bootstyle="secondary", font=("", 9),
         ).pack(anchor="w", pady=(0, 8))
 
@@ -290,7 +346,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
                     row, text=school["name"], font=("", 10, "bold"),
                 ).pack(side=LEFT)
                 ttk.Label(
-                    row, text=f"  ({school['linkedin_slug']})",
+                    row, text=f"  (ID: {school.get('linkedin_id', '?')})",
                     bootstyle="secondary", font=("", 9),
                 ).pack(side=LEFT)
                 ttk.Button(
@@ -312,6 +368,14 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         ttk.Label(
             body, text="Add a school", font=("", 10, "bold"),
         ).pack(anchor="w", pady=(0, 4))
+        ttk.Label(
+            body,
+            text=(
+                "To find a school's ID: search people on LinkedIn, add the school "
+                "under Education filters, then paste the resulting URL below."
+            ),
+            bootstyle="secondary", font=("", 9), wraplength=500,
+        ).pack(anchor="w", pady=(0, 6))
 
         add_grid = ttk.Frame(body)
         add_grid.pack(fill=X)
@@ -324,50 +388,62 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         name_entry.grid(row=0, column=1, sticky="ew", pady=(0, 4))
         name_entry.focus_set()
 
-        ttk.Label(add_grid, text="LinkedIn URL:").grid(
+        ttk.Label(add_grid, text="URL or ID:").grid(
             row=1, column=0, sticky="e", padx=(0, 6), pady=(0, 4),
         )
-        url_entry = ttk.Entry(add_grid, width=30)
-        url_entry.grid(row=1, column=1, sticky="ew", pady=(0, 4))
+        id_entry = ttk.Entry(add_grid, width=30)
+        id_entry.grid(row=1, column=1, sticky="ew", pady=(0, 4))
 
         ttk.Label(
             add_grid,
-            text="e.g. https://www.linkedin.com/school/georgia-institute-of-technology/",
+            text="Paste a LinkedIn search URL with schoolFilter, or a numeric ID",
             bootstyle="secondary", font=("", 8),
         ).grid(row=2, column=1, sticky="w")
 
-        def _extract_slug(url):
-            """Extract the school slug from a LinkedIn school URL."""
-            url = url.strip().rstrip("/")
-            # Handle full URLs
-            if "/school/" in url:
-                return url.split("/school/")[-1].split("/")[0].split("?")[0]
-            # Handle bare slugs
-            return url
+        def _extract_school_id(raw):
+            """Extract a school ID from a LinkedIn URL or bare numeric ID."""
+            raw = raw.strip()
+            # Bare numeric ID
+            if raw.isdigit():
+                return raw
+            # URL with schoolFilter parameter
+            decoded = urllib.parse.unquote(raw)
+            if "schoolFilter" in decoded:
+                match = re.search(r'schoolFilter=\[?"?(\d+)"?', decoded)
+                if match:
+                    return match.group(1)
+            return None
 
         def _add():
             name = name_entry.get().strip()
-            raw_url = url_entry.get().strip()
-            if not name or not raw_url:
+            raw_id = id_entry.get().strip()
+            if not name or not raw_id:
                 messagebox.showwarning(
                     "Required",
-                    "Both name and LinkedIn URL are required.",
+                    "Both name and URL/ID are required.",
                     parent=dlg,
                 )
                 return
-            slug = _extract_slug(raw_url)
-            if not slug:
+            school_id = _extract_school_id(raw_id)
+            if not school_id:
                 messagebox.showwarning(
-                    "Invalid URL",
-                    "Could not extract a school slug from the URL.",
+                    "Invalid",
+                    "Could not extract a school ID.\n\n"
+                    "Paste a LinkedIn search URL that has a schoolFilter "
+                    "parameter, or enter the numeric ID directly.",
                     parent=dlg,
                 )
                 return
-            self._schools.append({"name": name, "linkedin_slug": slug})
+            self._schools.append({"name": name, "linkedin_id": school_id})
             self._save_config()
             name_entry.delete(0, END)
-            url_entry.delete(0, END)
+            id_entry.delete(0, END)
             _rebuild_list()
+
+        def _open_linkedin_search():
+            webbrowser.open(
+                "https://www.linkedin.com/search/results/people/",
+            )
 
         btn_row = ttk.Frame(body)
         btn_row.pack(fill=X, pady=(8, 0))
@@ -376,9 +452,449 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
             bootstyle="success", padding=(12, 4),
         ).pack(side=LEFT, padx=(0, 6))
         ttk.Button(
+            btn_row, text="Open LinkedIn Search",
+            command=_open_linkedin_search,
+            bootstyle="info-outline", padding=(12, 4),
+        ).pack(side=LEFT)
+        ttk.Button(
             btn_row, text="Close", command=dlg.destroy,
             bootstyle="secondary", padding=(12, 4),
         ).pack(side=RIGHT)
 
-        name_entry.bind("<Return>", lambda e: url_entry.focus_set())
-        url_entry.bind("<Return>", lambda e: _add())
+        name_entry.bind("<Return>", lambda e: id_entry.focus_set())
+        id_entry.bind("<Return>", lambda e: _add())
+
+    # -------------------------------------------------------------------
+    # Resume versions management popup
+    # -------------------------------------------------------------------
+    def _manage_resume_versions(self):
+        dlg = tk.Toplevel(self.root)
+        dlg.title("Resume Versions")
+        dlg.transient(self.root)
+        dlg.grab_set()
+
+        w, h = 420, 380
+        parent_x = self.root.winfo_rootx()
+        parent_y = self.root.winfo_rooty()
+        parent_w = self.root.winfo_width()
+        parent_h = self.root.winfo_height()
+        x = parent_x + (parent_w - w) // 2
+        y = parent_y + (parent_h - h) // 2
+        dlg.geometry(f"{w}x{h}+{x}+{y}")
+        dlg.minsize(340, 300)
+
+        body = ttk.Frame(dlg, padding=16)
+        body.pack(fill=BOTH, expand=True)
+
+        ttk.Label(
+            body, text="Resume Versions",
+            font=("", 13, "bold"), bootstyle="primary",
+        ).pack(anchor="w", pady=(0, 4))
+        ttk.Label(
+            body,
+            text="These appear in the Resume Version dropdown and pipeline step.",
+            bootstyle="secondary", font=("", 9),
+        ).pack(anchor="w", pady=(0, 8))
+
+        # Scrollable list
+        list_frame = ttk.Frame(body)
+        list_frame.pack(fill=BOTH, expand=True, pady=(0, 8))
+
+        def _rebuild_list():
+            for child in list_frame.winfo_children():
+                child.destroy()
+            if not self._resume_versions:
+                ttk.Label(
+                    list_frame, text="No resume versions added yet.",
+                    bootstyle="secondary", font=("", 9),
+                ).pack(anchor="w", pady=4)
+                return
+            for i, version in enumerate(self._resume_versions):
+                row = ttk.Frame(list_frame)
+                row.pack(fill=X, pady=(0, 4))
+                ttk.Label(
+                    row, text=version, font=("", 10, "bold"),
+                ).pack(side=LEFT)
+                ttk.Button(
+                    row, text="x", bootstyle="danger-outline",
+                    padding=(4, 0),
+                    command=lambda idx=i: _remove(idx),
+                ).pack(side=RIGHT)
+                ttk.Separator(list_frame).pack(fill=X, pady=(0, 2))
+
+        def _remove(idx):
+            self._resume_versions.pop(idx)
+            self._save_config()
+            self._update_resume_combo()
+            _rebuild_list()
+
+        _rebuild_list()
+
+        # Add form
+        ttk.Separator(body).pack(fill=X, pady=(0, 8))
+        ttk.Label(
+            body, text="Add a version", font=("", 10, "bold"),
+        ).pack(anchor="w", pady=(0, 4))
+
+        add_row = ttk.Frame(body)
+        add_row.pack(fill=X)
+        add_row.columnconfigure(0, weight=1)
+
+        version_entry = ttk.Entry(add_row, width=30)
+        version_entry.grid(row=0, column=0, sticky="ew", padx=(0, 6))
+        version_entry.focus_set()
+
+        def _add():
+            name = version_entry.get().strip()
+            if not name:
+                return
+            if name in self._resume_versions:
+                messagebox.showwarning(
+                    "Duplicate",
+                    f'"{name}" already exists.',
+                    parent=dlg,
+                )
+                return
+            self._resume_versions.append(name)
+            self._save_config()
+            self._update_resume_combo()
+            version_entry.delete(0, END)
+            _rebuild_list()
+
+        ttk.Button(
+            add_row, text="Add", command=_add,
+            bootstyle="success", padding=(12, 4),
+        ).grid(row=0, column=1)
+
+        btn_row = ttk.Frame(body)
+        btn_row.pack(fill=X, pady=(8, 0))
+        ttk.Button(
+            btn_row, text="Close", command=dlg.destroy,
+            bootstyle="secondary", padding=(12, 4),
+        ).pack(side=RIGHT)
+
+        version_entry.bind("<Return>", lambda e: _add())
+
+    # -------------------------------------------------------------------
+    # Templates management popup (connections + tone templates)
+    # -------------------------------------------------------------------
+    def _manage_templates(self):
+        dlg = tk.Toplevel(self.root)
+        dlg.title("Message Templates")
+        dlg.transient(self.root)
+        dlg.grab_set()
+
+        w, h = 620, 580
+        parent_x = self.root.winfo_rootx()
+        parent_y = self.root.winfo_rooty()
+        parent_w = self.root.winfo_width()
+        parent_h = self.root.winfo_height()
+        x = parent_x + (parent_w - w) // 2
+        y = parent_y + (parent_h - h) // 2
+        dlg.geometry(f"{w}x{h}+{x}+{y}")
+        dlg.minsize(500, 480)
+
+        # Scrollable body
+        outer = ttk.Frame(dlg)
+        outer.pack(fill=BOTH, expand=True)
+        canvas = tk.Canvas(
+            outer, highlightthickness=0,
+            bg=str(self.colors.bg),
+        )
+        scrollbar = ttk.Scrollbar(outer, orient=VERTICAL, command=canvas.yview)
+        body = ttk.Frame(canvas, padding=16)
+        body.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all")),
+        )
+        canvas.create_window((0, 0), window=body, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side=LEFT, fill=BOTH, expand=True)
+        scrollbar.pack(side=RIGHT, fill=Y)
+
+        def _on_wheel(event):
+            if event.num == 4:
+                canvas.yview_scroll(-3, "units")
+            elif event.num == 5:
+                canvas.yview_scroll(3, "units")
+            else:
+                canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        canvas.bind_all("<MouseWheel>", _on_wheel)
+        canvas.bind_all("<Button-4>", _on_wheel)
+        canvas.bind_all("<Button-5>", _on_wheel)
+
+        def _restore_wheel():
+            canvas.unbind_all("<MouseWheel>")
+            canvas.unbind_all("<Button-4>")
+            canvas.unbind_all("<Button-5>")
+            self.root.bind_all("<MouseWheel>", self._on_mousewheel)
+            self.root.bind_all("<Button-4>", self._on_mousewheel)
+            self.root.bind_all("<Button-5>", self._on_mousewheel)
+
+        dlg.protocol("WM_DELETE_WINDOW", lambda: (_restore_wheel(), dlg.destroy()))
+
+        # ---- Section 1: Connections ----
+        ttk.Label(
+            body, text="Connections",
+            font=("", 13, "bold"), bootstyle="primary",
+        ).pack(anchor="w", pady=(0, 4))
+        ttk.Label(
+            body,
+            text="Connection labels and lines used in message templates.",
+            bootstyle="secondary", font=("", 9),
+        ).pack(anchor="w", pady=(0, 8))
+
+        conn_list_frame = ttk.Frame(body)
+        conn_list_frame.pack(fill=X, pady=(0, 8))
+
+        def _rebuild_conn_list():
+            for child in conn_list_frame.winfo_children():
+                child.destroy()
+            if not self._connections:
+                ttk.Label(
+                    conn_list_frame, text="No connections added yet.",
+                    bootstyle="secondary", font=("", 9),
+                ).pack(anchor="w", pady=4)
+                return
+            for i, conn in enumerate(self._connections):
+                row = ttk.Frame(conn_list_frame)
+                row.pack(fill=X, pady=(0, 4))
+                ttk.Label(
+                    row, text=conn["label"], font=("", 10, "bold"), width=8,
+                ).pack(side=LEFT)
+                ttk.Label(
+                    row, text=conn["line"],
+                    bootstyle="secondary", font=("", 9),
+                ).pack(side=LEFT, fill=X, expand=True, padx=(8, 0))
+                ttk.Button(
+                    row, text="x", bootstyle="danger-outline",
+                    padding=(4, 0),
+                    command=lambda idx=i: _remove_conn(idx),
+                ).pack(side=RIGHT)
+                ttk.Separator(conn_list_frame).pack(fill=X, pady=(0, 2))
+
+        def _remove_conn(idx):
+            self._connections.pop(idx)
+            self._save_config()
+            _rebuild_conn_list()
+
+        _rebuild_conn_list()
+
+        # Add connection form
+        add_conn_frame = ttk.Frame(body)
+        add_conn_frame.pack(fill=X, pady=(0, 4))
+        add_conn_frame.columnconfigure(1, weight=1)
+
+        ttk.Label(add_conn_frame, text="Label:").grid(
+            row=0, column=0, sticky="e", padx=(0, 6), pady=(0, 4),
+        )
+        conn_label_entry = ttk.Entry(add_conn_frame, width=10)
+        conn_label_entry.grid(row=0, column=1, sticky="w", pady=(0, 4))
+
+        ttk.Label(add_conn_frame, text="Line:").grid(
+            row=1, column=0, sticky="e", padx=(0, 6), pady=(0, 4),
+        )
+        conn_line_entry = ttk.Entry(add_conn_frame, width=50)
+        conn_line_entry.grid(row=1, column=1, sticky="ew", pady=(0, 4))
+
+        def _add_conn():
+            label = conn_label_entry.get().strip()
+            line = conn_line_entry.get().strip()
+            if not label or not line:
+                messagebox.showwarning(
+                    "Required", "Both label and line are required.", parent=dlg,
+                )
+                return
+            self._connections.append({"label": label, "line": line})
+            self._save_config()
+            conn_label_entry.delete(0, END)
+            conn_line_entry.delete(0, END)
+            _rebuild_conn_list()
+
+        ttk.Button(
+            add_conn_frame, text="Add Connection", command=_add_conn,
+            bootstyle="success", padding=(10, 3),
+        ).grid(row=2, column=1, sticky="w", pady=(2, 0))
+
+        # Default connection line
+        ttk.Separator(body).pack(fill=X, pady=(8, 8))
+        def_conn_frame = ttk.Frame(body)
+        def_conn_frame.pack(fill=X, pady=(0, 4))
+        def_conn_frame.columnconfigure(1, weight=1)
+
+        ttk.Label(
+            def_conn_frame, text="Default line:",
+            font=("", 9, "bold"),
+        ).grid(row=0, column=0, sticky="e", padx=(0, 6))
+        def_conn_entry = ttk.Entry(def_conn_frame, width=50)
+        def_conn_entry.grid(row=0, column=1, sticky="ew")
+        def_conn_entry.insert(0, self._default_connection_line)
+
+        ttk.Label(
+            def_conn_frame,
+            text="Used when no connection label is selected.",
+            bootstyle="secondary", font=("", 8),
+        ).grid(row=1, column=1, sticky="w", pady=(2, 0))
+
+        def _save_default_conn(event=None):
+            self._default_connection_line = def_conn_entry.get().strip()
+            self._save_config()
+
+        def_conn_entry.bind("<FocusOut>", _save_default_conn)
+        def_conn_entry.bind("<Return>", _save_default_conn)
+
+        # ---- Section 2: Tone Templates ----
+        ttk.Separator(body).pack(fill=X, pady=(12, 8))
+        ttk.Label(
+            body, text="Tone Templates",
+            font=("", 13, "bold"), bootstyle="primary",
+        ).pack(anchor="w", pady=(0, 4))
+        ttk.Label(
+            body,
+            text="Message templates shown in the Draft Message popup. "
+                 "Placeholders: {first_name}, {company}, {role}, {connection}",
+            bootstyle="secondary", font=("", 9), wraplength=560,
+        ).pack(anchor="w", pady=(0, 8))
+
+        tone_list_frame = ttk.Frame(body)
+        tone_list_frame.pack(fill=X, pady=(0, 8))
+
+        def _rebuild_tone_list():
+            for child in tone_list_frame.winfo_children():
+                child.destroy()
+            if not self._tone_templates:
+                ttk.Label(
+                    tone_list_frame, text="No tone templates added yet.",
+                    bootstyle="secondary", font=("", 9),
+                ).pack(anchor="w", pady=4)
+                return
+            for i, tmpl in enumerate(self._tone_templates):
+                row = ttk.Frame(tone_list_frame)
+                row.pack(fill=X, pady=(0, 4))
+                ttk.Label(
+                    row, text=tmpl["name"], font=("", 10, "bold"), width=20,
+                    anchor="w",
+                ).pack(side=LEFT)
+                preview = tmpl["body"][:60] + "..." if len(tmpl["body"]) > 60 else tmpl["body"]
+                ttk.Label(
+                    row, text=preview,
+                    bootstyle="secondary", font=("", 8),
+                ).pack(side=LEFT, fill=X, expand=True, padx=(8, 0))
+                ttk.Button(
+                    row, text="Edit", bootstyle="info-outline",
+                    padding=(6, 0),
+                    command=lambda idx=i: _edit_tone(idx),
+                ).pack(side=RIGHT, padx=(4, 0))
+                ttk.Button(
+                    row, text="x", bootstyle="danger-outline",
+                    padding=(4, 0),
+                    command=lambda idx=i: _remove_tone(idx),
+                ).pack(side=RIGHT)
+                ttk.Separator(tone_list_frame).pack(fill=X, pady=(0, 2))
+
+        def _remove_tone(idx):
+            self._tone_templates.pop(idx)
+            self._save_config()
+            _rebuild_tone_list()
+
+        def _edit_tone(idx):
+            _open_tone_editor(idx)
+
+        def _open_tone_editor(idx=None):
+            """Open a sub-dialog to add or edit a tone template."""
+            editing = idx is not None
+            sub = tk.Toplevel(dlg)
+            sub.title("Edit Template" if editing else "Add Template")
+            sub.transient(dlg)
+            sub.grab_set()
+
+            sw, sh = 500, 350
+            dx = dlg.winfo_rootx() + (dlg.winfo_width() - sw) // 2
+            dy = dlg.winfo_rooty() + (dlg.winfo_height() - sh) // 2
+            sub.geometry(f"{sw}x{sh}+{dx}+{dy}")
+            sub.minsize(400, 300)
+
+            sub_body = ttk.Frame(sub, padding=16)
+            sub_body.pack(fill=BOTH, expand=True)
+
+            ttk.Label(sub_body, text="Name:").pack(anchor="w", pady=(0, 4))
+            name_entry = ttk.Entry(sub_body, width=30)
+            name_entry.pack(fill=X, pady=(0, 8))
+            name_entry.focus_set()
+
+            ttk.Label(sub_body, text="Body:").pack(anchor="w", pady=(0, 4))
+            text_kw = dict(
+                bg=str(self.colors.inputbg),
+                fg=str(self.colors.inputfg),
+                insertbackground=str(self.colors.inputfg),
+                selectbackground=str(self.colors.selectbg),
+                selectforeground=str(self.colors.selectfg),
+                relief="flat", borderwidth=2,
+            )
+            body_text = tk.Text(
+                sub_body, wrap=tk.WORD, font=("", 10), height=8, **text_kw,
+            )
+            body_text.pack(fill=BOTH, expand=True, pady=(0, 4))
+
+            ttk.Label(
+                sub_body,
+                text="Placeholders: {first_name}, {company}, {role}, {connection}",
+                bootstyle="secondary", font=("", 8),
+            ).pack(anchor="w", pady=(0, 8))
+
+            if editing:
+                tmpl = self._tone_templates[idx]
+                name_entry.insert(0, tmpl["name"])
+                body_text.insert("1.0", tmpl["body"])
+
+            def _save_tone():
+                name = name_entry.get().strip()
+                content = body_text.get("1.0", END).strip()
+                if not name or not content:
+                    messagebox.showwarning(
+                        "Required", "Both name and body are required.", parent=sub,
+                    )
+                    return
+                # Check for duplicate names (excluding current if editing)
+                for j, t in enumerate(self._tone_templates):
+                    if t["name"] == name and j != (idx if editing else -1):
+                        messagebox.showwarning(
+                            "Duplicate",
+                            f'A template named "{name}" already exists.',
+                            parent=sub,
+                        )
+                        return
+                if editing:
+                    self._tone_templates[idx] = {"name": name, "body": content}
+                else:
+                    self._tone_templates.append({"name": name, "body": content})
+                self._save_config()
+                _rebuild_tone_list()
+                sub.destroy()
+
+            btn_row = ttk.Frame(sub_body)
+            btn_row.pack(fill=X)
+            ttk.Button(
+                btn_row, text="Save", command=_save_tone,
+                bootstyle="success", padding=(12, 4),
+            ).pack(side=LEFT, padx=(0, 6))
+            ttk.Button(
+                btn_row, text="Cancel", command=sub.destroy,
+                bootstyle="secondary", padding=(12, 4),
+            ).pack(side=LEFT)
+
+        _rebuild_tone_list()
+
+        ttk.Button(
+            body, text="Add Template", command=lambda: _open_tone_editor(),
+            bootstyle="success", padding=(10, 3),
+        ).pack(anchor="w", pady=(0, 8))
+
+        # Close button at the bottom
+        ttk.Separator(body).pack(fill=X, pady=(8, 8))
+        ttk.Button(
+            body, text="Close",
+            command=lambda: (_restore_wheel(), dlg.destroy()),
+            bootstyle="secondary", padding=(12, 4),
+        ).pack(anchor="e")

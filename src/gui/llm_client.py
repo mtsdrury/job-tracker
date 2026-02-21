@@ -115,7 +115,7 @@ TOOLS = [
                 },
                 "resume_version": {
                     "type": "string",
-                    "description": "Resume version: 'Data Scientist', 'ML Builder', or 'Research Engineer'.",
+                    "description": "Resume version name (e.g. 'Data Scientist', 'ML Builder').",
                 },
                 "notes": {
                     "type": "string",

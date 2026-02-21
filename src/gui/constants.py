@@ -71,12 +71,57 @@ RESUME_BOOTSTYLES = {
     "Research Engineer": "warning",
 }
 
-# Message drafting
-TONE_OPTIONS = ["Casual", "Professional", "Friendly Professional", "Follow-up"]
-CONNECTION_TEMPLATES = {
-    "GT": "I am also a GT MS student, finishing up this June",
-    "UCLA": "I am also a UCLA alum, finishing up my MS at Georgia Tech this June",
-}
+# Message drafting defaults (overridden by config)
+DEFAULT_TONE_TEMPLATES = [
+    {
+        "name": "Casual",
+        "body": (
+            "Hi {first_name}, I hope you're doing well! "
+            "{connection}. "
+            "I came across the {role} role at {company} and it really "
+            "stood out to me. How has your experience been? "
+            "If you are open to it, I would greatly appreciate a referral."
+        ),
+    },
+    {
+        "name": "Professional",
+        "body": (
+            "Dear {first_name}, I hope this message finds you well. "
+            "{connection}. "
+            "I recently came across the {role} position at {company} "
+            "and believe it aligns well with my background. "
+            "I would welcome the chance to hear about your experience there. "
+            "If you are open to it, I would be grateful for a referral."
+        ),
+    },
+    {
+        "name": "Friendly Professional",
+        "body": (
+            "Hi {first_name}, I hope you're doing well! "
+            "{connection}. "
+            "I recently came across the {role} role at {company} "
+            "and it caught my attention. "
+            "I would love to hear about your experience there. "
+            "If you are open to it, I would really appreciate a referral."
+        ),
+    },
+    {
+        "name": "Follow-up",
+        "body": (
+            "Hi {first_name}, I hope you're doing well! "
+            "I wanted to follow up on my previous message about the "
+            "{role} role at {company}. I am still very interested "
+            "in the position and would love to connect if you have a "
+            "chance. Thank you for your time!"
+        ),
+    },
+]
+
+DEFAULT_CONNECTIONS = [
+    {"label": "GT", "line": "I am also a GT MS student, finishing up this June"},
+    {"label": "UCLA", "line": "I am also a UCLA alum, finishing up my MS at Georgia Tech this June"},
+]
+
 DEFAULT_CONNECTION_LINE = "I am finishing up my MS at Georgia Tech this June"
 
 # Completeness check fields

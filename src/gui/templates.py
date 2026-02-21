@@ -6,53 +6,30 @@ import webbrowser
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 
-from gui.constants import (
-    TONE_OPTIONS, CONNECTION_TEMPLATES, DEFAULT_CONNECTION_LINE,
-)
-
-
 class TemplatesMixin:
 
     def _generate_message(self, tone, connection):
         """Build a message with {first_name}, {company}, {role} placeholders."""
-        conn_text = CONNECTION_TEMPLATES.get(connection, "")
-        if not conn_text:
-            conn_text = connection if connection else DEFAULT_CONNECTION_LINE
+        # Look up tone template body by name
+        template_body = ""
+        for t in self._tone_templates:
+            if t["name"] == tone:
+                template_body = t["body"]
+                break
+        if not template_body:
+            return ""
 
-        if tone == "Casual":
-            return (
-                "Hi {first_name}, I hope you're doing well! "
-                f"{conn_text}. "
-                "I came across the {role} role at {company} and it really "
-                "stood out to me. How has your experience been? "
-                "If you are open to it, I would greatly appreciate a referral."
-            )
-        elif tone == "Professional":
-            return (
-                "Dear {first_name}, I hope this message finds you well. "
-                f"{conn_text}. "
-                "I recently came across the {role} position at {company} "
-                "and believe it aligns well with my background. "
-                "I would welcome the chance to hear about your experience there. "
-                "If you are open to it, I would be grateful for a referral."
-            )
-        elif tone == "Follow-up":
-            return (
-                "Hi {first_name}, I hope you're doing well! "
-                "I wanted to follow up on my previous message about the "
-                "{role} role at {company}. I am still very interested "
-                "in the position and would love to connect if you have a "
-                "chance. Thank you for your time!"
-            )
-        else:  # Friendly Professional
-            return (
-                "Hi {first_name}, I hope you're doing well! "
-                f"{conn_text}. "
-                "I recently came across the {role} role at {company} "
-                "and it caught my attention. "
-                "I would love to hear about your experience there. "
-                "If you are open to it, I would really appreciate a referral."
-            )
+        # Resolve connection text from label
+        conn_text = ""
+        for c in self._connections:
+            if c["label"] == connection:
+                conn_text = c["line"]
+                break
+        if not conn_text:
+            conn_text = connection if connection else self._default_connection_line
+
+        # Replace {connection} placeholder; if template omits it, nothing changes
+        return template_body.replace("{connection}", conn_text)
 
     def _fill_message(self, body, first_name, company, role):
         """Replace {first_name}, {company}, {role} placeholders in body."""
@@ -97,15 +74,18 @@ class TemplatesMixin:
         selector_frame = ttk.Frame(body)
         selector_frame.pack(fill=X, pady=(0, 8))
 
+        tone_names = [t["name"] for t in self._tone_templates]
+        conn_labels = [c["label"] for c in self._connections] + [""]
+
         ttk.Label(selector_frame, text="Tone:").pack(side=LEFT, padx=(0, 4))
         tone_combo = ttk.Combobox(
-            selector_frame, values=TONE_OPTIONS, state="readonly", width=20,
+            selector_frame, values=tone_names, state="readonly", width=20,
         )
         tone_combo.pack(side=LEFT, padx=(0, 12))
 
         ttk.Label(selector_frame, text="Connection:").pack(side=LEFT, padx=(0, 4))
         conn_combo = ttk.Combobox(
-            selector_frame, values=["GT", "UCLA", ""], width=14,
+            selector_frame, values=conn_labels, width=14,
         )
         conn_combo.pack(side=LEFT)
 
@@ -144,7 +124,8 @@ class TemplatesMixin:
         conn_combo.bind("<FocusOut>", _regenerate)
 
         # Set initial tone and generate
-        initial_tone = default_tone if default_tone in TONE_OPTIONS else "Casual"
+        first_tone = tone_names[0] if tone_names else ""
+        initial_tone = default_tone if default_tone in tone_names else first_tone
         tone_combo.set(initial_tone)
         _regenerate()
 

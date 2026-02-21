@@ -220,9 +220,8 @@ class DetailTabMixin:
         rcl_grid.columnconfigure(1, weight=1)
 
         rcl_row = 0
-        rcl_row = field_row(rcl_grid, "Resume Version", rcl_row, "combo", [
-            "Data Scientist", "ML Builder", "Research Engineer", "",
-        ])
+        rcl_row = field_row(rcl_grid, "Resume Version", rcl_row, "combo",
+                            self._resume_versions + [""])
         rcl_row = field_row(
             rcl_grid, "Cover Letter Written", rcl_row, "combo", ["Yes", "No", ""],
         )

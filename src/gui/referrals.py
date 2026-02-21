@@ -26,7 +26,9 @@ class ReferralsMixin:
         "Referral submitted",
     ]
 
-    CONNECTION_OPTIONS = ["GT", "UCLA", ""]
+    def _connection_labels(self):
+        """Return connection labels from config, plus a blank option."""
+        return [c["label"] for c in self._connections] + [""]
 
     def _refresh_referral_display(self, row):
         names = parse_semicolons(row.get("Referral Names", ""))
@@ -156,7 +158,7 @@ class ReferralsMixin:
             row=2, column=0, sticky="e", padx=(0, 8), pady=(0, 6),
         )
         conn_combo = ttk.Combobox(
-            body, values=self.CONNECTION_OPTIONS, width=14,
+            body, values=self._connection_labels(), width=14,
         )
         conn_combo.grid(row=2, column=1, sticky="w", pady=(0, 6))
 
@@ -364,7 +366,7 @@ class ReferralsMixin:
             row=2, column=0, sticky="e", padx=(0, 8), pady=(0, 6),
         )
         conn_combo = ttk.Combobox(
-            body, values=self.CONNECTION_OPTIONS, width=14,
+            body, values=self._connection_labels(), width=14,
         )
         conn_combo.set(cur_conn)
         conn_combo.grid(row=2, column=1, sticky="w", pady=(0, 6))
