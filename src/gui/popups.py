@@ -141,7 +141,7 @@ class PopupsMixin:
         dlg.grab_set()
 
         # Size and center on parent window
-        w, h = 480, 260
+        w, h = 520, 340
         parent_x = self.root.winfo_rootx()
         parent_y = self.root.winfo_rooty()
         parent_w = self.root.winfo_width()
@@ -149,44 +149,43 @@ class PopupsMixin:
         x = parent_x + (parent_w - w) // 2
         y = parent_y + (parent_h - h) // 2
         dlg.geometry(f"{w}x{h}+{x}+{y}")
-        dlg.minsize(400, 240)
+        dlg.minsize(480, 300)
 
         body = ttk.Frame(dlg, padding=16)
         body.pack(fill=BOTH, expand=True)
 
-        # Row 0: URL + Fetch
+        # Row 0: URL
         ttk.Label(body, text="URL:").grid(
-            row=0, column=0, padx=(0, 8), pady=(0, 6), sticky="e",
+            row=0, column=0, padx=(0, 8), pady=(0, 2), sticky="e",
         )
-        url_frame = ttk.Frame(body)
-        url_frame.grid(row=0, column=1, pady=(0, 6), sticky="ew")
-        url_entry = ttk.Entry(url_frame, width=34)
-        url_entry.pack(side=LEFT, fill=X, expand=True)
+        url_entry = ttk.Entry(body, width=34)
+        url_entry.grid(row=0, column=1, pady=(0, 2), sticky="ew")
         url_entry.focus_set()
 
-        fetch_btn = ttk.Button(url_frame, text="Fetch", bootstyle="info", padding=(8, 2))
-        fetch_btn.pack(side=LEFT, padx=(6, 0))
+        # Row 1: Fetch button (centered, same style as Add button)
+        fetch_btn = ttk.Button(body, text="Fetch from URL", bootstyle="info", padding=(16, 4))
+        fetch_btn.grid(row=1, column=0, columnspan=2, pady=(4, 12))
 
-        # Row 1: Company
+        # Row 2: Company
         ttk.Label(body, text="Company:").grid(
-            row=1, column=0, padx=(0, 8), pady=(0, 6), sticky="e",
-        )
-        company_entry = ttk.Entry(body, width=34)
-        company_entry.grid(row=1, column=1, pady=(0, 6), sticky="ew")
-
-        # Row 2: Role
-        ttk.Label(body, text="Role:").grid(
             row=2, column=0, padx=(0, 8), pady=(0, 6), sticky="e",
         )
-        role_entry = ttk.Entry(body, width=34)
-        role_entry.grid(row=2, column=1, pady=(0, 6), sticky="ew")
+        company_entry = ttk.Entry(body, width=34)
+        company_entry.grid(row=2, column=1, pady=(0, 6), sticky="ew")
 
-        # Row 3: Location
-        ttk.Label(body, text="Location:").grid(
+        # Row 3: Role
+        ttk.Label(body, text="Role:").grid(
             row=3, column=0, padx=(0, 8), pady=(0, 6), sticky="e",
         )
+        role_entry = ttk.Entry(body, width=34)
+        role_entry.grid(row=3, column=1, pady=(0, 6), sticky="ew")
+
+        # Row 4: Location
+        ttk.Label(body, text="Location:").grid(
+            row=4, column=0, padx=(0, 8), pady=(0, 6), sticky="e",
+        )
         location_entry = ttk.Entry(body, width=34)
-        location_entry.grid(row=3, column=1, pady=(0, 6), sticky="ew")
+        location_entry.grid(row=4, column=1, pady=(0, 6), sticky="ew")
 
         body.columnconfigure(1, weight=1)
 
@@ -272,28 +271,33 @@ class PopupsMixin:
             # Select and open the new job in pipeline mode
             new_idx = len(self.rows) - 1
             self.selected_idx = new_idx
-            if str(new_idx) in self.tree.get_children():
-                self.tree.selection_set(str(new_idx))
-                self.tree.see(str(new_idx))
+            sid = str(new_idx)
+            # New jobs default to "Not Yet Applied" which is active
+            for tree in (self._active_tree, self._inactive_tree):
+                if sid in tree.get_children():
+                    tree.selection_set(sid)
+                    tree.see(sid)
+                    break
             self.notebook.select(self.tab_detail)
             self._start_pipeline(new_idx)
 
         ttk.Button(
             body, text="Add", command=_add,
             bootstyle="success", padding=(16, 4),
-        ).grid(row=4, column=0, columnspan=2, pady=(12, 0))
+        ).grid(row=5, column=0, columnspan=2, pady=(12, 0))
         # Enter in company/role/location fields triggers Add
         company_entry.bind("<Return>", lambda e: _add())
         role_entry.bind("<Return>", lambda e: _add())
         location_entry.bind("<Return>", lambda e: _add())
 
     def _remove_job(self):
-        sel = self.tree.selection()
-        if not sel:
+        result = self._get_selection()
+        if not result:
             messagebox.showwarning("No selection", "Select a job first.")
             return
 
-        idx = int(sel[0])
+        _tree, iid = result
+        idx = int(iid)
         row = self.rows[idx]
         company = row.get("Company", "")
         role = row.get("Role", "")

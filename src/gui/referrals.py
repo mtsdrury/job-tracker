@@ -114,7 +114,7 @@ class ReferralsMixin:
         dlg.transient(self.root)
 
         # Size and center on parent window
-        w, h = 500, 360
+        w, h = 540, 440
         parent_x = self.root.winfo_rootx()
         parent_y = self.root.winfo_rooty()
         parent_w = self.root.winfo_width()
@@ -122,7 +122,7 @@ class ReferralsMixin:
         x = parent_x + (parent_w - w) // 2
         y = parent_y + (parent_h - h) // 2
         dlg.geometry(f"{w}x{h}+{x}+{y}")
-        dlg.minsize(400, 300)
+        dlg.minsize(480, 400)
 
         dlg.grab_set()
         dlg.attributes("-topmost", True)
@@ -131,54 +131,53 @@ class ReferralsMixin:
         body = ttk.Frame(dlg, padding=16)
         body.pack(fill=BOTH, expand=True)
 
-        # Row 0: LinkedIn URL + Fetch
+        # Row 0: LinkedIn URL
         ttk.Label(body, text="LinkedIn URL:").grid(
-            row=0, column=0, sticky="e", padx=(0, 8), pady=(0, 6),
+            row=0, column=0, sticky="e", padx=(0, 8), pady=(0, 2),
         )
-        li_frame = ttk.Frame(body)
-        li_frame.grid(row=0, column=1, sticky="ew", pady=(0, 6))
-        li_entry = ttk.Entry(li_frame, width=28)
-        li_entry.pack(side=LEFT, fill=X, expand=True)
+        li_entry = ttk.Entry(body, width=32)
+        li_entry.grid(row=0, column=1, sticky="ew", pady=(0, 2))
         li_entry.focus_set()
 
+        # Row 1: Fetch button (centered, same style as Add button)
         fetch_btn = ttk.Button(
-            li_frame, text="Fetch", bootstyle="info", padding=(8, 2),
+            body, text="Fetch Name from URL", bootstyle="info", padding=(16, 4),
         )
-        fetch_btn.pack(side=LEFT, padx=(6, 0))
+        fetch_btn.grid(row=1, column=0, columnspan=2, pady=(4, 12))
 
-        # Row 1: Name (auto-filled from fetch)
+        # Row 2: Name (auto-filled from fetch)
         ttk.Label(body, text="Name:").grid(
-            row=1, column=0, sticky="e", padx=(0, 8), pady=(0, 6),
+            row=2, column=0, sticky="e", padx=(0, 8), pady=(0, 6),
         )
         name_entry = ttk.Entry(body, width=32)
-        name_entry.grid(row=1, column=1, sticky="ew", pady=(0, 6))
+        name_entry.grid(row=2, column=1, sticky="ew", pady=(0, 6))
 
-        # Row 2: Connection
+        # Row 3: Connection
         ttk.Label(body, text="Connection:").grid(
-            row=2, column=0, sticky="e", padx=(0, 8), pady=(0, 6),
+            row=3, column=0, sticky="e", padx=(0, 8), pady=(0, 6),
         )
         conn_combo = ttk.Combobox(
             body, values=self._connection_labels(), width=14,
         )
-        conn_combo.grid(row=2, column=1, sticky="w", pady=(0, 6))
+        conn_combo.grid(row=3, column=1, sticky="w", pady=(0, 6))
 
-        # Row 3: Status
+        # Row 4: Status
         ttk.Label(body, text="Status:").grid(
-            row=3, column=0, sticky="e", padx=(0, 8), pady=(0, 6),
+            row=4, column=0, sticky="e", padx=(0, 8), pady=(0, 6),
         )
         status_combo = ttk.Combobox(
             body, values=self.REFERRAL_STATUS_OPTIONS, width=28,
             state="readonly",
         )
         status_combo.set("Not yet messaged")
-        status_combo.grid(row=3, column=1, sticky="ew", pady=(0, 6))
+        status_combo.grid(row=4, column=1, sticky="ew", pady=(0, 6))
 
-        # Row 4: Note
+        # Row 5: Note
         ttk.Label(body, text="Note:").grid(
-            row=4, column=0, sticky="ne", padx=(0, 8), pady=(0, 6),
+            row=5, column=0, sticky="ne", padx=(0, 8), pady=(0, 6),
         )
         note_entry = ttk.Entry(body, width=32)
-        note_entry.grid(row=4, column=1, sticky="ew", pady=(0, 6))
+        note_entry.grid(row=5, column=1, sticky="ew", pady=(0, 6))
 
         body.columnconfigure(1, weight=1)
 
@@ -294,7 +293,7 @@ class ReferralsMixin:
                 on_complete(False)
 
         btn_frame = ttk.Frame(body)
-        btn_frame.grid(row=5, column=0, columnspan=2, pady=(12, 0))
+        btn_frame.grid(row=6, column=0, columnspan=2, pady=(12, 0))
         ttk.Button(
             btn_frame, text="Add", command=_add,
             bootstyle="success", padding=(16, 4),

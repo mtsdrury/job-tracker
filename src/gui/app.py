@@ -15,6 +15,7 @@ from tracker import read_tracker
 from gui.constants import (
     PAD_INNER, CONFIG_FILENAME,
     DEFAULT_TONE_TEMPLATES, DEFAULT_CONNECTIONS, DEFAULT_CONNECTION_LINE,
+    DEFAULT_ACTION_STATUSES,
 )
 from gui.list_tab import ListTabMixin
 from gui.detail_tab import DetailTabMixin
@@ -48,6 +49,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         self._connections = list(DEFAULT_CONNECTIONS)
         self._default_connection_line = DEFAULT_CONNECTION_LINE
         self._tone_templates = list(DEFAULT_TONE_TEMPLATES)
+        self._action_statuses = list(DEFAULT_ACTION_STATUSES)
 
         self.field_widgets = {}
 
@@ -75,6 +77,10 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         ).pack(side=RIGHT, padx=(0, 6))
         ttk.Button(
             top, text="Resumes", command=self._manage_resume_versions,
+            bootstyle="secondary-outline",
+        ).pack(side=RIGHT, padx=(0, 6))
+        ttk.Button(
+            top, text="Actions", command=self._manage_action_statuses,
             bootstyle="secondary-outline",
         ).pack(side=RIGHT, padx=(0, 6))
         ttk.Button(
@@ -158,7 +164,8 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
 
     def _on_double_click(self, event):
         """Double-click a job in the list to open it in the detail tab."""
-        sel = self.tree.selection()
+        tree = event.widget
+        sel = tree.selection()
         if not sel:
             return
         idx = int(sel[0])
@@ -168,11 +175,12 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
 
     def _open_selected(self):
         """Button: open the selected job in the detail tab."""
-        sel = self.tree.selection()
-        if not sel:
+        result = self._get_selection()
+        if not result:
             messagebox.showwarning("No selection", "Select a job first.")
             return
-        idx = int(sel[0])
+        _tree, iid = result
+        idx = int(iid)
         self.selected_idx = idx
         self._load_detail(self.rows[idx])
         self.notebook.select(self.tab_detail)
@@ -221,6 +229,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
             self._connections = list(DEFAULT_CONNECTIONS)
             self._default_connection_line = DEFAULT_CONNECTION_LINE
             self._tone_templates = list(DEFAULT_TONE_TEMPLATES)
+            self._action_statuses = list(DEFAULT_ACTION_STATUSES)
             return
         try:
             with open(path, "r", encoding="utf-8") as f:
@@ -242,13 +251,20 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
                 self._tone_templates = saved_templates
             else:
                 self._tone_templates = list(DEFAULT_TONE_TEMPLATES)
+            saved_action_statuses = data.get("action_statuses")
+            if saved_action_statuses is not None:
+                self._action_statuses = saved_action_statuses
+            else:
+                self._action_statuses = list(DEFAULT_ACTION_STATUSES)
         except (json.JSONDecodeError, OSError):
             self._schools = []
             self._resume_versions = ["Data Scientist", "ML Builder", "Research Engineer"]
             self._connections = list(DEFAULT_CONNECTIONS)
             self._default_connection_line = DEFAULT_CONNECTION_LINE
             self._tone_templates = list(DEFAULT_TONE_TEMPLATES)
+            self._action_statuses = list(DEFAULT_ACTION_STATUSES)
         self._update_resume_combo()
+        self._update_action_status_combo()
 
     def _save_config(self):
         path = self._config_path()
@@ -260,6 +276,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
             "connections": self._connections,
             "default_connection_line": self._default_connection_line,
             "tone_templates": self._tone_templates,
+            "action_statuses": self._action_statuses,
         }
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
@@ -269,6 +286,12 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         w = self.field_widgets.get("Resume Version")
         if w and isinstance(w, ttk.Combobox):
             w["values"] = self._resume_versions + [""]
+
+    def _update_action_status_combo(self):
+        """Refresh the Action Status combobox values from config."""
+        w = self.field_widgets.get("Action Status")
+        if w and isinstance(w, ttk.Combobox):
+            w["values"] = self._action_statuses + [""]
 
     # -------------------------------------------------------------------
     # LinkedIn alumni search
@@ -574,6 +597,139 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         ).pack(side=RIGHT)
 
         version_entry.bind("<Return>", lambda e: _add())
+
+    # -------------------------------------------------------------------
+    # Action statuses management popup
+    # -------------------------------------------------------------------
+    def _manage_action_statuses(self):
+        dlg = tk.Toplevel(self.root)
+        dlg.title("Action Statuses")
+        dlg.transient(self.root)
+        dlg.grab_set()
+
+        w, h = 420, 460
+        parent_x = self.root.winfo_rootx()
+        parent_y = self.root.winfo_rooty()
+        parent_w = self.root.winfo_width()
+        parent_h = self.root.winfo_height()
+        x = parent_x + (parent_w - w) // 2
+        y = parent_y + (parent_h - h) // 2
+        dlg.geometry(f"{w}x{h}+{x}+{y}")
+        dlg.minsize(340, 380)
+
+        body = ttk.Frame(dlg, padding=16)
+        body.pack(fill=BOTH, expand=True)
+
+        ttk.Label(
+            body, text="Action Statuses",
+            font=("", 13, "bold"), bootstyle="primary",
+        ).pack(anchor="w", pady=(0, 4))
+        ttk.Label(
+            body,
+            text="These appear in the Action Status dropdown on the Detail and Actions tabs.",
+            bootstyle="secondary", font=("", 9),
+        ).pack(anchor="w", pady=(0, 8))
+
+        # Scrollable list
+        list_frame = ttk.Frame(body)
+        list_frame.pack(fill=BOTH, expand=True, pady=(0, 8))
+
+        def _rebuild_list():
+            for child in list_frame.winfo_children():
+                child.destroy()
+            if not self._action_statuses:
+                ttk.Label(
+                    list_frame, text="No action statuses added yet.",
+                    bootstyle="secondary", font=("", 9),
+                ).pack(anchor="w", pady=4)
+                return
+            for i, status in enumerate(self._action_statuses):
+                row = ttk.Frame(list_frame)
+                row.pack(fill=X, pady=(0, 4))
+                ttk.Label(
+                    row, text=status, font=("", 10, "bold"),
+                ).pack(side=LEFT)
+                # Up/down reorder buttons
+                if i > 0:
+                    ttk.Button(
+                        row, text="\u25b2", bootstyle="secondary-outline",
+                        padding=(4, 0),
+                        command=lambda idx=i: _move(idx, -1),
+                    ).pack(side=RIGHT, padx=(2, 0))
+                if i < len(self._action_statuses) - 1:
+                    ttk.Button(
+                        row, text="\u25bc", bootstyle="secondary-outline",
+                        padding=(4, 0),
+                        command=lambda idx=i: _move(idx, 1),
+                    ).pack(side=RIGHT, padx=(2, 0))
+                ttk.Button(
+                    row, text="x", bootstyle="danger-outline",
+                    padding=(4, 0),
+                    command=lambda idx=i: _remove(idx),
+                ).pack(side=RIGHT)
+                ttk.Separator(list_frame).pack(fill=X, pady=(0, 2))
+
+        def _remove(idx):
+            self._action_statuses.pop(idx)
+            self._save_config()
+            self._update_action_status_combo()
+            _rebuild_list()
+
+        def _move(idx, direction):
+            new_idx = idx + direction
+            if 0 <= new_idx < len(self._action_statuses):
+                lst = self._action_statuses
+                lst[idx], lst[new_idx] = lst[new_idx], lst[idx]
+                self._save_config()
+                self._update_action_status_combo()
+                _rebuild_list()
+
+        _rebuild_list()
+
+        # Add form
+        ttk.Separator(body).pack(fill=X, pady=(0, 8))
+        ttk.Label(
+            body, text="Add a status", font=("", 10, "bold"),
+        ).pack(anchor="w", pady=(0, 4))
+
+        add_row = ttk.Frame(body)
+        add_row.pack(fill=X)
+        add_row.columnconfigure(0, weight=1)
+
+        status_entry = ttk.Entry(add_row, width=30)
+        status_entry.grid(row=0, column=0, sticky="ew", padx=(0, 6))
+        status_entry.focus_set()
+
+        def _add():
+            name = status_entry.get().strip()
+            if not name:
+                return
+            if name in self._action_statuses:
+                messagebox.showwarning(
+                    "Duplicate",
+                    f'"{name}" already exists.',
+                    parent=dlg,
+                )
+                return
+            self._action_statuses.append(name)
+            self._save_config()
+            self._update_action_status_combo()
+            status_entry.delete(0, END)
+            _rebuild_list()
+
+        ttk.Button(
+            add_row, text="Add", command=_add,
+            bootstyle="success", padding=(12, 4),
+        ).grid(row=0, column=1)
+
+        btn_row = ttk.Frame(body)
+        btn_row.pack(fill=X, pady=(8, 0))
+        ttk.Button(
+            btn_row, text="Close", command=dlg.destroy,
+            bootstyle="secondary", padding=(12, 4),
+        ).pack(side=RIGHT)
+
+        status_entry.bind("<Return>", lambda e: _add())
 
     # -------------------------------------------------------------------
     # Templates management popup (connections + tone templates)

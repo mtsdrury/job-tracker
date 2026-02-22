@@ -94,7 +94,7 @@ class KanbanMixin:
             status = row.get("Application Status", "Not Yet Applied")
 
             # Apply filters (same logic as _refresh_list)
-            if hide_closed and status in ("Rejected", "Withdrawn"):
+            if hide_closed and status in ("Rejected", "Withdrawn", "Closed"):
                 continue
             if status_f != "All" and status != status_f:
                 continue
@@ -121,8 +121,8 @@ class KanbanMixin:
         for status, col_data in self._kanban_columns.items():
             col_data["header"].config(text=f"{status} ({counts[status]})")
 
-        # Hide/show Rejected and Withdrawn columns
-        for closed_status in ("Rejected", "Withdrawn"):
+        # Hide/show Rejected, Withdrawn, and Closed columns
+        for closed_status in ("Rejected", "Withdrawn", "Closed"):
             col_data = self._kanban_columns[closed_status]
             if hide_closed:
                 col_data["frame"].pack_forget()

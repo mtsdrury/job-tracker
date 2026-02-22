@@ -45,7 +45,7 @@ class TemplatesMixin:
         dlg.title(f"Draft Message - {referral_name}")
         dlg.transient(self.root)
 
-        w, h = 560, 380
+        w, h = 580, 460
         parent_x = self.root.winfo_rootx()
         parent_y = self.root.winfo_rooty()
         parent_w = self.root.winfo_width()
@@ -53,7 +53,7 @@ class TemplatesMixin:
         x = parent_x + (parent_w - w) // 2
         y = parent_y + (parent_h - h) // 2
         dlg.geometry(f"{w}x{h}+{x}+{y}")
-        dlg.minsize(440, 300)
+        dlg.minsize(480, 400)
 
         dlg.grab_set()
         dlg.attributes("-topmost", True)
@@ -133,37 +133,27 @@ class TemplatesMixin:
         btn_frame = ttk.Frame(body)
         btn_frame.pack(fill=X)
 
+        copy_btn = ttk.Button(
+            btn_frame, text="Copy Message",
+            bootstyle="success", padding=(12, 4),
+        )
+        copy_btn.pack(side=LEFT, padx=(0, 6))
+
+        def _copy():
+            content = text_widget.get("1.0", END).strip()
+            self.root.clipboard_clear()
+            self.root.clipboard_append(content)
+            copy_btn.config(text="Copied!")
+            dlg.after(1500, lambda: copy_btn.config(text="Copy Message"))
+
+        copy_btn.config(command=_copy)
+
         if linkedin_url:
-            copy_open_btn = ttk.Button(
-                btn_frame, text="Copy & Open Profile",
-                bootstyle="success", padding=(12, 4),
-            )
-            copy_open_btn.pack(side=LEFT, padx=(0, 6))
-
-            def _copy_and_open():
-                content = text_widget.get("1.0", END).strip()
-                self.root.clipboard_clear()
-                self.root.clipboard_append(content)
-                webbrowser.open(linkedin_url)
-                copy_open_btn.config(text="Copied!")
-                dlg.after(1500, lambda: copy_open_btn.config(text="Copy & Open Profile"))
-
-            copy_open_btn.config(command=_copy_and_open)
-        else:
-            copy_btn = ttk.Button(
-                btn_frame, text="Copy to Clipboard",
-                bootstyle="success", padding=(12, 4),
-            )
-            copy_btn.pack(side=LEFT, padx=(0, 6))
-
-            def _copy():
-                content = text_widget.get("1.0", END).strip()
-                self.root.clipboard_clear()
-                self.root.clipboard_append(content)
-                copy_btn.config(text="Copied!")
-                dlg.after(1500, lambda: copy_btn.config(text="Copy to Clipboard"))
-
-            copy_btn.config(command=_copy)
+            ttk.Button(
+                btn_frame, text="Open Profile",
+                bootstyle="info", padding=(12, 4),
+                command=lambda: webbrowser.open(linkedin_url),
+            ).pack(side=LEFT, padx=(0, 6))
 
         edit_btn = ttk.Button(
             btn_frame, text="Edit",

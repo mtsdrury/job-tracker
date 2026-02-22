@@ -1,37 +1,15 @@
 """GUI constants: theme, spacing, colors, and configuration values."""
 
-# Action sort strategies (for Actions tab dropdown)
-ACTION_SORT_OPTIONS = ["Closest to Done", "Referral First", "Time Sensitive"]
-
-ACTION_PRIORITIES = {
-    "Closest to Done": {
-        "submit_app": 1,
-        "followup_app": 2,
-        "followup_referral": 3,
-        "write_cl": 4,
-        "message_referral": 5,
-        "find_referral": 6,
-        "fill_missing": 7,
-    },
-    "Referral First": {
-        "message_referral": 1,
-        "followup_referral": 2,
-        "find_referral": 3,
-        "write_cl": 4,
-        "submit_app": 5,
-        "followup_app": 6,
-        "fill_missing": 7,
-    },
-    "Time Sensitive": {
-        "followup_app": 1,
-        "followup_referral": 2,
-        "submit_app": 3,
-        "message_referral": 4,
-        "write_cl": 5,
-        "find_referral": 6,
-        "fill_missing": 7,
-    },
-}
+# Default action statuses (user-configurable via config)
+DEFAULT_ACTION_STATUSES = [
+    "Find referral",
+    "Message referral",
+    "Waiting on referral",
+    "Write cover letter",
+    "Ready to apply",
+    "Applied - waiting",
+    "Prep for interview",
+]
 
 # Config file (stored next to the CSV)
 CONFIG_FILENAME = "job_tracker_config.json"
@@ -52,6 +30,7 @@ STATUS_COLORS = {
     "Offer": "#58d68d",
     "Rejected": "#ec7063",
     "Withdrawn": "#aab7b8",
+    "Closed": "#7f8c8d",
 }
 
 # Bootstyles for status-themed widgets
@@ -62,6 +41,7 @@ STATUS_BOOTSTYLES = {
     "Offer": "success",
     "Rejected": "danger",
     "Withdrawn": "secondary",
+    "Closed": "secondary",
 }
 
 # Resume version display colors

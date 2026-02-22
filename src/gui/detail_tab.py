@@ -2,6 +2,7 @@
 
 import os
 import tkinter as tk
+import webbrowser
 from tkinter import messagebox, filedialog
 from datetime import datetime
 
@@ -63,6 +64,21 @@ class DetailTabMixin:
             command=lambda: self.notebook.select(self.tab_list),
             bootstyle="secondary-outline", padding=(16, 6),
         ).pack(side=LEFT)
+        ttk.Button(
+            self._detail_btn_frame, text="Withdrawn",
+            command=lambda: self._mark_job_status("Withdrawn"),
+            bootstyle="danger-outline", padding=(16, 6),
+        ).pack(side=RIGHT)
+        ttk.Button(
+            self._detail_btn_frame, text="Rejected",
+            command=lambda: self._mark_job_status("Rejected"),
+            bootstyle="danger-outline", padding=(16, 6),
+        ).pack(side=RIGHT, padx=(0, 8))
+        ttk.Button(
+            self._detail_btn_frame, text="Job Closed",
+            command=lambda: self._mark_job_status("Closed"),
+            bootstyle="danger-outline", padding=(16, 6),
+        ).pack(side=RIGHT, padx=(0, 8))
 
         # Scrollable detail form
         bg_color = str(self.colors.bg)
@@ -256,6 +272,8 @@ class DetailTabMixin:
 
         row = 0
         row = field_row(app_grid, "Application Status", row, "combo", VALID_STATUSES)
+        row = field_row(app_grid, "Action Status", row, "combo",
+                        self._action_statuses + [""])
 
         # Date Applied with Today button
         ttk.Label(app_grid, text="Date Applied:", anchor="e", width=20).grid(
@@ -290,6 +308,12 @@ class DetailTabMixin:
         ).pack(side=LEFT, padx=(6, 0))
         self.field_widgets["Job URL"] = job_url_entry
         row += 1
+
+        # Apply button
+        ttk.Button(
+            app_frame, text="Apply", command=self._go_apply,
+            bootstyle="success", padding=(16, 4),
+        ).pack(pady=(4, 8))
 
         # === 4. Notes ===
         notes_frame = ttk.Frame(f)
@@ -354,6 +378,7 @@ class DetailTabMixin:
 
         field_to_csv = {
             "Application Status": "Application Status",
+            "Action Status": "Action Status",
             "Date Applied": "Date Applied",
             "Date Posted": "Date Posted",
             "Location": "Location",
@@ -411,9 +436,64 @@ class DetailTabMixin:
             return
         self._open_alumni_search(company)
 
+    def _mark_job_status(self, status):
+        """Mark the current job with the given status after confirmation."""
+        if self.selected_idx is None:
+            messagebox.showwarning("No selection", "Select a job first.")
+            return
+        row = self.rows[self.selected_idx]
+        company = row.get("Company", "")
+        role = row.get("Role", "")
+        if not messagebox.askyesno(
+            status,
+            f"Mark {company} - {role} as {status}?",
+        ):
+            return
+        self.field_widgets["Application Status"].set(status)
+        self._save_current()
+
+    def _go_apply(self):
+        """Open the job URL in a browser, then ask if they applied."""
+        if self.selected_idx is None:
+            messagebox.showwarning("No selection", "Select a job first.")
+            return
+        url = self.field_widgets["Job URL"].get().strip()
+        if not url:
+            messagebox.showwarning("No URL", "This job has no URL set.")
+            return
+        webbrowser.open(url)
+
+        # Ask on return
+        self._pending_apply_check = True
+        self.root.bind("<FocusIn>", self._on_return_from_apply, add=True)
+
+    def _on_return_from_apply(self, event):
+        """When the app regains focus after Apply, ask if they submitted."""
+        if not getattr(self, "_pending_apply_check", False):
+            return
+        self._pending_apply_check = False
+        self.root.unbind("<FocusIn>")
+
+        if self.selected_idx is None:
+            return
+
+        applied = messagebox.askyesno(
+            "Did you apply?",
+            "Did you submit the application?",
+        )
+        if applied:
+            today = datetime.now().strftime("%Y-%m-%d")
+            self.field_widgets["Application Status"].set("Applied")
+            self.date_entry.delete(0, END)
+            self.date_entry.insert(0, today)
+            self._save_current()
+
     def _set_today(self):
         self.date_entry.delete(0, END)
         self.date_entry.insert(0, datetime.now().strftime("%Y-%m-%d"))
+        status_widget = self.field_widgets.get("Application Status")
+        if status_widget and status_widget.get() == "Not Yet Applied":
+            status_widget.set("Applied")
 
     def _browse_file(self, entry_widget, title, filetypes):
         path = filedialog.askopenfilename(
@@ -432,7 +512,7 @@ class DetailTabMixin:
         status = row.get("Application Status", "Not Yet Applied").strip()
 
         # Hide for closed statuses
-        if status in ("Rejected", "Withdrawn"):
+        if status in ("Rejected", "Withdrawn", "Closed"):
             self.next_step_frame.pack_forget()
             return
 
@@ -514,6 +594,7 @@ class DetailTabMixin:
 
         field_to_csv = {
             "Application Status": "Application Status",
+            "Action Status": "Action Status",
             "Date Applied": "Date Applied",
             "Date Posted": "Date Posted",
             "Location": "Location",

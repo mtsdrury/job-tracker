@@ -29,6 +29,7 @@ FIELDNAMES = [
     "Cover Letter File",
     "Date Applied",
     "Application Status",
+    "Action Status",
     "Referral Names",
     "Referral LinkedIns",
     "Referral Connections",
@@ -43,6 +44,7 @@ VALID_STATUSES = [
     "Offer",
     "Rejected",
     "Withdrawn",
+    "Closed",
 ]
 
 DEFAULT_FILE = "job_tracker.csv"
@@ -224,6 +226,12 @@ def fetch_job_details(url):
         title_text = title_text.replace("&amp;", "&").replace("&#x27;", "'")
         title_text = title_text.replace("&quot;", '"').replace("&#39;", "'")
         title_text = re.sub(r"&[^;]+;", "", title_text)
+
+        # Strip common page-title prefixes (e.g. "Job Application for ...")
+        title_text = re.sub(
+            r"^(job\s+application\s+for|apply\s+for|apply\s+to)\s+",
+            "", title_text, flags=re.IGNORECASE,
+        )
 
         # Common patterns: "Role - Company", "Role at Company", "Role | Company"
         for sep in [" - ", " at ", " | ", " — "]:

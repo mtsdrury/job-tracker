@@ -1,6 +1,7 @@
-"""Helper functions for the GUI: completeness checks, filter logic."""
+"""Helper functions for the GUI: completeness checks, filter logic, nudges."""
 
 import re
+from datetime import datetime
 
 from tracker import parse_semicolons
 from gui.constants import COMPLETENESS_FIELDS
@@ -67,3 +68,70 @@ def matches_referral_filter(row, ref_filter):
                 return True
         return False
     return True
+
+
+# Outreach statuses that trigger follow-up after 3 days
+_OUTREACH_STATUSES = ("connect request sent", "message sent", "emailed")
+
+
+def get_nudges(row):
+    """Return a list of short contextual hint strings for a job row.
+
+    Analyzes fields to generate subtle nudges like stale applications,
+    unmessaged referrals, old postings, and missing fields.
+    """
+    nudges = []
+    today = datetime.now()
+    status = row.get("Application Status", "Not Yet Applied").strip()
+
+    # 1. Days since applied (if Applied and stale)
+    if status == "Applied":
+        date_str = row.get("Date Applied", "").strip()
+        if date_str:
+            try:
+                applied = datetime.strptime(date_str, "%Y-%m-%d")
+                days = (today - applied).days
+                if days >= 14:
+                    nudges.append(f"{days} days since applied")
+            except ValueError:
+                pass
+
+    # 2. Referral not yet messaged
+    ref_names = parse_semicolons(row.get("Referral Names", ""))
+    ref_statuses = parse_semicolons(row.get("Referral Statuses", ""))
+    for i, name in enumerate(ref_names):
+        raw = ref_statuses[i].strip() if i < len(ref_statuses) else ""
+        base, _ = parse_referral_status(raw)
+        if not base or "not yet" in base.lower():
+            nudges.append(f"Referral not yet messaged: {name}")
+
+    # 3. 3+ days since outreach (referral in outreach stage)
+    for i, name in enumerate(ref_names):
+        raw = ref_statuses[i].strip() if i < len(ref_statuses) else ""
+        base, date_str = parse_referral_status(raw)
+        if base.lower() in _OUTREACH_STATUSES and date_str:
+            try:
+                sent = datetime.strptime(date_str, "%Y-%m-%d")
+                days = (today - sent).days
+                if days >= 3:
+                    nudges.append(f"{days}d since outreach to {name}")
+            except ValueError:
+                pass
+
+    # 4. Posted X days ago (if date_posted is old)
+    date_posted = row.get("Date Posted", "").strip()
+    if date_posted:
+        try:
+            posted = datetime.strptime(date_posted, "%Y-%m-%d")
+            days = (today - posted).days
+            if days > 7:
+                nudges.append(f"Posted {days} days ago")
+        except ValueError:
+            pass
+
+    # 5. Missing fields
+    missing = incomplete_fields(row)
+    if missing:
+        nudges.append("Missing: " + ", ".join(missing))
+
+    return nudges

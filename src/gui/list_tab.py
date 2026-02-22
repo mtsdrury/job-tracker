@@ -60,7 +60,7 @@ class ListTabMixin:
         # Row 2: Hide closed toggle + Clear button
         self.hide_closed_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(
-            filter_frame, text="Hide closed (Rejected / Withdrawn)",
+            filter_frame, text="Hide closed (Rejected / Withdrawn / Closed)",
             variable=self.hide_closed_var, command=self._refresh_list,
             bootstyle="round-toggle",
         ).grid(row=2, column=0, columnspan=3, sticky="w", pady=(6, 0))
@@ -90,7 +90,7 @@ class ListTabMixin:
         self.view_container = ttk.Frame(self.tab_list)
         self.view_container.pack(fill=BOTH, expand=True)
 
-        # List view frame (treeview + scrollbar)
+        # List view frame (two treeviews with labels + separators)
         self.list_view_frame = ttk.Frame(self.view_container)
         self.list_view_frame.pack(fill=BOTH, expand=True)
 
@@ -98,39 +98,77 @@ class ListTabMixin:
         self.root.style.configure("Treeview", rowheight=28)
 
         columns = ("company", "role", "status", "date_applied")
-        self.tree = ttk.Treeview(
-            self.list_view_frame, columns=columns, show="headings", selectmode="browse",
+        col_config = {
+            "company": {"text": "Company", "width": 180, "minwidth": 100},
+            "role": {"text": "Role", "width": 240, "minwidth": 120},
+            "status": {"text": "Status", "width": 120, "minwidth": 80},
+            "date_applied": {"text": "Date Applied", "width": 100, "minwidth": 80},
+        }
+
+        # --- Active section: "In Progress" ---
+        self._active_label = ttk.Label(
+            self.list_view_frame, text="In Progress (0)",
+            font=("", 10, "bold"), bootstyle="secondary",
         )
-        self.tree.heading("company", text="Company")
-        self.tree.heading("role", text="Role")
-        self.tree.heading("status", text="Status")
-        self.tree.heading("date_applied", text="Date Applied")
-        self.tree.column("company", width=180, minwidth=100)
-        self.tree.column("role", width=240, minwidth=120)
-        self.tree.column("status", width=120, minwidth=80)
-        self.tree.column("date_applied", width=100, minwidth=80)
+        self._active_label.pack(anchor="w", pady=(0, 2))
+        ttk.Separator(self.list_view_frame).pack(fill=X, pady=(0, 4))
 
-        scrollbar = ttk.Scrollbar(
-            self.list_view_frame, orient=VERTICAL, command=self.tree.yview,
+        self._active_tree = ttk.Treeview(
+            self.list_view_frame, columns=columns,
+            show="headings", selectmode="browse", height=1,
         )
-        self.tree.configure(yscrollcommand=scrollbar.set)
-        self.tree.pack(side=LEFT, fill=BOTH, expand=True)
-        scrollbar.pack(side=RIGHT, fill=Y)
+        for col, cfg in col_config.items():
+            self._active_tree.heading(col, text=cfg["text"])
+            self._active_tree.column(col, width=cfg["width"], minwidth=cfg["minwidth"])
+        self._active_tree.pack(fill=X)
 
-        self.tree.bind("<Double-1>", self._on_double_click)
+        # --- Spacer between sections ---
+        ttk.Frame(self.list_view_frame, height=16).pack(fill=X)
 
-        # Configure tag colors and strikethrough for status
+        # --- Inactive section: "Submitted / Closed" ---
+        self._inactive_label = ttk.Label(
+            self.list_view_frame, text="Submitted / Closed (0)",
+            font=("", 10, "bold"), bootstyle="secondary",
+        )
+        self._inactive_label.pack(anchor="w", pady=(0, 2))
+        ttk.Separator(self.list_view_frame).pack(fill=X, pady=(0, 4))
+
+        inactive_frame = ttk.Frame(self.list_view_frame)
+        inactive_frame.pack(fill=BOTH, expand=True)
+
+        self._inactive_tree = ttk.Treeview(
+            inactive_frame, columns=columns,
+            show="", selectmode="browse",
+        )
+        for col, cfg in col_config.items():
+            self._inactive_tree.column(col, width=cfg["width"], minwidth=cfg["minwidth"])
+
+        inactive_scrollbar = ttk.Scrollbar(
+            inactive_frame, orient=VERTICAL, command=self._inactive_tree.yview,
+        )
+        self._inactive_tree.configure(yscrollcommand=inactive_scrollbar.set)
+        self._inactive_tree.pack(side=LEFT, fill=BOTH, expand=True)
+        inactive_scrollbar.pack(side=RIGHT, fill=Y)
+
+        # Bind events on both trees
+        self._active_tree.bind("<Double-1>", self._on_double_click)
+        self._inactive_tree.bind("<Double-1>", self._on_double_click)
+        self._active_tree.bind("<<TreeviewSelect>>", lambda e: self._on_tree_select(self._active_tree))
+        self._inactive_tree.bind("<<TreeviewSelect>>", lambda e: self._on_tree_select(self._inactive_tree))
+
+        # Configure tag colors and strikethrough for status on both trees
         default_font = tkfont.nametofont("TkDefaultFont")
         strike_font = tkfont.Font(**default_font.configure())
         strike_font.configure(overstrike=True)
 
-        closed_statuses = {"Rejected", "Withdrawn"}
-        for status, color in STATUS_COLORS.items():
-            tag = status.replace(" ", "_")
-            if status in closed_statuses:
-                self.tree.tag_configure(tag, foreground=color, font=strike_font)
-            else:
-                self.tree.tag_configure(tag, foreground=color)
+        closed_statuses = {"Rejected", "Withdrawn", "Closed"}
+        for tree in (self._active_tree, self._inactive_tree):
+            for status, color in STATUS_COLORS.items():
+                tag = status.replace(" ", "_")
+                if status in closed_statuses:
+                    tree.tag_configure(tag, foreground=color, font=strike_font)
+                else:
+                    tree.tag_configure(tag, foreground=color)
 
         # Kanban view frame (built by KanbanMixin._build_kanban_view)
         self.kanban_view_frame = ttk.Frame(self.view_container)
@@ -196,8 +234,32 @@ class ListTabMixin:
         self.hide_closed_var.set(False)
         self._refresh_list()
 
+    # Statuses considered "in progress" (still need action)
+    _ACTIVE_STATUSES = {"Not Yet Applied", "Interview", "Offer"}
+
+    def _on_tree_select(self, source_tree):
+        """When one tree gets a selection, clear the other."""
+        other = (
+            self._inactive_tree if source_tree is self._active_tree
+            else self._active_tree
+        )
+        if source_tree.selection():
+            for iid in other.selection():
+                other.selection_remove(iid)
+
+    def _get_selection(self):
+        """Return (tree, iid) for whichever tree has a selection, or None."""
+        sel = self._active_tree.selection()
+        if sel:
+            return self._active_tree, sel[0]
+        sel = self._inactive_tree.selection()
+        if sel:
+            return self._inactive_tree, sel[0]
+        return None
+
     def _refresh_list(self):
-        self.tree.delete(*self.tree.get_children())
+        self._active_tree.delete(*self._active_tree.get_children())
+        self._inactive_tree.delete(*self._inactive_tree.get_children())
         self.filtered_indices = []
 
         status_f = self.status_filter.get()
@@ -206,10 +268,13 @@ class ListTabMixin:
         ref_search_q = self.referral_search_var.get().strip().lower()
         hide_closed = self.hide_closed_var.get()
 
+        active_rows = []   # (index, row, status)
+        inactive_rows = []
+
         for i, row in enumerate(self.rows):
             status = row.get("Application Status", "Not Yet Applied")
 
-            if hide_closed and status in ("Rejected", "Withdrawn"):
+            if hide_closed and status in ("Rejected", "Withdrawn", "Closed"):
                 continue
             if status_f != "All" and status != status_f:
                 continue
@@ -225,9 +290,16 @@ class ListTabMixin:
                 if ref_search_q not in ref_names:
                     continue
 
+            if status in self._ACTIVE_STATUSES:
+                active_rows.append((i, row, status))
+            else:
+                inactive_rows.append((i, row, status))
+
+        # Insert active rows
+        for i, row, status in active_rows:
             self.filtered_indices.append(i)
             tag = status.replace(" ", "_")
-            self.tree.insert(
+            self._active_tree.insert(
                 "", END, iid=str(i),
                 values=(
                     row.get("Company", ""),
@@ -238,8 +310,35 @@ class ListTabMixin:
                 tags=(tag,),
             )
 
-        if self.selected_idx is not None and str(self.selected_idx) in self.tree.get_children():
-            self.tree.selection_set(str(self.selected_idx))
+        # Insert inactive rows
+        for i, row, status in inactive_rows:
+            self.filtered_indices.append(i)
+            tag = status.replace(" ", "_")
+            self._inactive_tree.insert(
+                "", END, iid=str(i),
+                values=(
+                    row.get("Company", ""),
+                    row.get("Role", ""),
+                    status,
+                    row.get("Date Applied", ""),
+                ),
+                tags=(tag,),
+            )
+
+        # Update section labels
+        self._active_label.config(text=f"In Progress ({len(active_rows)})")
+        self._inactive_label.config(text=f"Submitted / Closed ({len(inactive_rows)})")
+
+        # Resize active tree to fit its rows (min 1 row so it stays visible)
+        self._active_tree.config(height=max(1, len(active_rows)))
+
+        # Restore selection on whichever tree contains the selected index
+        if self.selected_idx is not None:
+            sid = str(self.selected_idx)
+            if sid in self._active_tree.get_children():
+                self._active_tree.selection_set(sid)
+            elif sid in self._inactive_tree.get_children():
+                self._inactive_tree.selection_set(sid)
 
         # Update status bar
         filtered = len(self.filtered_indices)
