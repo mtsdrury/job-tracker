@@ -4,10 +4,11 @@ import os
 import tkinter as tk
 import webbrowser
 from tkinter import messagebox, filedialog
-from datetime import datetime
+from datetime import date, datetime
 
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
+from ttkbootstrap.dialogs import Querybox
 
 from tracker import VALID_STATUSES, write_tracker, parse_semicolons
 from gui.constants import PAD_INNER, STATUS_BOOTSTYLES
@@ -290,7 +291,22 @@ class DetailTabMixin:
         self.field_widgets["Date Applied"] = self.date_entry
         row += 1
 
-        row = field_row(app_grid, "Date Posted", row)
+        # Date Posted with calendar button
+        ttk.Label(app_grid, text="Date Posted:", anchor="e", width=20).grid(
+            row=row, column=0, sticky="ne", padx=(8, 6), pady=4,
+        )
+        dp_frame = ttk.Frame(app_grid)
+        dp_frame.grid(row=row, column=1, sticky="ew", padx=(0, 8), pady=4)
+        dp_entry = ttk.Entry(dp_frame, width=14)
+        dp_entry.pack(side=LEFT)
+        ttk.Button(
+            dp_frame, text="\U0001f4c5",
+            command=lambda: self._pick_date(dp_entry),
+            bootstyle="info-outline", padding=(8, 2),
+        ).pack(side=LEFT, padx=(6, 0))
+        self.field_widgets["Date Posted"] = dp_entry
+        row += 1
+
         row = field_row(app_grid, "Location", row)
         row = field_row(app_grid, "Job ID", row)
 
@@ -494,6 +510,24 @@ class DetailTabMixin:
         status_widget = self.field_widgets.get("Application Status")
         if status_widget and status_widget.get() == "Not Yet Applied":
             status_widget.set("Applied")
+
+    def _pick_date(self, entry_widget):
+        """Open a calendar popup and fill the entry with the chosen date."""
+        current = entry_widget.get().strip()
+        start = None
+        if current:
+            try:
+                start = datetime.strptime(current, "%Y-%m-%d").date()
+            except ValueError:
+                pass
+        chosen = Querybox.get_date(
+            parent=self.root,
+            title="Select date",
+            startdate=start or date.today(),
+        )
+        if chosen:
+            entry_widget.delete(0, END)
+            entry_widget.insert(0, chosen.strftime("%Y-%m-%d"))
 
     def _browse_file(self, entry_widget, title, filetypes):
         path = filedialog.askopenfilename(

@@ -111,7 +111,6 @@ class ReferralsMixin:
 
         dlg = tk.Toplevel(self.root)
         dlg.title("Add Referral")
-        dlg.transient(self.root)
 
         # Size and center on parent window
         w, h = 540, 440
@@ -330,7 +329,6 @@ class ReferralsMixin:
 
         dlg = tk.Toplevel(self.root)
         dlg.title(f"Edit Referral - {cur_name}")
-        dlg.transient(self.root)
 
         w, h = 500, 320
         parent_x = self.root.winfo_rootx()

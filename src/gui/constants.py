@@ -109,10 +109,7 @@ COMPLETENESS_FIELDS = [
     "Job URL",
     "Resume Version",
     "Cover Letter Written",
-    "Date Applied",
-    "Application Status",
     "Referral Names",
-    "Notes",
 ]
 
 # Kanban view constants
@@ -129,6 +126,17 @@ REFERRAL_FILTERS = [
     "Contacted",
     "Submitted",
 ]
+
+# Strategy mode (affects referral follow-up timer)
+DEFAULT_STRATEGY_MODE = "referral"
+STRATEGY_TIMERS = {"referral": 5, "speed": 3}
+
+# Date Posted urgency thresholds (days)
+DATE_POSTED_WARNING_DAYS = 5
+DATE_POSTED_URGENT_DAYS = 21
+
+# Referral outreach recency threshold (days)
+OUTREACH_STALE_DAYS = 3
 
 # Matplotlib chart theme (for dark background)
 CHART_TEXT = "#dee2e6"

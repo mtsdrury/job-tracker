@@ -43,7 +43,6 @@ class TemplatesMixin:
         """Open a draft message popup. Generates message from tone + connection."""
         dlg = tk.Toplevel(self.root)
         dlg.title(f"Draft Message - {referral_name}")
-        dlg.transient(self.root)
 
         w, h = 580, 460
         parent_x = self.root.winfo_rootx()

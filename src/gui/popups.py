@@ -137,11 +137,10 @@ class PopupsMixin:
 
         dlg = tk.Toplevel(self.root)
         dlg.title("New Job")
-        dlg.transient(self.root)
         dlg.grab_set()
 
         # Size and center on parent window
-        w, h = 520, 340
+        w, h = 520, 410
         parent_x = self.root.winfo_rootx()
         parent_y = self.root.winfo_rooty()
         parent_w = self.root.winfo_width()
@@ -187,10 +186,21 @@ class PopupsMixin:
         location_entry = ttk.Entry(body, width=34)
         location_entry.grid(row=4, column=1, pady=(0, 6), sticky="ew")
 
-        body.columnconfigure(1, weight=1)
+        # Row 5: Job ID
+        ttk.Label(body, text="Job ID:").grid(
+            row=5, column=0, padx=(0, 8), pady=(0, 6), sticky="e",
+        )
+        job_id_entry = ttk.Entry(body, width=34)
+        job_id_entry.grid(row=5, column=1, pady=(0, 6), sticky="ew")
 
-        # Track fetched date_posted (not shown in form but saved with the row)
-        _fetched_date_posted = ""
+        # Row 6: Date Posted
+        ttk.Label(body, text="Date Posted:").grid(
+            row=6, column=0, padx=(0, 8), pady=(0, 6), sticky="e",
+        )
+        date_posted_entry = ttk.Entry(body, width=34)
+        date_posted_entry.grid(row=6, column=1, pady=(0, 6), sticky="ew")
+
+        body.columnconfigure(1, weight=1)
 
         # --- Fetch logic (threaded) ---
         def _do_fetch():
@@ -211,13 +221,12 @@ class PopupsMixin:
 
             def _on_fetch_done(details):
                 fetch_btn.config(text="Fetch", state="normal")
-                # Store date_posted from fetch for use when creating the row
-                nonlocal _fetched_date_posted
-                _fetched_date_posted = details.get("date_posted", "")
                 entry_map = {
                     "company": company_entry,
                     "role": role_entry,
                     "location": location_entry,
+                    "job_id": job_id_entry,
+                    "date_posted": date_posted_entry,
                 }
 
                 def _apply_fields(selected):
@@ -256,7 +265,8 @@ class PopupsMixin:
             new_row["Role"] = role
             new_row["Location"] = location_entry.get().strip()
             new_row["Job URL"] = url_entry.get().strip()
-            new_row["Date Posted"] = _fetched_date_posted
+            new_row["Job ID"] = job_id_entry.get().strip()
+            new_row["Date Posted"] = date_posted_entry.get().strip()
             new_row["Application Status"] = "Not Yet Applied"
             new_row["Cover Letter Written"] = "No"
             self.rows.append(new_row)
@@ -284,11 +294,13 @@ class PopupsMixin:
         ttk.Button(
             body, text="Add", command=_add,
             bootstyle="success", padding=(16, 4),
-        ).grid(row=5, column=0, columnspan=2, pady=(12, 0))
-        # Enter in company/role/location fields triggers Add
+        ).grid(row=7, column=0, columnspan=2, pady=(12, 0))
+        # Enter in any field triggers Add
         company_entry.bind("<Return>", lambda e: _add())
         role_entry.bind("<Return>", lambda e: _add())
         location_entry.bind("<Return>", lambda e: _add())
+        job_id_entry.bind("<Return>", lambda e: _add())
+        date_posted_entry.bind("<Return>", lambda e: _add())
 
     def _remove_job(self):
         result = self._get_selection()

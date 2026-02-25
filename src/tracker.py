@@ -233,8 +233,17 @@ def fetch_job_details(url):
             "", title_text, flags=re.IGNORECASE,
         )
 
+        # Strip trailing site name: titles often end with " | SiteName"
+        # (e.g. "Role at Company | Built In Los Angeles").  Only strip if
+        # the remaining text still contains a role/company separator.
+        pipe_idx = title_text.rfind(" | ")
+        if pipe_idx > 0:
+            before = title_text[:pipe_idx]
+            if any(s in before for s in [" - ", " at ", " | ", " \u2014 "]):
+                title_text = before.strip()
+
         # Common patterns: "Role - Company", "Role at Company", "Role | Company"
-        for sep in [" - ", " at ", " | ", " — "]:
+        for sep in [" - ", " at ", " | ", " \u2014 "]:
             if sep in title_text:
                 parts = title_text.split(sep, 1)
                 result["role"] = parts[0].strip()

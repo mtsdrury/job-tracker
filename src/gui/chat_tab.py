@@ -274,7 +274,6 @@ class ChatMixin:
         """Show a modal dialog to enter/update the Anthropic API key."""
         dlg = tk.Toplevel(self.root)
         dlg.title("Set Anthropic API Key")
-        dlg.transient(self.root)
 
         w, h = 460, 160
         parent_x = self.root.winfo_rootx()

@@ -15,12 +15,13 @@ from tracker import read_tracker
 from gui.constants import (
     PAD_INNER, CONFIG_FILENAME,
     DEFAULT_TONE_TEMPLATES, DEFAULT_CONNECTIONS, DEFAULT_CONNECTION_LINE,
-    DEFAULT_ACTION_STATUSES,
+    DEFAULT_ACTION_STATUSES, DEFAULT_STRATEGY_MODE, STRATEGY_TIMERS,
 )
 from gui.list_tab import ListTabMixin
 from gui.detail_tab import DetailTabMixin
 from gui.summary_tab import SummaryTabMixin
 from gui.actions_tab import ActionsMixin
+from gui.action_wizard import ActionWizardMixin
 from gui.referrals import ReferralsMixin
 from gui.templates import TemplatesMixin
 from gui.popups import PopupsMixin
@@ -31,8 +32,8 @@ from gui.chat_tab import ChatMixin
 
 
 class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
-                 ReferralsMixin, TemplatesMixin, PopupsMixin, PipelineMixin,
-                 KanbanMixin, AnalyticsMixin, ChatMixin):
+                 ActionWizardMixin, ReferralsMixin, TemplatesMixin, PopupsMixin,
+                 PipelineMixin, KanbanMixin, AnalyticsMixin, ChatMixin):
 
     def __init__(self, root):
         self.root = root
@@ -50,6 +51,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         self._default_connection_line = DEFAULT_CONNECTION_LINE
         self._tone_templates = list(DEFAULT_TONE_TEMPLATES)
         self._action_statuses = list(DEFAULT_ACTION_STATUSES)
+        self._strategy_mode = DEFAULT_STRATEGY_MODE
 
         self.field_widgets = {}
 
@@ -230,6 +232,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
             self._default_connection_line = DEFAULT_CONNECTION_LINE
             self._tone_templates = list(DEFAULT_TONE_TEMPLATES)
             self._action_statuses = list(DEFAULT_ACTION_STATUSES)
+            self._strategy_mode = DEFAULT_STRATEGY_MODE
             return
         try:
             with open(path, "r", encoding="utf-8") as f:
@@ -256,6 +259,11 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
                 self._action_statuses = saved_action_statuses
             else:
                 self._action_statuses = list(DEFAULT_ACTION_STATUSES)
+            saved_strategy = data.get("strategy_mode")
+            if saved_strategy in STRATEGY_TIMERS:
+                self._strategy_mode = saved_strategy
+            else:
+                self._strategy_mode = DEFAULT_STRATEGY_MODE
         except (json.JSONDecodeError, OSError):
             self._schools = []
             self._resume_versions = ["Data Scientist", "ML Builder", "Research Engineer"]
@@ -263,6 +271,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
             self._default_connection_line = DEFAULT_CONNECTION_LINE
             self._tone_templates = list(DEFAULT_TONE_TEMPLATES)
             self._action_statuses = list(DEFAULT_ACTION_STATUSES)
+            self._strategy_mode = DEFAULT_STRATEGY_MODE
         self._update_resume_combo()
         self._update_action_status_combo()
 
@@ -277,6 +286,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
             "default_connection_line": self._default_connection_line,
             "tone_templates": self._tone_templates,
             "action_statuses": self._action_statuses,
+            "strategy_mode": self._strategy_mode,
         }
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
@@ -293,6 +303,11 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         if w and isinstance(w, ttk.Combobox):
             w["values"] = self._action_statuses + [""]
 
+    @property
+    def _follow_up_days(self):
+        """Number of days before a referral outreach triggers a follow-up nudge."""
+        return STRATEGY_TIMERS.get(self._strategy_mode, 5)
+
     # -------------------------------------------------------------------
     # LinkedIn alumni search
     # -------------------------------------------------------------------
@@ -306,7 +321,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         ids = [s["linkedin_id"] for s in self._schools if s.get("linkedin_id")]
         if not ids:
             webbrowser.open(
-                f"https://www.linkedin.com/search/results/people/?keywords={query}",
+                f"https://www.linkedin.com/search/results/people/?company={query}",
             )
             return
         # schoolFilter format: ["id1","id2"] URL-encoded
@@ -314,7 +329,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         encoded_filter = urllib.parse.quote(filter_value, safe="")
         webbrowser.open(
             f"https://www.linkedin.com/search/results/people/"
-            f"?keywords={query}&schoolFilter={encoded_filter}",
+            f"?company={query}&schoolFilter={encoded_filter}",
         )
 
     # -------------------------------------------------------------------
@@ -323,7 +338,6 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
     def _manage_schools(self):
         dlg = tk.Toplevel(self.root)
         dlg.title("Your Schools")
-        dlg.transient(self.root)
         dlg.grab_set()
 
         w, h = 560, 520
@@ -493,7 +507,6 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
     def _manage_resume_versions(self):
         dlg = tk.Toplevel(self.root)
         dlg.title("Resume Versions")
-        dlg.transient(self.root)
         dlg.grab_set()
 
         w, h = 420, 380
@@ -604,7 +617,6 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
     def _manage_action_statuses(self):
         dlg = tk.Toplevel(self.root)
         dlg.title("Action Statuses")
-        dlg.transient(self.root)
         dlg.grab_set()
 
         w, h = 420, 460
@@ -737,7 +749,6 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
     def _manage_templates(self):
         dlg = tk.Toplevel(self.root)
         dlg.title("Message Templates")
-        dlg.transient(self.root)
         dlg.grab_set()
 
         w, h = 620, 580
@@ -827,6 +838,11 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
                     row, text="x", bootstyle="danger-outline",
                     padding=(4, 0),
                     command=lambda idx=i: _remove_conn(idx),
+                ).pack(side=RIGHT, padx=(4, 0))
+                ttk.Button(
+                    row, text="Edit", bootstyle="info-outline",
+                    padding=(4, 0),
+                    command=lambda idx=i: _edit_conn(idx),
                 ).pack(side=RIGHT)
                 ttk.Separator(conn_list_frame).pack(fill=X, pady=(0, 2))
 
@@ -834,6 +850,47 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
             self._connections.pop(idx)
             self._save_config()
             _rebuild_conn_list()
+
+        def _edit_conn(idx):
+            """Replace the connection row with inline entry fields."""
+            conn = self._connections[idx]
+            # Find the row frame for this index (skip Separators)
+            rows = [c for c in conn_list_frame.winfo_children()
+                    if isinstance(c, ttk.Frame)]
+            if idx >= len(rows):
+                return
+            row = rows[idx]
+            for child in row.winfo_children():
+                child.destroy()
+
+            label_entry = ttk.Entry(row, width=10)
+            label_entry.pack(side=LEFT)
+            label_entry.insert(0, conn["label"])
+
+            line_entry = ttk.Entry(row, width=40)
+            line_entry.pack(side=LEFT, fill=X, expand=True, padx=(8, 0))
+            line_entry.insert(0, conn["line"])
+
+            def _save_edit():
+                new_label = label_entry.get().strip()
+                new_line = line_entry.get().strip()
+                if not new_label or not new_line:
+                    return
+                self._connections[idx] = {"label": new_label, "line": new_line}
+                self._save_config()
+                _rebuild_conn_list()
+
+            ttk.Button(
+                row, text="Cancel", bootstyle="secondary-outline",
+                padding=(4, 0), command=_rebuild_conn_list,
+            ).pack(side=RIGHT, padx=(4, 0))
+            ttk.Button(
+                row, text="Save", bootstyle="success",
+                padding=(4, 0), command=_save_edit,
+            ).pack(side=RIGHT)
+
+            label_entry.focus_set()
+            line_entry.bind("<Return>", lambda e: _save_edit())
 
         _rebuild_conn_list()
 

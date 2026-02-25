@@ -1,4 +1,4 @@
-"""ActionsMixin: grouped-by-action-status tab with inline status changes and nudges."""
+"""ActionsMixin: triage view, two-section actions tab with clean cards."""
 
 import tkinter as tk
 import webbrowser
@@ -11,6 +11,19 @@ from ttkbootstrap.constants import *
 from tracker import parse_semicolons, write_tracker
 from gui.constants import PAD_OUTER, PAD_SECTION, PAD_INNER
 from gui.helpers import get_nudges
+
+# Nudge urgency colors (for dark backgrounds)
+_NUDGE_COLORS = {
+    "normal": "#adb5bd",
+    "warning": "#f5b041",
+    "urgent": "#ec7063",
+}
+
+# Application statuses that qualify as "post-application"
+_POST_APP_STATUSES = ("Applied", "Interview", "Offer")
+
+# Dropdown options for post-application status changes
+_POST_APP_DROPDOWN = ["Applied", "Interview", "Offer", "Rejected", "Withdrawn"]
 
 
 class ActionsMixin:
@@ -62,7 +75,7 @@ class ActionsMixin:
         )
         self.actions_subtitle.pack(anchor="w", padx=PAD_OUTER, pady=(0, PAD_SECTION))
 
-        # Container for grouped action cards
+        # Container for triage or main view cards
         self.actions_cards_frame = ttk.Frame(self.actions_inner)
         self.actions_cards_frame.pack(
             fill=X, padx=PAD_OUTER, pady=(0, PAD_OUTER),
@@ -72,7 +85,7 @@ class ActionsMixin:
     # Refresh
     # ------------------------------------------------------------------
     def _refresh_actions(self):
-        """Clear and rebuild all action cards grouped by action status."""
+        """Clear and rebuild action cards. Shows triage if needed."""
         for w in self.actions_cards_frame.winfo_children():
             w.destroy()
 
@@ -85,26 +98,141 @@ class ActionsMixin:
             ).pack(anchor="w", pady=4)
             return
 
-        # Group rows by action status, skip Applied/Rejected/Withdrawn
-        groups = {}  # action_status -> list of (row_idx, row)
-        no_status = []  # (row_idx, row) for jobs with no action status
+        # Auto-assign "Applied - waiting" to applied jobs with no action status
+        changed = False
+        for row in self.rows:
+            app_status = row.get("Application Status", "Not Yet Applied").strip()
+            action_status = row.get("Action Status", "").strip()
+            if app_status in _POST_APP_STATUSES and not action_status:
+                row["Action Status"] = "Applied - waiting"
+                changed = True
+        if changed and self.csv_path:
+            write_tracker(self.csv_path, self.rows)
+
+        # Collect unapplied jobs that still have no action status
+        triage_jobs = []
+        for idx, row in enumerate(self.rows):
+            app_status = row.get("Application Status", "Not Yet Applied").strip()
+            action_status = row.get("Action Status", "").strip()
+            if app_status in ("Rejected", "Withdrawn", "Closed"):
+                continue
+            if app_status == "Not Yet Applied" and not action_status:
+                triage_jobs.append((idx, row))
+
+        if triage_jobs:
+            self._render_triage_view(triage_jobs)
+            return
+
+        self._render_main_view()
+
+    # ------------------------------------------------------------------
+    # Triage View
+    # ------------------------------------------------------------------
+    def _render_triage_view(self, triage_jobs):
+        """Show the triage screen for jobs missing an action status."""
+        f = self.actions_cards_frame
+
+        self.actions_subtitle.config(
+            text=f"{len(triage_jobs)} job{'s' if len(triage_jobs) != 1 else ''} need an action status",
+        )
+
+        ttk.Label(
+            f, text="Set Actions",
+            font=("", 14, "bold"), bootstyle="warning",
+        ).pack(anchor="w", pady=(0, 2))
+
+        ttk.Label(
+            f,
+            text="These jobs need an action status before they appear in your action list.",
+            bootstyle="secondary", font=("", 9),
+        ).pack(anchor="w", pady=(0, 12))
+
+        # Store combobox references for the Done button
+        combos = []
+
+        for idx, row in triage_jobs:
+            company = row.get("Company", "")
+            role = row.get("Role", "")
+
+            row_frame = ttk.Frame(f)
+            row_frame.pack(fill=X, pady=(0, 6))
+
+            ttk.Label(
+                row_frame, text=f"{company}  -  {role}",
+                font=("", 10, "bold"),
+            ).pack(side=LEFT, fill=X, expand=True)
+
+            combo = ttk.Combobox(
+                row_frame, values=self._action_statuses,
+                state="readonly", width=22,
+            )
+            combo.pack(side=RIGHT, padx=(8, 0))
+            combos.append((idx, combo))
+
+        ttk.Separator(f).pack(fill=X, pady=(12, 8))
+
+        btn_row = ttk.Frame(f)
+        btn_row.pack(fill=X)
+
+        def _done():
+            for idx, combo in combos:
+                val = combo.get().strip()
+                if val:
+                    self.rows[idx]["Action Status"] = val
+            if self.csv_path:
+                write_tracker(self.csv_path, self.rows)
+            self._refresh_actions()
+            self._refresh_list()
+
+        ttk.Button(
+            btn_row, text="Done",
+            bootstyle="success", padding=(16, 6),
+            command=_done,
+        ).pack(side=LEFT, padx=(0, 12))
+
+        skip_lbl = ttk.Label(
+            btn_row, text="Skip for now",
+            bootstyle="secondary", font=("", 9, "underline"), cursor="hand2",
+        )
+        skip_lbl.pack(side=LEFT)
+        skip_lbl.bind("<Button-1>", lambda e: self._render_main_view_forced())
+
+    def _render_main_view_forced(self):
+        """Skip triage and show the main view, including no-status jobs."""
+        for w in self.actions_cards_frame.winfo_children():
+            w.destroy()
+        self._render_main_view()
+
+    # ------------------------------------------------------------------
+    # Main View
+    # ------------------------------------------------------------------
+    def _render_main_view(self):
+        """Render the two-section main view: Pre-Application + Post-Application."""
+        # Split rows into pre-application and post-application buckets
+        pre_groups = {}
+        pre_no_status = []
+        post_groups = {}
 
         for idx, row in enumerate(self.rows):
             app_status = row.get("Application Status", "Not Yet Applied").strip()
-            if app_status in ("Applied", "Interview", "Offer",
-                              "Rejected", "Withdrawn", "Closed"):
+            if app_status in ("Rejected", "Withdrawn", "Closed"):
                 continue
             action_status = row.get("Action Status", "").strip()
-            if action_status:
-                groups.setdefault(action_status, []).append((idx, row))
-            else:
-                no_status.append((idx, row))
 
-        # Count total jobs with an action status
-        total_with_status = sum(len(v) for v in groups.values())
-        total_shown = total_with_status + len(no_status)
+            if app_status == "Not Yet Applied":
+                if action_status:
+                    pre_groups.setdefault(action_status, []).append((idx, row))
+                else:
+                    pre_no_status.append((idx, row))
+            elif app_status in _POST_APP_STATUSES:
+                key = action_status if action_status else "Applied - waiting"
+                post_groups.setdefault(key, []).append((idx, row))
 
-        if total_shown == 0:
+        pre_total = sum(len(v) for v in pre_groups.values()) + len(pre_no_status)
+        post_total = sum(len(v) for v in post_groups.values())
+        grand_total = pre_total + post_total
+
+        if grand_total == 0:
             self.actions_subtitle.config(text="No active jobs")
             ttk.Label(
                 self.actions_cards_frame,
@@ -114,42 +242,75 @@ class ActionsMixin:
             return
 
         self.actions_subtitle.config(
-            text=f"{total_with_status} job{'s' if total_with_status != 1 else ''} "
-                 f"with action status",
+            text=f"{grand_total} active job{'s' if grand_total != 1 else ''}",
         )
 
-        # Render groups in the order they appear in _action_statuses
+        f = self.actions_cards_frame
+
+        # Pre-Application section
+        if pre_total > 0:
+            self._render_section_header(
+                f,
+                f"Pre-Application ({pre_total})",
+                "Jobs you haven't applied to yet",
+                "warning",
+            )
+            self._render_pre_app_cards(f, pre_groups, pre_no_status)
+
+        # Post-Application section
+        if post_total > 0:
+            self._render_section_header(
+                f,
+                f"Post-Application ({post_total})",
+                "Jobs you've applied to or are interviewing for",
+                "info",
+            )
+            self._render_post_app_cards(f, post_groups)
+
+    # ------------------------------------------------------------------
+    # Section header
+    # ------------------------------------------------------------------
+    def _render_section_header(self, parent, title, subtitle, bootstyle):
+        frame = ttk.Frame(parent)
+        frame.pack(fill=X, pady=(PAD_SECTION + 4, 2))
+
+        ttk.Label(
+            frame, text=title,
+            font=("", 14, "bold"), bootstyle=bootstyle,
+        ).pack(side=LEFT)
+
+        ttk.Label(
+            frame, text=subtitle,
+            font=("", 9), bootstyle="secondary",
+        ).pack(side=LEFT, padx=(12, 0))
+
+        ttk.Separator(parent).pack(fill=X, pady=(4, 8))
+
+    # ------------------------------------------------------------------
+    # Pre-Application cards
+    # ------------------------------------------------------------------
+    def _render_pre_app_cards(self, parent, groups, no_status_list):
+        # Ordered groups first
         for status in self._action_statuses:
             if status not in groups:
                 continue
-            job_list = groups[status]
-            self._render_action_group(
-                self.actions_cards_frame, status, job_list,
-            )
+            self._render_action_group(parent, status, groups[status])
 
-        # Render any action statuses not in the config list (edge case)
+        # Groups not in config list
         for status, job_list in groups.items():
             if status not in self._action_statuses:
-                self._render_action_group(
-                    self.actions_cards_frame, status, job_list,
-                )
+                self._render_action_group(parent, status, job_list)
 
-        # "No status set" section at the bottom
-        if no_status:
+        # No status set
+        if no_status_list:
             self._render_action_group(
-                self.actions_cards_frame, "No status set", no_status,
-                is_no_status=True,
+                parent, "No status set", no_status_list, is_no_status=True,
             )
 
-    # ------------------------------------------------------------------
-    # Render a group of jobs under a section header
-    # ------------------------------------------------------------------
     def _render_action_group(self, parent, status_label, job_list,
                              is_no_status=False):
-        """Create a section header + job cards for a group."""
         count = len(job_list)
 
-        # Section header
         header_frame = ttk.Frame(parent)
         header_frame.pack(fill=X, pady=(PAD_SECTION, 4))
 
@@ -162,26 +323,19 @@ class ActionsMixin:
 
         ttk.Separator(parent).pack(fill=X, pady=(2, 6))
 
-        # Job cards
         for row_idx, row in job_list:
-            self._render_job_card(parent, row_idx, row)
+            self._render_pre_app_card(parent, row_idx, row)
 
-    # ------------------------------------------------------------------
-    # Render a single job card
-    # ------------------------------------------------------------------
-    def _render_job_card(self, parent, row_idx, row):
-        """Create a card for a single job with status dropdown and nudges."""
+    def _render_pre_app_card(self, parent, row_idx, row):
+        """Pre-application card: action status dropdown + nudges + Take Action / Open Detail."""
         card_bg = "#3a3f47"
-
         company = row.get("Company", "")
         role = row.get("Role", "")
         current_action = row.get("Action Status", "").strip()
 
-        # Outer frame for spacing
         outer = tk.Frame(parent, bg=str(self.colors.bg))
         outer.pack(fill=X, pady=(0, PAD_INNER))
 
-        # Card frame with subtle border
         card = tk.Frame(
             outer, bg=card_bg, padx=12, pady=10,
             highlightbackground="#4a4f57", highlightthickness=1,
@@ -197,7 +351,6 @@ class ActionsMixin:
             font=("", 10, "bold"), bg=card_bg, fg="#ffffff", anchor="w",
         ).pack(side=LEFT, fill=X, expand=True)
 
-        # Inline action status dropdown
         combo = ttk.Combobox(
             top_row, values=self._action_statuses + [""],
             state="readonly", width=20,
@@ -210,7 +363,6 @@ class ActionsMixin:
             self.rows[idx]["Action Status"] = new_status
             if self.csv_path:
                 write_tracker(self.csv_path, self.rows)
-            # Update detail tab if this job is selected
             if self.selected_idx == idx:
                 w = self.field_widgets.get("Action Status")
                 if w:
@@ -223,18 +375,129 @@ class ActionsMixin:
             top_row, text="Action:", bootstyle="secondary", font=("", 9),
         ).pack(side=RIGHT)
 
-        # Nudge labels
-        nudges = get_nudges(row)
+        # Nudge rows (text only, no inline action buttons)
+        nudges = get_nudges(row, follow_up_days=self._follow_up_days)
         if nudges:
             nudge_frame = tk.Frame(card, bg=card_bg)
             nudge_frame.pack(fill=X, pady=(4, 0))
-            for nudge_text in nudges:
+            for nudge in nudges:
+                color = _NUDGE_COLORS.get(nudge["urgency"], "#adb5bd")
                 tk.Label(
-                    nudge_frame, text=f"\u2022 {nudge_text}",
-                    font=("", 9), bg=card_bg, fg="#adb5bd", anchor="w",
-                ).pack(anchor="w")
+                    nudge_frame, text=f"\u2022 {nudge['text']}",
+                    font=("", 9), bg=card_bg, fg=color, anchor="w",
+                ).pack(fill=X, pady=(1, 0))
 
-        # Button row
+        # Button row: Take Action + Open Detail
+        btn_frame = tk.Frame(card, bg=card_bg)
+        btn_frame.pack(fill=X, pady=(6, 0))
+
+        ttk.Button(
+            btn_frame, text="Take Action",
+            bootstyle="info", padding=(10, 3),
+            command=lambda idx=row_idx: self._open_action_wizard(idx),
+        ).pack(side=LEFT, padx=(0, 6))
+
+        ttk.Button(
+            btn_frame, text="Open Detail",
+            bootstyle="secondary-outline", padding=(8, 2),
+            command=lambda idx=row_idx: self._action_open_detail(idx),
+        ).pack(side=LEFT, padx=(0, 6))
+
+        self._suppress_active_actions(outer, skip=card)
+
+    # ------------------------------------------------------------------
+    # Post-Application cards
+    # ------------------------------------------------------------------
+    def _render_post_app_cards(self, parent, groups):
+        # Ordered groups first
+        for status in self._action_statuses:
+            if status not in groups:
+                continue
+            self._render_post_group(parent, status, groups[status])
+
+        for status, job_list in groups.items():
+            if status not in self._action_statuses:
+                self._render_post_group(parent, status, job_list)
+
+    def _render_post_group(self, parent, status_label, job_list):
+        count = len(job_list)
+        header_frame = ttk.Frame(parent)
+        header_frame.pack(fill=X, pady=(PAD_SECTION, 4))
+
+        ttk.Label(
+            header_frame,
+            text=f"{status_label}  ({count})",
+            font=("", 12, "bold"), bootstyle="info",
+        ).pack(side=LEFT)
+
+        ttk.Separator(parent).pack(fill=X, pady=(2, 6))
+
+        for row_idx, row in job_list:
+            self._render_post_app_card(parent, row_idx, row)
+
+    def _render_post_app_card(self, parent, row_idx, row):
+        """Post-application card: application status dropdown + nudges + Open Detail."""
+        card_bg = "#3a3f47"
+        company = row.get("Company", "")
+        role = row.get("Role", "")
+        current_app_status = row.get("Application Status", "Applied").strip()
+
+        outer = tk.Frame(parent, bg=str(self.colors.bg))
+        outer.pack(fill=X, pady=(0, PAD_INNER))
+
+        card = tk.Frame(
+            outer, bg=card_bg, padx=12, pady=10,
+            highlightbackground="#4a4f57", highlightthickness=1,
+        )
+        card.pack(fill=X)
+
+        # Top row: company/role + application status dropdown
+        top_row = tk.Frame(card, bg=card_bg)
+        top_row.pack(fill=X)
+
+        tk.Label(
+            top_row, text=f"{company}  -  {role}",
+            font=("", 10, "bold"), bg=card_bg, fg="#ffffff", anchor="w",
+        ).pack(side=LEFT, fill=X, expand=True)
+
+        combo = ttk.Combobox(
+            top_row, values=_POST_APP_DROPDOWN,
+            state="readonly", width=16,
+        )
+        combo.set(current_app_status)
+        combo.pack(side=RIGHT, padx=(8, 0))
+
+        def _on_app_status_change(event, idx=row_idx, cb=combo):
+            new_status = cb.get()
+            self.rows[idx]["Application Status"] = new_status
+            if self.csv_path:
+                write_tracker(self.csv_path, self.rows)
+            if self.selected_idx == idx:
+                w = self.field_widgets.get("Application Status")
+                if w and isinstance(w, ttk.Combobox):
+                    w.set(new_status)
+            self._refresh_actions()
+            self._refresh_list()
+
+        combo.bind("<<ComboboxSelected>>", _on_app_status_change)
+
+        ttk.Label(
+            top_row, text="Status:", bootstyle="secondary", font=("", 9),
+        ).pack(side=RIGHT)
+
+        # Nudge rows (text only)
+        nudges = get_nudges(row, follow_up_days=self._follow_up_days)
+        if nudges:
+            nudge_frame = tk.Frame(card, bg=card_bg)
+            nudge_frame.pack(fill=X, pady=(4, 0))
+            for nudge in nudges:
+                color = _NUDGE_COLORS.get(nudge["urgency"], "#adb5bd")
+                tk.Label(
+                    nudge_frame, text=f"\u2022 {nudge['text']}",
+                    font=("", 9), bg=card_bg, fg=color, anchor="w",
+                ).pack(fill=X, pady=(1, 0))
+
+        # Button row: just Open Detail
         btn_frame = tk.Frame(card, bg=card_bg)
         btn_frame.pack(fill=X, pady=(6, 0))
 
@@ -244,94 +507,12 @@ class ActionsMixin:
             command=lambda idx=row_idx: self._action_open_detail(idx),
         ).pack(side=LEFT, padx=(0, 6))
 
-        # Context-specific buttons based on action status
-        action_lower = current_action.lower()
-
-        job_url = row.get("Job URL", "").strip()
-        ref_names = parse_semicolons(row.get("Referral Names", ""))
-
-        if "find referral" in action_lower:
-            ttk.Button(
-                btn_frame, text="Search LinkedIn",
-                bootstyle="info-outline", padding=(8, 2),
-                command=lambda: self._action_search_linkedin(company),
-            ).pack(side=LEFT, padx=(0, 6))
-            ttk.Button(
-                btn_frame, text="Add Referral",
-                bootstyle="success-outline", padding=(8, 2),
-                command=lambda idx=row_idx: self._action_add_referral(idx),
-            ).pack(side=LEFT, padx=(0, 6))
-
-        elif "message referral" in action_lower:
-            if ref_names:
-                ttk.Button(
-                    btn_frame, text="Draft Message",
-                    bootstyle="warning-outline", padding=(8, 2),
-                    command=lambda idx=row_idx: self._action_draft_message(idx, 0),
-                ).pack(side=LEFT, padx=(0, 6))
-
-        elif "write cover letter" in action_lower:
-            if job_url:
-                ttk.Button(
-                    btn_frame, text="Open Job Posting",
-                    bootstyle="info-outline", padding=(8, 2),
-                    command=lambda: self._action_open_url(job_url),
-                ).pack(side=LEFT, padx=(0, 6))
-            ttk.Button(
-                btn_frame, text="Browse CL File",
-                bootstyle="success-outline", padding=(8, 2),
-                command=lambda idx=row_idx: self._action_browse_cl(idx),
-            ).pack(side=LEFT, padx=(0, 6))
-
-        elif "ready to apply" in action_lower:
-            if job_url:
-                ttk.Button(
-                    btn_frame, text="Open Job Posting",
-                    bootstyle="info-outline", padding=(8, 2),
-                    command=lambda: self._action_open_url(job_url),
-                ).pack(side=LEFT, padx=(0, 6))
-            ttk.Button(
-                btn_frame, text="Mark Applied",
-                bootstyle="success-outline", padding=(8, 2),
-                command=lambda idx=row_idx: self._action_mark_applied(idx),
-            ).pack(side=LEFT, padx=(0, 6))
-
-        elif "follow up" in action_lower:
-            if job_url:
-                ttk.Button(
-                    btn_frame, text="Open Job Posting",
-                    bootstyle="info-outline", padding=(8, 2),
-                    command=lambda: self._action_open_url(job_url),
-                ).pack(side=LEFT, padx=(0, 6))
-
-        elif "interview" in action_lower:
-            if job_url:
-                ttk.Button(
-                    btn_frame, text="Open Job Posting",
-                    bootstyle="info-outline", padding=(8, 2),
-                    command=lambda: self._action_open_url(job_url),
-                ).pack(side=LEFT, padx=(0, 6))
-
-        else:
-            # Generic: show Search LinkedIn if no referral, Draft Message if has referral
-            if ref_names:
-                ttk.Button(
-                    btn_frame, text="Draft Message",
-                    bootstyle="warning-outline", padding=(8, 2),
-                    command=lambda idx=row_idx: self._action_draft_message(idx, 0),
-                ).pack(side=LEFT, padx=(0, 6))
-            else:
-                ttk.Button(
-                    btn_frame, text="Search LinkedIn",
-                    bootstyle="info-outline", padding=(8, 2),
-                    command=lambda: self._action_search_linkedin(company),
-                ).pack(side=LEFT, padx=(0, 6))
-
-        # Suppress activebackground on hover (Windows quirk), skip card for border
         self._suppress_active_actions(outer, skip=card)
 
+    # ------------------------------------------------------------------
+    # Shared helpers
+    # ------------------------------------------------------------------
     def _suppress_active_actions(self, widget, skip=None):
-        """Set highlightthickness=0 on all widgets except skip, suppress activebackground."""
         if widget is not skip:
             try:
                 widget.configure(highlightthickness=0)
@@ -347,15 +528,16 @@ class ActionsMixin:
         for child in widget.winfo_children():
             self._suppress_active_actions(child, skip=skip)
 
-    # ------------------------------------------------------------------
-    # Quick action handlers
-    # ------------------------------------------------------------------
+    def _action_open_detail(self, row_idx):
+        self.selected_idx = row_idx
+        self._load_detail(self.rows[row_idx])
+        self.notebook.select(self.tab_detail)
+
     def _action_open_url(self, url):
         if url:
             webbrowser.open(url)
 
     def _action_browse_cl(self, row_idx):
-        """Open file dialog, set CL Written=Yes, save CSV, refresh."""
         path = filedialog.askopenfilename(
             title="Select Cover Letter",
             filetypes=[
@@ -377,50 +559,23 @@ class ActionsMixin:
         self._refresh_list()
 
     def _action_mark_applied(self, row_idx):
-        """Set status=Applied + date=today, save CSV, refresh."""
         row = self.rows[row_idx]
         row["Application Status"] = "Applied"
         row["Date Applied"] = datetime.now().strftime("%Y-%m-%d")
-        if self.csv_path:
-            write_tracker(self.csv_path, self.rows)
-        self._refresh_actions()
-        self._refresh_list()
-
-    def _action_mark_message_sent(self, row_idx, ref_idx):
-        """Update referral status to 'Message sent YYYY-MM-DD', save CSV, refresh."""
-        today = datetime.now().strftime("%Y-%m-%d")
-        self._action_update_referral_status(row_idx, ref_idx, f"Message sent {today}")
-
-    def _action_update_referral_status(self, row_idx, ref_idx, new_status):
-        """Update a specific referral's status in the parallel arrays."""
-        row = self.rows[row_idx]
-        statuses = parse_semicolons(row.get("Referral Statuses", ""))
-        while len(statuses) <= ref_idx:
-            statuses.append("")
-        statuses[ref_idx] = new_status
-        row["Referral Statuses"] = "; ".join(statuses)
+        row["Action Status"] = "Applied - waiting"
         if self.csv_path:
             write_tracker(self.csv_path, self.rows)
         self._refresh_actions()
         self._refresh_list()
 
     def _action_search_linkedin(self, company):
-        """Open LinkedIn alumni search for the company."""
         self._open_alumni_search(company)
 
     def _action_add_referral(self, row_idx):
-        """Open the Add Referral popup for this job."""
         self.selected_idx = row_idx
         self._add_referral_popup()
 
     def _action_draft_message(self, row_idx, ref_idx, tone=None):
-        """Open the Draft Message popup for this referral."""
         self.selected_idx = row_idx
         self._selected_referral_idx = ref_idx
         self._draft_message_popup(default_tone=tone)
-
-    def _action_open_detail(self, row_idx):
-        """Navigate to the Detail tab for this job."""
-        self.selected_idx = row_idx
-        self._load_detail(self.rows[row_idx])
-        self.notebook.select(self.tab_detail)
