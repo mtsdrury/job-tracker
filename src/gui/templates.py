@@ -44,7 +44,7 @@ class TemplatesMixin:
         dlg = tk.Toplevel(self.root)
         dlg.title(f"Draft Message - {referral_name}")
 
-        w, h = 580, 460
+        w, h = 640, 540
         parent_x = self.root.winfo_rootx()
         parent_y = self.root.winfo_rooty()
         parent_w = self.root.winfo_width()

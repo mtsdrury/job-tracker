@@ -205,3 +205,38 @@ def get_nudges(row, follow_up_days=5):
         ))
 
     return nudges
+
+
+def is_stalled(row, follow_up_days):
+    """Check if a job qualifies for the stalled section.
+
+    A job is stalled when:
+    - Its action status is "Waiting on referral"
+    - ALL referrals with outreach statuses have dates >= follow_up_days old
+    """
+    action = row.get("Action Status", "").strip()
+    if action.lower() != "waiting on referral":
+        return False
+
+    ref_statuses = parse_semicolons(row.get("Referral Statuses", ""))
+    if not ref_statuses:
+        return False
+
+    today = datetime.now()
+    has_outreach = False
+
+    for raw in ref_statuses:
+        base, date_str = parse_referral_status(raw.strip())
+        if base.lower() not in _OUTREACH_STATUSES:
+            continue
+        has_outreach = True
+        if not date_str:
+            return False
+        try:
+            sent = datetime.strptime(date_str, "%Y-%m-%d")
+            if (today - sent).days < follow_up_days:
+                return False
+        except ValueError:
+            return False
+
+    return has_outreach

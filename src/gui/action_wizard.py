@@ -41,7 +41,7 @@ class ActionWizardMixin:
 
         dlg = tk.Toplevel(self.root)
         dlg.title("Take Action")
-        w, h = 580, 420
+        w, h = 640, 500
         parent_x = self.root.winfo_rootx()
         parent_y = self.root.winfo_rooty()
         parent_w = self.root.winfo_width()
@@ -249,7 +249,7 @@ class ActionWizardMixin:
         dlg = tk.Toplevel(self.root)
         dlg.title("Update Referral Status")
 
-        w, h = 380, 180
+        w, h = 440, 230
         parent_x = self.root.winfo_rootx()
         parent_y = self.root.winfo_rooty()
         parent_w = self.root.winfo_width()

@@ -10,6 +10,7 @@ Usage:    python gui.py   (or python.exe gui.py on WSL)
 """
 
 import csv
+import json
 import os
 import sys
 
@@ -23,7 +24,7 @@ except ImportError:
 from tkinter import filedialog, messagebox
 
 from gui import TrackerApp
-from gui.constants import THEME
+from gui.constants import THEME, CONFIG_FILENAME
 from tracker import FIELDNAMES
 
 
@@ -48,12 +49,12 @@ def _ask_for_csv(root, default_csv):
             filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
             parent=root,
         )
-        return path if path else None
+        return (path, False) if path else (None, False)
     # No - create a new blank tracker
     with open(default_csv, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
         writer.writeheader()
-    return default_csv
+    return (default_csv, True)
 
 
 def main():
@@ -79,8 +80,17 @@ def main():
         app._load_file(default_csv)
     else:
         # No CSV found - ask the user what to do
-        path = _ask_for_csv(root, default_csv)
+        path, created = _ask_for_csv(root, default_csv)
         if path:
+            if created:
+                from gui.setup_wizard import SetupWizard
+                wizard = SetupWizard(root, root.style.colors)
+                if wizard.result:
+                    config_path = os.path.join(
+                        os.path.dirname(path), CONFIG_FILENAME,
+                    )
+                    with open(config_path, "w", encoding="utf-8") as f:
+                        json.dump(wizard.result, f, indent=2)
             app._load_file(path)
 
     root.mainloop()

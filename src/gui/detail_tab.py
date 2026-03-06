@@ -1,5 +1,6 @@
 """DetailTabMixin: job detail form, save, browse, next-step banner."""
 
+import calendar
 import os
 import tkinter as tk
 import webbrowser
@@ -8,7 +9,6 @@ from datetime import date, datetime
 
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-from ttkbootstrap.dialogs import Querybox
 
 from tracker import VALID_STATUSES, write_tracker, parse_semicolons
 from gui.constants import PAD_INNER, STATUS_BOOTSTYLES
@@ -32,6 +32,22 @@ class DetailTabMixin:
             self.header_frame, text="", font=("", 10),
         )
         self.detail_status_badge.pack(side=LEFT, padx=(12, 0))
+
+        # Action Status (promoted to header area for visibility)
+        self.action_status_frame = ttk.Frame(self.tab_detail)
+        self.action_status_frame.pack(fill=X, padx=4, pady=(0, 2))
+
+        ttk.Label(
+            self.action_status_frame, text="Next step:",
+            font=("", 10), bootstyle="secondary",
+        ).pack(side=LEFT, padx=(4, 6))
+        action_combo = ttk.Combobox(
+            self.action_status_frame,
+            values=self._action_statuses + [""],
+            state="readonly", width=28,
+        )
+        action_combo.pack(side=LEFT)
+        self.field_widgets["Action Status"] = action_combo
 
         # Incomplete fields bar (right below header)
         self.incomplete_frame = ttk.Frame(self.tab_detail)
@@ -273,8 +289,6 @@ class DetailTabMixin:
 
         row = 0
         row = field_row(app_grid, "Application Status", row, "combo", VALID_STATUSES)
-        row = field_row(app_grid, "Action Status", row, "combo",
-                        self._action_statuses + [""])
 
         # Date Applied with Today button
         ttk.Label(app_grid, text="Date Applied:", anchor="e", width=20).grid(
@@ -347,6 +361,7 @@ class DetailTabMixin:
     def _hide_detail_form(self):
         """Hide the normal detail form widgets to make room for the pipeline."""
         self.header_frame.pack_forget()
+        self.action_status_frame.pack_forget()
         self.incomplete_frame.pack_forget()
         self.next_step_frame.pack_forget()
         self.detail_canvas.pack_forget()
@@ -357,6 +372,7 @@ class DetailTabMixin:
     def _show_detail_form(self):
         """Re-pack the normal detail form widgets in the correct order."""
         self.header_frame.pack(fill=X, padx=4, pady=(4, 2))
+        self.action_status_frame.pack(fill=X, padx=4, pady=(0, 2))
         # incomplete_frame and next_step_frame are packed dynamically by _load_detail
         self._detail_btn_frame.pack(side=BOTTOM, fill=X)
         self._detail_separator.pack(side=BOTTOM, fill=X, padx=4)
@@ -433,7 +449,7 @@ class DetailTabMixin:
             self.incomplete_frame.pack_forget()
             self.incomplete_frame.pack(
                 fill=X, padx=4, pady=(0, 2),
-                after=self.header_frame,
+                after=self.action_status_frame,
             )
         else:
             self.incomplete_frame.pack_forget()
@@ -512,22 +528,96 @@ class DetailTabMixin:
             status_widget.set("Applied")
 
     def _pick_date(self, entry_widget):
-        """Open a calendar popup and fill the entry with the chosen date."""
+        """Open a date picker popup and fill the entry with the chosen date."""
         current = entry_widget.get().strip()
-        start = None
+        today = date.today()
+        start = today
         if current:
             try:
                 start = datetime.strptime(current, "%Y-%m-%d").date()
             except ValueError:
                 pass
-        chosen = Querybox.get_date(
-            parent=self.root,
-            title="Select date",
-            startdate=start or date.today(),
+
+        dlg = tk.Toplevel(self.root)
+        dlg.title("Select date")
+        dlg.transient(self.root)
+        dlg.grab_set()
+        dlg.attributes("-topmost", True)
+
+        w, h = 300, 180
+        px = self.root.winfo_rootx() + (self.root.winfo_width() - w) // 2
+        py = self.root.winfo_rooty() + (self.root.winfo_height() - h) // 2
+        dlg.geometry(f"{w}x{h}+{px}+{py}")
+        dlg.minsize(280, 160)
+
+        body = ttk.Frame(dlg, padding=16)
+        body.pack(fill=BOTH, expand=True)
+
+        # Year / Month / Day row
+        combo_frame = ttk.Frame(body)
+        combo_frame.pack(anchor="w", pady=(0, 10))
+
+        years = [str(y) for y in range(today.year - 2, today.year + 3)]
+        months = [f"{m:02d}" for m in range(1, 13)]
+
+        ttk.Label(combo_frame, text="Year").grid(row=0, column=0, padx=(0, 4))
+        year_var = tk.StringVar(value=str(start.year))
+        year_cb = ttk.Combobox(
+            combo_frame, textvariable=year_var,
+            values=years, width=6, state="readonly",
         )
-        if chosen:
+        year_cb.grid(row=1, column=0, padx=(0, 4))
+
+        ttk.Label(combo_frame, text="Month").grid(row=0, column=1, padx=4)
+        month_var = tk.StringVar(value=f"{start.month:02d}")
+        month_cb = ttk.Combobox(
+            combo_frame, textvariable=month_var,
+            values=months, width=4, state="readonly",
+        )
+        month_cb.grid(row=1, column=1, padx=4)
+
+        ttk.Label(combo_frame, text="Day").grid(row=0, column=2, padx=(4, 0))
+        day_var = tk.StringVar(value=f"{start.day:02d}")
+        day_cb = ttk.Combobox(
+            combo_frame, textvariable=day_var,
+            width=4, state="readonly",
+        )
+        day_cb.grid(row=1, column=2, padx=(4, 0))
+
+        def _update_days(*_args):
+            y = int(year_var.get())
+            m = int(month_var.get())
+            max_day = calendar.monthrange(y, m)[1]
+            day_cb["values"] = [f"{d:02d}" for d in range(1, max_day + 1)]
+            if int(day_var.get()) > max_day:
+                day_var.set(f"{max_day:02d}")
+
+        year_var.trace_add("write", _update_days)
+        month_var.trace_add("write", _update_days)
+        _update_days()
+
+        def _set_today():
+            year_var.set(str(today.year))
+            month_var.set(f"{today.month:02d}")
+            day_var.set(f"{today.day:02d}")
+
+        def _ok():
+            chosen = f"{year_var.get()}-{month_var.get()}-{day_var.get()}"
             entry_widget.delete(0, END)
-            entry_widget.insert(0, chosen.strftime("%Y-%m-%d"))
+            entry_widget.insert(0, chosen)
+            dlg.destroy()
+
+        btn_frame = ttk.Frame(body)
+        btn_frame.pack(pady=(4, 0))
+        ttk.Button(
+            btn_frame, text="Today", command=_set_today, bootstyle="info-outline",
+        ).pack(side=LEFT, padx=(0, 8))
+        ttk.Button(
+            btn_frame, text="OK", command=_ok, bootstyle="success",
+        ).pack(side=LEFT, padx=4)
+        ttk.Button(
+            btn_frame, text="Cancel", command=dlg.destroy, bootstyle="secondary",
+        ).pack(side=LEFT, padx=(8, 0))
 
     def _browse_file(self, entry_widget, title, filetypes):
         path = filedialog.askopenfilename(
@@ -603,10 +693,78 @@ class DetailTabMixin:
             else:
                 self.next_step_frame.pack(
                     fill=X, padx=4, pady=(0, 2),
-                    after=self.header_frame,
+                    after=self.action_status_frame,
                 )
         else:
             self.next_step_frame.pack_forget()
+
+    def _ask_action_status_popup(self):
+        """Modal popup asking the user to pick an action status. Returns the
+        selected string, or None if cancelled."""
+        result = [None]
+
+        dlg = tk.Toplevel(self.root)
+        dlg.title("Action Status Required")
+
+        w, h = 440, 230
+        parent_x = self.root.winfo_rootx()
+        parent_y = self.root.winfo_rooty()
+        parent_w = self.root.winfo_width()
+        parent_h = self.root.winfo_height()
+        x = parent_x + (parent_w - w) // 2
+        y = parent_y + (parent_h - h) // 2
+        dlg.geometry(f"{w}x{h}+{x}+{y}")
+        dlg.minsize(320, 160)
+
+        dlg.grab_set()
+        dlg.attributes("-topmost", True)
+
+        body = ttk.Frame(dlg, padding=16)
+        body.pack(fill=BOTH, expand=True)
+
+        ttk.Label(
+            body, text="What's the next step for this job?",
+            font=("", 11), wraplength=340, justify=LEFT,
+        ).pack(anchor="w", pady=(0, 2))
+        ttk.Label(
+            body, text="An action status is required to save.",
+            font=("", 9), bootstyle="secondary", wraplength=340, justify=LEFT,
+        ).pack(anchor="w", pady=(0, 10))
+
+        combo = ttk.Combobox(
+            body, values=self._action_statuses,
+            state="readonly", width=30,
+        )
+        combo.pack(anchor="w", pady=(0, 12))
+
+        btn_frame = ttk.Frame(body)
+        btn_frame.pack(anchor="w")
+
+        ok_btn = ttk.Button(
+            btn_frame, text="OK", bootstyle="success",
+            padding=(16, 4), state="disabled",
+        )
+        ok_btn.pack(side=LEFT, padx=(0, 6))
+        ttk.Button(
+            btn_frame, text="Cancel", bootstyle="secondary",
+            padding=(16, 4), command=dlg.destroy,
+        ).pack(side=LEFT)
+
+        def _on_select(event=None):
+            if combo.get().strip():
+                ok_btn.config(state="normal")
+
+        def _on_ok():
+            result[0] = combo.get().strip()
+            dlg.destroy()
+
+        combo.bind("<<ComboboxSelected>>", _on_select)
+        ok_btn.config(command=_on_ok)
+        dlg.bind("<Return>", lambda e: _on_ok() if combo.get().strip() else None)
+        dlg.protocol("WM_DELETE_WINDOW", dlg.destroy)
+
+        dlg.wait_window()
+        return result[0]
 
     def _save_current(self):
         if self.selected_idx is None:
@@ -625,6 +783,15 @@ class DetailTabMixin:
                     f"'{date_val}' is not a valid date. Use YYYY-MM-DD.",
                 )
                 return
+
+        # Require action status for non-closed jobs
+        app_status = self.field_widgets["Application Status"].get().strip()
+        action_val = self.field_widgets["Action Status"].get().strip()
+        if not action_val and app_status not in ("Rejected", "Withdrawn", "Closed"):
+            chosen = self._ask_action_status_popup()
+            if chosen is None:
+                return  # user cancelled, abort save
+            self.field_widgets["Action Status"].set(chosen)
 
         field_to_csv = {
             "Application Status": "Application Status",

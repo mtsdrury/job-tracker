@@ -4,8 +4,8 @@
 DEFAULT_ACTION_STATUSES = [
     "Find referral",
     "Message referral",
-    "Waiting on referral",
     "Write cover letter",
+    "Waiting on referral",
     "Ready to apply",
     "Applied - waiting",
     "Prep for interview",
@@ -130,6 +130,30 @@ REFERRAL_FILTERS = [
 # Strategy mode (affects referral follow-up timer)
 DEFAULT_STRATEGY_MODE = "referral"
 STRATEGY_TIMERS = {"referral": 5, "speed": 3}
+
+# Strategy presets
+STRATEGY_MODES = {
+    "referral": {
+        "label": "Referral-first",
+        "description": "Exhaust referral options before applying",
+        "stalled_message": "Stalled - find another referral or apply",
+        "stalled_subtitle": "Referral outreach has gone unanswered",
+    },
+    "speed": {
+        "label": "Speed-first",
+        "description": "Apply quickly if a referral doesn't pan out",
+        "stalled_message": "Stalled - consider applying now",
+        "stalled_subtitle": "Referral outreach has gone unanswered",
+    },
+}
+
+PATIENCE_PRESETS = [
+    {"label": "Quick (3d)", "days": 3},
+    {"label": "Standard (5d)", "days": 5},
+    {"label": "Patient (7d)", "days": 7},
+]
+
+DEFAULT_STALLED_DAYS = 5
 
 # Date Posted urgency thresholds (days)
 DATE_POSTED_WARNING_DAYS = 5

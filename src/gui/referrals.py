@@ -113,7 +113,7 @@ class ReferralsMixin:
         dlg.title("Add Referral")
 
         # Size and center on parent window
-        w, h = 540, 440
+        w, h = 600, 500
         parent_x = self.root.winfo_rootx()
         parent_y = self.root.winfo_rooty()
         parent_w = self.root.winfo_width()
@@ -277,7 +277,7 @@ class ReferralsMixin:
                     )
                     self.incomplete_frame.pack_forget()
                     self.incomplete_frame.pack(
-                        fill=X, padx=4, pady=(0, 2), after=self.header_frame,
+                        fill=X, padx=4, pady=(0, 2), after=self.action_status_frame,
                     )
                 else:
                     self.incomplete_frame.pack_forget()
@@ -330,7 +330,7 @@ class ReferralsMixin:
         dlg = tk.Toplevel(self.root)
         dlg.title(f"Edit Referral - {cur_name}")
 
-        w, h = 500, 320
+        w, h = 560, 380
         parent_x = self.root.winfo_rootx()
         parent_y = self.root.winfo_rooty()
         parent_w = self.root.winfo_width()

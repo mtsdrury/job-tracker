@@ -16,6 +16,7 @@ from gui.constants import (
     PAD_INNER, CONFIG_FILENAME,
     DEFAULT_TONE_TEMPLATES, DEFAULT_CONNECTIONS, DEFAULT_CONNECTION_LINE,
     DEFAULT_ACTION_STATUSES, DEFAULT_STRATEGY_MODE, STRATEGY_TIMERS,
+    STRATEGY_MODES, PATIENCE_PRESETS, DEFAULT_STALLED_DAYS,
 )
 from gui.list_tab import ListTabMixin
 from gui.detail_tab import DetailTabMixin
@@ -52,6 +53,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         self._tone_templates = list(DEFAULT_TONE_TEMPLATES)
         self._action_statuses = list(DEFAULT_ACTION_STATUSES)
         self._strategy_mode = DEFAULT_STRATEGY_MODE
+        self._stalled_days = DEFAULT_STALLED_DAYS
 
         self.field_widgets = {}
 
@@ -83,6 +85,10 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         ).pack(side=RIGHT, padx=(0, 6))
         ttk.Button(
             top, text="Actions", command=self._manage_action_statuses,
+            bootstyle="secondary-outline",
+        ).pack(side=RIGHT, padx=(0, 6))
+        ttk.Button(
+            top, text="Strategy", command=self._manage_strategy,
             bootstyle="secondary-outline",
         ).pack(side=RIGHT, padx=(0, 6))
         ttk.Button(
@@ -233,6 +239,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
             self._tone_templates = list(DEFAULT_TONE_TEMPLATES)
             self._action_statuses = list(DEFAULT_ACTION_STATUSES)
             self._strategy_mode = DEFAULT_STRATEGY_MODE
+            self._stalled_days = DEFAULT_STALLED_DAYS
             return
         try:
             with open(path, "r", encoding="utf-8") as f:
@@ -264,6 +271,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
                 self._strategy_mode = saved_strategy
             else:
                 self._strategy_mode = DEFAULT_STRATEGY_MODE
+            self._stalled_days = data.get("stalled_days", DEFAULT_STALLED_DAYS)
         except (json.JSONDecodeError, OSError):
             self._schools = []
             self._resume_versions = ["Data Scientist", "ML Builder", "Research Engineer"]
@@ -272,6 +280,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
             self._tone_templates = list(DEFAULT_TONE_TEMPLATES)
             self._action_statuses = list(DEFAULT_ACTION_STATUSES)
             self._strategy_mode = DEFAULT_STRATEGY_MODE
+            self._stalled_days = DEFAULT_STALLED_DAYS
         self._update_resume_combo()
         self._update_action_status_combo()
 
@@ -287,6 +296,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
             "tone_templates": self._tone_templates,
             "action_statuses": self._action_statuses,
             "strategy_mode": self._strategy_mode,
+            "stalled_days": self._stalled_days,
         }
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
@@ -306,7 +316,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
     @property
     def _follow_up_days(self):
         """Number of days before a referral outreach triggers a follow-up nudge."""
-        return STRATEGY_TIMERS.get(self._strategy_mode, 5)
+        return self._stalled_days
 
     # -------------------------------------------------------------------
     # LinkedIn alumni search
@@ -340,7 +350,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         dlg.title("Your Schools")
         dlg.grab_set()
 
-        w, h = 560, 520
+        w, h = 620, 580
         parent_x = self.root.winfo_rootx()
         parent_y = self.root.winfo_rooty()
         parent_w = self.root.winfo_width()
@@ -502,6 +512,122 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         id_entry.bind("<Return>", lambda e: _add())
 
     # -------------------------------------------------------------------
+    # Strategy management popup
+    # -------------------------------------------------------------------
+    def _manage_strategy(self):
+        dlg = tk.Toplevel(self.root)
+        dlg.title("Job Search Strategy")
+        dlg.grab_set()
+
+        w, h = 520, 380
+        parent_x = self.root.winfo_rootx()
+        parent_y = self.root.winfo_rooty()
+        parent_w = self.root.winfo_width()
+        parent_h = self.root.winfo_height()
+        x = parent_x + (parent_w - w) // 2
+        y = parent_y + (parent_h - h) // 2
+        dlg.geometry(f"{w}x{h}+{x}+{y}")
+        dlg.minsize(420, 320)
+
+        body = ttk.Frame(dlg, padding=16)
+        body.pack(fill=BOTH, expand=True)
+
+        ttk.Label(
+            body, text="Job Search Strategy",
+            font=("", 13, "bold"), bootstyle="primary",
+        ).pack(anchor="w", pady=(0, 4))
+        ttk.Label(
+            body,
+            text="Choose how you handle referral outreach. "
+                 "This affects when jobs are flagged as stalled.",
+            bootstyle="secondary", font=("", 9), wraplength=480,
+        ).pack(anchor="w", pady=(0, 12))
+
+        # Strategy mode
+        ttk.Label(
+            body, text="Strategy Mode",
+            font=("", 11, "bold"), bootstyle="light",
+        ).pack(anchor="w", pady=(0, 6))
+
+        selected_mode = [self._strategy_mode]
+        mode_btns = {}
+        mode_frame = ttk.Frame(body)
+        mode_frame.pack(fill=X, pady=(0, 16))
+
+        def _select_mode(key):
+            selected_mode[0] = key
+            for k, b in mode_btns.items():
+                b.configure(
+                    bootstyle="info" if k == key else "secondary-outline",
+                )
+
+        for key, info in STRATEGY_MODES.items():
+            btn = ttk.Button(
+                mode_frame,
+                text=f"{info['label']}\n{info['description']}",
+                bootstyle="info" if key == selected_mode[0] else "secondary-outline",
+                padding=(16, 10),
+                command=lambda k=key: _select_mode(k),
+            )
+            btn.pack(side=LEFT, padx=(0, 8))
+            mode_btns[key] = btn
+
+        # Patience preset
+        ttk.Label(
+            body, text="Stalled Threshold",
+            font=("", 11, "bold"), bootstyle="light",
+        ).pack(anchor="w", pady=(0, 4))
+        ttk.Label(
+            body,
+            text="Days without a response before a job is flagged as stalled.",
+            bootstyle="secondary", font=("", 9),
+        ).pack(anchor="w", pady=(0, 6))
+
+        selected_days = [self._stalled_days]
+        patience_btns = {}
+        patience_frame = ttk.Frame(body)
+        patience_frame.pack(fill=X, pady=(0, 16))
+
+        def _select_days(days):
+            selected_days[0] = days
+            for d, b in patience_btns.items():
+                b.configure(
+                    bootstyle="info" if d == days else "secondary-outline",
+                )
+
+        for preset in PATIENCE_PRESETS:
+            is_sel = preset["days"] == selected_days[0]
+            btn = ttk.Button(
+                patience_frame,
+                text=preset["label"],
+                bootstyle="info" if is_sel else "secondary-outline",
+                padding=(16, 8),
+                command=lambda p=preset: _select_days(p["days"]),
+            )
+            btn.pack(side=LEFT, padx=(0, 8))
+            patience_btns[preset["days"]] = btn
+
+        # Save / Close
+        btn_row = ttk.Frame(body)
+        btn_row.pack(fill=X, pady=(8, 0))
+
+        def _save():
+            self._strategy_mode = selected_mode[0]
+            self._stalled_days = selected_days[0]
+            self._save_config()
+            dlg.destroy()
+            self._refresh_actions()
+
+        ttk.Button(
+            btn_row, text="Save", command=_save,
+            bootstyle="success", padding=(14, 4),
+        ).pack(side=LEFT, padx=(0, 6))
+        ttk.Button(
+            btn_row, text="Cancel", command=dlg.destroy,
+            bootstyle="secondary", padding=(12, 4),
+        ).pack(side=LEFT)
+
+    # -------------------------------------------------------------------
     # Resume versions management popup
     # -------------------------------------------------------------------
     def _manage_resume_versions(self):
@@ -509,7 +635,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         dlg.title("Resume Versions")
         dlg.grab_set()
 
-        w, h = 420, 380
+        w, h = 500, 460
         parent_x = self.root.winfo_rootx()
         parent_y = self.root.winfo_rooty()
         parent_w = self.root.winfo_width()
@@ -528,7 +654,9 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         ).pack(anchor="w", pady=(0, 4))
         ttk.Label(
             body,
-            text="These appear in the Resume Version dropdown and pipeline step.",
+            text="Tip: name each one after the job title it targets "
+                 "(e.g. \"Data Scientist\", \"ML Engineer\"). "
+                 "These appear in the Resume Version dropdown and pipeline step.",
             bootstyle="secondary", font=("", 9),
         ).pack(anchor="w", pady=(0, 8))
 
@@ -619,7 +747,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         dlg.title("Action Statuses")
         dlg.grab_set()
 
-        w, h = 420, 460
+        w, h = 500, 540
         parent_x = self.root.winfo_rootx()
         parent_y = self.root.winfo_rooty()
         parent_w = self.root.winfo_width()
@@ -751,7 +879,7 @@ class TrackerApp(ListTabMixin, DetailTabMixin, SummaryTabMixin, ActionsMixin,
         dlg.title("Message Templates")
         dlg.grab_set()
 
-        w, h = 620, 580
+        w, h = 680, 640
         parent_x = self.root.winfo_rootx()
         parent_y = self.root.winfo_rooty()
         parent_w = self.root.winfo_width()

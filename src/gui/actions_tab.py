@@ -3,14 +3,14 @@
 import tkinter as tk
 import webbrowser
 from datetime import datetime
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 
 from tracker import parse_semicolons, write_tracker
-from gui.constants import PAD_OUTER, PAD_SECTION, PAD_INNER
-from gui.helpers import get_nudges
+from gui.constants import PAD_OUTER, PAD_SECTION, PAD_INNER, STRATEGY_MODES
+from gui.helpers import get_nudges, parse_referral_status, is_stalled
 
 # Nudge urgency colors (for dark backgrounds)
 _NUDGE_COLORS = {
@@ -150,24 +150,63 @@ class ActionsMixin:
         # Store combobox references for the Done button
         combos = []
 
+        card_bg = "#3a3f47"
+
         for idx, row in triage_jobs:
             company = row.get("Company", "")
             role = row.get("Role", "")
 
-            row_frame = ttk.Frame(f)
-            row_frame.pack(fill=X, pady=(0, 6))
+            outer = tk.Frame(f, bg=str(self.colors.bg))
+            outer.pack(fill=X, pady=(0, 6))
 
-            ttk.Label(
-                row_frame, text=f"{company}  -  {role}",
-                font=("", 10, "bold"),
-            ).pack(side=LEFT, fill=X, expand=True)
+            card = tk.Frame(
+                outer, bg=card_bg, padx=12, pady=8,
+                highlightbackground="#4a4f57", highlightthickness=1,
+            )
+            card.pack(fill=X)
+
+            top_row = tk.Frame(card, bg=card_bg)
+            top_row.pack(fill=X)
+
+            chevron = tk.Label(
+                top_row, text="\u25b6", font=("", 10),
+                bg=card_bg, fg="#adb5bd", cursor="hand2",
+            )
+            chevron.pack(side=LEFT, padx=(0, 6))
+
+            title_lbl = tk.Label(
+                top_row, text=f"{company}  -  {role}",
+                font=("", 10, "bold"), bg=card_bg, fg="#ffffff",
+                anchor="w", cursor="hand2",
+            )
+            title_lbl.pack(side=LEFT, fill=X, expand=True)
 
             combo = ttk.Combobox(
-                row_frame, values=self._action_statuses,
+                top_row, values=self._action_statuses,
                 state="readonly", width=22,
             )
             combo.pack(side=RIGHT, padx=(8, 0))
             combos.append((idx, combo))
+
+            # Nudges (same as action cards, gives context for status choice)
+            nudges = get_nudges(row, follow_up_days=self._follow_up_days)
+            if nudges:
+                nudge_frame = tk.Frame(card, bg=card_bg)
+                nudge_frame.pack(fill=X, pady=(4, 0))
+                for nudge in nudges:
+                    color = _NUDGE_COLORS.get(nudge["urgency"], "#adb5bd")
+                    tk.Label(
+                        nudge_frame, text=f"\u2022 {nudge['text']}",
+                        font=("", 9), bg=card_bg, fg=color, anchor="w",
+                    ).pack(fill=X, pady=(1, 0))
+
+            detail_panel = self._render_detail_panel(card, row, card_bg)
+            toggle = lambda e, c=chevron, d=detail_panel: \
+                self._toggle_detail(c, d)
+            chevron.bind("<Button-1>", toggle)
+            title_lbl.bind("<Button-1>", toggle)
+
+            self._suppress_active_actions(outer, skip=card)
 
         ttk.Separator(f).pack(fill=X, pady=(12, 8))
 
@@ -177,8 +216,22 @@ class ActionsMixin:
         def _done():
             for idx, combo in combos:
                 val = combo.get().strip()
-                if val:
-                    self.rows[idx]["Action Status"] = val
+                if not val:
+                    continue
+                if val == "Applied - waiting":
+                    row = self.rows[idx]
+                    company = row.get("Company", "")
+                    role = row.get("Role", "")
+                    today = datetime.now().strftime("%Y-%m-%d")
+                    if not messagebox.askyesno(
+                        "Mark as Applied?",
+                        f"This will set {company} - {role} to Applied "
+                        f"with today's date ({today}).\n\nContinue?",
+                    ):
+                        continue
+                    row["Application Status"] = "Applied"
+                    row["Date Applied"] = today
+                self.rows[idx]["Action Status"] = val
             if self.csv_path:
                 write_tracker(self.csv_path, self.rows)
             self._refresh_actions()
@@ -228,7 +281,26 @@ class ActionsMixin:
                 key = action_status if action_status else "Applied - waiting"
                 post_groups.setdefault(key, []).append((idx, row))
 
-        pre_total = sum(len(v) for v in pre_groups.values()) + len(pre_no_status)
+        # Extract stalled jobs from "Waiting on referral" group
+        stalled_jobs = []
+        waiting_key = "Waiting on referral"
+        if waiting_key in pre_groups:
+            remaining = []
+            for idx, row in pre_groups[waiting_key]:
+                if is_stalled(row, self._follow_up_days):
+                    stalled_jobs.append((idx, row))
+                else:
+                    remaining.append((idx, row))
+            if remaining:
+                pre_groups[waiting_key] = remaining
+            else:
+                del pre_groups[waiting_key]
+
+        pre_total = (
+            sum(len(v) for v in pre_groups.values())
+            + len(pre_no_status)
+            + len(stalled_jobs)
+        )
         post_total = sum(len(v) for v in post_groups.values())
         grand_total = pre_total + post_total
 
@@ -255,6 +327,21 @@ class ActionsMixin:
                 "Jobs you haven't applied to yet",
                 "warning",
             )
+
+            # Stalled section (appears first within pre-application)
+            if stalled_jobs:
+                mode_info = STRATEGY_MODES.get(
+                    self._strategy_mode, STRATEGY_MODES["referral"],
+                )
+                self._render_section_header(
+                    f,
+                    mode_info["stalled_message"],
+                    mode_info["stalled_subtitle"],
+                    "warning",
+                )
+                for row_idx, row in stalled_jobs:
+                    self._render_pre_app_card(f, row_idx, row)
+
             self._render_pre_app_cards(f, pre_groups, pre_no_status)
 
         # Post-Application section
@@ -342,14 +429,22 @@ class ActionsMixin:
         )
         card.pack(fill=X)
 
-        # Top row: company/role + action status dropdown
+        # Top row: chevron + company/role + action status dropdown
         top_row = tk.Frame(card, bg=card_bg)
         top_row.pack(fill=X)
 
-        tk.Label(
+        chevron = tk.Label(
+            top_row, text="\u25b6", font=("", 10),
+            bg=card_bg, fg="#adb5bd", cursor="hand2",
+        )
+        chevron.pack(side=LEFT, padx=(0, 6))
+
+        title_lbl = tk.Label(
             top_row, text=f"{company}  -  {role}",
             font=("", 10, "bold"), bg=card_bg, fg="#ffffff", anchor="w",
-        ).pack(side=LEFT, fill=X, expand=True)
+            cursor="hand2",
+        )
+        title_lbl.pack(side=LEFT, fill=X, expand=True)
 
         combo = ttk.Combobox(
             top_row, values=self._action_statuses + [""],
@@ -358,8 +453,22 @@ class ActionsMixin:
         combo.set(current_action)
         combo.pack(side=RIGHT, padx=(8, 0))
 
-        def _on_status_change(event, idx=row_idx, cb=combo):
+        def _on_status_change(event, idx=row_idx, cb=combo, prev=current_action):
             new_status = cb.get()
+            if new_status == "Applied - waiting":
+                row = self.rows[idx]
+                company = row.get("Company", "")
+                role = row.get("Role", "")
+                today = datetime.now().strftime("%Y-%m-%d")
+                if not messagebox.askyesno(
+                    "Mark as Applied?",
+                    f"This will set {company} - {role} to Applied "
+                    f"with today's date ({today}).\n\nContinue?",
+                ):
+                    cb.set(prev)
+                    return
+                row["Application Status"] = "Applied"
+                row["Date Applied"] = today
             self.rows[idx]["Action Status"] = new_status
             if self.csv_path:
                 write_tracker(self.csv_path, self.rows)
@@ -368,6 +477,8 @@ class ActionsMixin:
                 if w:
                     w.set(new_status)
             self._refresh_actions()
+            if new_status == "Applied - waiting":
+                self._refresh_list()
 
         combo.bind("<<ComboboxSelected>>", _on_status_change)
 
@@ -403,40 +514,25 @@ class ActionsMixin:
             command=lambda idx=row_idx: self._action_open_detail(idx),
         ).pack(side=LEFT, padx=(0, 6))
 
+        # Expandable detail panel (starts hidden)
+        detail_panel = self._render_detail_panel(card, row, card_bg)
+        toggle = lambda e, c=chevron, d=detail_panel, b=btn_frame: \
+            self._toggle_detail(c, d, b)
+        chevron.bind("<Button-1>", toggle)
+        title_lbl.bind("<Button-1>", toggle)
+
         self._suppress_active_actions(outer, skip=card)
 
     # ------------------------------------------------------------------
     # Post-Application cards
     # ------------------------------------------------------------------
     def _render_post_app_cards(self, parent, groups):
-        # Ordered groups first
-        for status in self._action_statuses:
-            if status not in groups:
-                continue
-            self._render_post_group(parent, status, groups[status])
-
-        for status, job_list in groups.items():
-            if status not in self._action_statuses:
-                self._render_post_group(parent, status, job_list)
-
-    def _render_post_group(self, parent, status_label, job_list):
-        count = len(job_list)
-        header_frame = ttk.Frame(parent)
-        header_frame.pack(fill=X, pady=(PAD_SECTION, 4))
-
-        ttk.Label(
-            header_frame,
-            text=f"{status_label}  ({count})",
-            font=("", 12, "bold"), bootstyle="info",
-        ).pack(side=LEFT)
-
-        ttk.Separator(parent).pack(fill=X, pady=(2, 6))
-
-        for row_idx, row in job_list:
-            self._render_post_app_card(parent, row_idx, row)
+        for job_list in groups.values():
+            for row_idx, row in job_list:
+                self._render_post_app_card(parent, row_idx, row)
 
     def _render_post_app_card(self, parent, row_idx, row):
-        """Post-application card: application status dropdown + nudges + Open Detail."""
+        """Post-application card: company/role label + status dropdown."""
         card_bg = "#3a3f47"
         company = row.get("Company", "")
         role = row.get("Role", "")
@@ -446,22 +542,18 @@ class ActionsMixin:
         outer.pack(fill=X, pady=(0, PAD_INNER))
 
         card = tk.Frame(
-            outer, bg=card_bg, padx=12, pady=10,
+            outer, bg=card_bg, padx=12, pady=8,
             highlightbackground="#4a4f57", highlightthickness=1,
         )
         card.pack(fill=X)
 
-        # Top row: company/role + application status dropdown
-        top_row = tk.Frame(card, bg=card_bg)
-        top_row.pack(fill=X)
-
         tk.Label(
-            top_row, text=f"{company}  -  {role}",
+            card, text=f"{company}  -  {role}",
             font=("", 10, "bold"), bg=card_bg, fg="#ffffff", anchor="w",
         ).pack(side=LEFT, fill=X, expand=True)
 
         combo = ttk.Combobox(
-            top_row, values=_POST_APP_DROPDOWN,
+            card, values=_POST_APP_DROPDOWN,
             state="readonly", width=16,
         )
         combo.set(current_app_status)
@@ -482,32 +574,122 @@ class ActionsMixin:
         combo.bind("<<ComboboxSelected>>", _on_app_status_change)
 
         ttk.Label(
-            top_row, text="Status:", bootstyle="secondary", font=("", 9),
+            card, text="Status:", bootstyle="secondary", font=("", 9),
         ).pack(side=RIGHT)
 
-        # Nudge rows (text only)
-        nudges = get_nudges(row, follow_up_days=self._follow_up_days)
-        if nudges:
-            nudge_frame = tk.Frame(card, bg=card_bg)
-            nudge_frame.pack(fill=X, pady=(4, 0))
-            for nudge in nudges:
-                color = _NUDGE_COLORS.get(nudge["urgency"], "#adb5bd")
-                tk.Label(
-                    nudge_frame, text=f"\u2022 {nudge['text']}",
-                    font=("", 9), bg=card_bg, fg=color, anchor="w",
-                ).pack(fill=X, pady=(1, 0))
-
-        # Button row: just Open Detail
-        btn_frame = tk.Frame(card, bg=card_bg)
-        btn_frame.pack(fill=X, pady=(6, 0))
-
-        ttk.Button(
-            btn_frame, text="Open Detail",
-            bootstyle="secondary-outline", padding=(8, 2),
-            command=lambda idx=row_idx: self._action_open_detail(idx),
-        ).pack(side=LEFT, padx=(0, 6))
-
         self._suppress_active_actions(outer, skip=card)
+
+    # ------------------------------------------------------------------
+    # Expandable detail panel
+    # ------------------------------------------------------------------
+    def _render_detail_panel(self, card, row, card_bg):
+        """Create an expandable detail panel for an action card (starts hidden)."""
+        detail = tk.Frame(card, bg=card_bg)
+
+        # Thin separator
+        tk.Frame(detail, bg="#4a4f57", height=1).pack(fill=X, pady=(6, 4))
+
+        secondary_fg = "#adb5bd"
+        label_fg = "#dee2e6"
+
+        # Referrals
+        ref_names = parse_semicolons(row.get("Referral Names", ""))
+        ref_statuses = parse_semicolons(row.get("Referral Statuses", ""))
+
+        if ref_names:
+            tk.Label(
+                detail, text="Referrals:", font=("", 9, "bold"),
+                bg=card_bg, fg=label_fg, anchor="w",
+            ).pack(fill=X)
+            for i, name in enumerate(ref_names):
+                status = ref_statuses[i].strip() if i < len(ref_statuses) else ""
+                if not status:
+                    status = "No status"
+                base, date_str = parse_referral_status(status)
+                # Color by recency
+                if "not yet" in base.lower() or base == "No status":
+                    s_color = "#f5b041"
+                elif "submitted" in base.lower() or "sharing" in base.lower():
+                    s_color = "#58d68d"
+                else:
+                    s_color = secondary_fg
+                tk.Label(
+                    detail, text=f"  {name}  -  {status}",
+                    font=("", 9), bg=card_bg, fg=s_color, anchor="w",
+                ).pack(fill=X)
+        else:
+            tk.Label(
+                detail, text="No referrals yet",
+                font=("", 9, "italic"), bg=card_bg, fg="#6c757d", anchor="w",
+            ).pack(fill=X)
+
+        # Location
+        location = row.get("Location", "").strip()
+        if location:
+            tk.Label(
+                detail, text=f"Location:  {location}",
+                font=("", 9), bg=card_bg, fg=secondary_fg, anchor="w",
+            ).pack(fill=X, pady=(2, 0))
+
+        # Date Posted
+        date_posted = row.get("Date Posted", "").strip()
+        if date_posted:
+            tk.Label(
+                detail, text=f"Date Posted:  {date_posted}",
+                font=("", 9), bg=card_bg, fg=secondary_fg, anchor="w",
+            ).pack(fill=X, pady=(2, 0))
+
+        # Job URL (clickable)
+        job_url = row.get("Job URL", "").strip()
+        if job_url:
+            url_lbl = tk.Label(
+                detail, text="Open posting",
+                font=("", 9, "underline"), bg=card_bg, fg="#5dade2",
+                anchor="w", cursor="hand2",
+            )
+            url_lbl.pack(fill=X, pady=(2, 0))
+            url_lbl.bind("<Button-1>", lambda e, u=job_url: webbrowser.open(u))
+
+        # Cover Letter
+        cl_written = row.get("Cover Letter Written", "").strip()
+        cl_file = row.get("Cover Letter File", "").strip()
+        cl_text = None
+        if cl_written.lower() == "yes":
+            cl_text = f"Cover Letter:  Yes ({cl_file})" if cl_file else "Cover Letter:  Yes"
+        elif cl_written.lower() == "no":
+            cl_text = "Cover Letter:  No"
+        if cl_text:
+            tk.Label(
+                detail, text=cl_text,
+                font=("", 9), bg=card_bg, fg=secondary_fg, anchor="w",
+            ).pack(fill=X, pady=(2, 0))
+
+        # Notes (truncated)
+        notes = row.get("Notes", "").strip()
+        if notes:
+            display = notes if len(notes) <= 150 else notes[:147] + "..."
+            tk.Label(
+                detail, text=f"Notes:  {display}",
+                font=("", 9), bg=card_bg, fg=secondary_fg, anchor="w",
+                wraplength=500, justify="left",
+            ).pack(fill=X, pady=(2, 0))
+
+        return detail
+
+    def _toggle_detail(self, chevron_label, detail_frame, btn_frame=None):
+        """Toggle visibility of a card's detail panel."""
+        if detail_frame.winfo_manager():
+            detail_frame.pack_forget()
+            chevron_label.config(text="\u25b6")
+        else:
+            pack_opts = {"fill": X, "pady": (6, 0)}
+            if btn_frame is not None:
+                pack_opts["before"] = btn_frame
+            detail_frame.pack(**pack_opts)
+            chevron_label.config(text="\u25bc")
+        self.actions_canvas.configure(
+            scrollregion=self.actions_canvas.bbox("all"),
+        )
 
     # ------------------------------------------------------------------
     # Shared helpers

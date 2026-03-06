@@ -43,7 +43,7 @@ class PopupsMixin:
         dlg.grab_set()
         dlg.attributes("-topmost", True)
 
-        w, h = 420, 60 + len(found) * 40 + 50
+        w, h = 500, 80 + len(found) * 40 + 60
         px = parent.winfo_rootx() + (parent.winfo_width() - w) // 2
         py = parent.winfo_rooty() + (parent.winfo_height() - h) // 2
         dlg.geometry(f"{w}x{h}+{px}+{py}")
@@ -140,7 +140,7 @@ class PopupsMixin:
         dlg.grab_set()
 
         # Size and center on parent window
-        w, h = 520, 410
+        w, h = 580, 480
         parent_x = self.root.winfo_rootx()
         parent_y = self.root.winfo_rooty()
         parent_w = self.root.winfo_width()

@@ -275,7 +275,7 @@ class ChatMixin:
         dlg = tk.Toplevel(self.root)
         dlg.title("Set Anthropic API Key")
 
-        w, h = 460, 160
+        w, h = 520, 210
         parent_x = self.root.winfo_rootx()
         parent_y = self.root.winfo_rooty()
         parent_w = self.root.winfo_width()
