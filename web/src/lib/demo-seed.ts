@@ -40,20 +40,20 @@ export interface SeedContact {
 }
 
 export const seedSchools = [
-  { name: "Georgia Tech", linkedin_id: "3558", status: "Student" },
-  { name: "UCLA", linkedin_id: "17882", status: "Alum" },
+  { name: "State University", linkedin_id: "1234", status: "Alum" },
+  { name: "City College", linkedin_id: "5678", status: "Alum" },
 ];
 
 export const seedResumeVersions = [
-  "Data Scientist",
-  "ML Engineer",
-  "Research Engineer",
+  "Software Engineer",
+  "Data Analyst",
+  "Product Manager",
 ];
 
 export const seedTemplates = [
   {
     name: "Alumni Intro",
-    body: "Hi {first_name},\n\nI am a fellow {connection} and noticed you work at {company}. I am currently looking for roles in {role} and would love to hear about your experience there.\n\nWould you have 15 minutes for a quick chat?\n\nBest,\nDemo User",
+    body: "Hi {first_name},\n\nI am a fellow {connection} and noticed you work at {company}. I am currently exploring {role} opportunities and would love to hear about your experience there.\n\nWould you have 15 minutes for a quick chat?\n\nBest,\nDemo User",
     category: "initial_outreach" as const,
   },
   {
@@ -65,22 +65,22 @@ export const seedTemplates = [
 
 export const seedJobs: SeedJob[] = [
   {
-    title: "ML Engineer",
+    title: "Software Engineer",
     company: "Spotify",
-    location: "Los Angeles, CA",
+    location: "New York, NY",
     url: "https://jobs.lever.co/spotify/example-1",
     applied: false,
     nextAction: "Message referral",
-    resumeVersion: "ML Engineer",
+    resumeVersion: "Software Engineer",
     datePosted: daysAgoISO(3),
     contacts: [
       {
         name: "Sarah Chen",
-        title: "Senior ML Engineer",
+        title: "Senior Software Engineer",
         company: "Spotify",
         linkedinUrl: "https://linkedin.com/in/example-sarah",
         connectionType: "alumni",
-        school: "Georgia Tech",
+        school: "State University",
         outreachStatus: "message_sent",
         outreachPlatform: "linkedin",
         daysAgo: 2,
@@ -88,24 +88,24 @@ export const seedJobs: SeedJob[] = [
     ],
   },
   {
-    title: "Data Scientist",
+    title: "Data Analyst",
     company: "Netflix",
     location: "Los Angeles, CA",
     url: "https://jobs.lever.co/netflix/example-2",
     applied: true,
     appliedAt: daysAgoISO(5),
     nextAction: "Follow up",
-    resumeVersion: "Data Scientist",
+    resumeVersion: "Data Analyst",
     datePosted: daysAgoISO(12),
-    notes: "Applied with referral from James. Strong match for content algorithms team.",
+    notes: "Applied with referral from James. Strong match for content analytics team.",
     contacts: [
       {
         name: "James Park",
-        title: "Data Scientist II",
+        title: "Senior Data Analyst",
         company: "Netflix",
         linkedinUrl: "https://linkedin.com/in/example-james",
         connectionType: "alumni",
-        school: "UCLA",
+        school: "City College",
         outreachStatus: "referral_submitted",
         outreachPlatform: "linkedin",
         daysAgo: 8,
@@ -113,17 +113,17 @@ export const seedJobs: SeedJob[] = [
     ],
   },
   {
-    title: "Research Scientist Intern",
-    company: "Google DeepMind",
+    title: "Associate Product Manager",
+    company: "Google",
     location: "Mountain View, CA",
     url: "https://careers.google.com/example-3",
     applied: false,
     nextAction: "Find referral",
-    resumeVersion: "Research Engineer",
+    resumeVersion: "Product Manager",
     datePosted: daysAgoISO(1),
   },
   {
-    title: "Applied Scientist",
+    title: "Software Engineer II",
     company: "Amazon",
     location: "Seattle, WA",
     url: "https://amazon.jobs/example-4",
@@ -131,17 +131,17 @@ export const seedJobs: SeedJob[] = [
     appliedAt: daysAgoISO(14),
     interviewStage: "interviewing",
     nextAction: "Prepare for interview",
-    resumeVersion: "ML Engineer",
+    resumeVersion: "Software Engineer",
     datePosted: daysAgoISO(21),
     notes: "Phone screen completed. Technical round scheduled for next week.",
     contacts: [
       {
         name: "Maria Garcia",
-        title: "Applied Scientist II",
+        title: "Software Engineer II",
         company: "Amazon",
         linkedinUrl: "https://linkedin.com/in/example-maria",
         connectionType: "alumni",
-        school: "Georgia Tech",
+        school: "State University",
         outreachStatus: "sharing_internally",
         outreachPlatform: "email",
         daysAgo: 16,
@@ -149,18 +149,18 @@ export const seedJobs: SeedJob[] = [
     ],
   },
   {
-    title: "ML Platform Engineer",
+    title: "Platform Engineer",
     company: "Stripe",
     location: "San Francisco, CA (Remote OK)",
     url: "https://stripe.com/jobs/example-5",
     applied: false,
     nextAction: "Find referral",
-    resumeVersion: "ML Engineer",
+    resumeVersion: "Software Engineer",
     datePosted: daysAgoISO(2),
-    notes: "Strong Python/infra focus. Good match for ML builder resume.",
+    notes: "Strong Python/infra focus. Good match for backend resume.",
   },
   {
-    title: "Data Scientist, Growth",
+    title: "Business Analyst",
     company: "Airbnb",
     location: "San Francisco, CA",
     url: "https://careers.airbnb.com/example-6",
@@ -168,17 +168,17 @@ export const seedJobs: SeedJob[] = [
     appliedAt: daysAgoISO(21),
     interviewStage: "rejected",
     nextAction: "",
-    resumeVersion: "Data Scientist",
+    resumeVersion: "Data Analyst",
     datePosted: daysAgoISO(30),
   },
   {
-    title: "Senior Data Analyst",
+    title: "Data Analyst",
     company: "Riot Games",
     location: "Los Angeles, CA",
     url: "https://riotgames.com/careers/example-7",
     applied: false,
     nextAction: "Message referral",
-    resumeVersion: "Data Scientist",
+    resumeVersion: "Data Analyst",
     datePosted: daysAgoISO(4),
     contacts: [
       {
@@ -187,20 +187,20 @@ export const seedJobs: SeedJob[] = [
         company: "Riot Games",
         linkedinUrl: "https://linkedin.com/in/example-kevin",
         connectionType: "alumni",
-        school: "UCLA",
+        school: "City College",
         outreachStatus: "identified",
         daysAgo: 0,
       },
     ],
   },
   {
-    title: "Machine Learning Engineer",
+    title: "Frontend Engineer",
     company: "Hulu",
     location: "Santa Monica, CA",
     url: "https://hulu.com/careers/example-8",
     applied: false,
     nextAction: "Write cover letter",
-    resumeVersion: "ML Engineer",
+    resumeVersion: "Software Engineer",
     datePosted: daysAgoISO(6),
     contacts: [
       {

@@ -159,9 +159,14 @@ export default function SettingsPage() {
           <CardTitle>Schools</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <p className="text-xs text-muted">
+            Add your schools to find alumni at companies you target. To get the LinkedIn ID:
+            search for your school on LinkedIn, go to its page, and copy the number from the URL
+            (e.g. linkedin.com/school/<strong>1234</strong>/).
+          </p>
           <div className="flex gap-2 items-end">
-            <Input id="s-name" label="Name" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="Georgia Tech" />
-            <Input id="s-id" label="LinkedIn ID" value={schoolId} onChange={(e) => setSchoolId(e.target.value)} placeholder="3558" />
+            <Input id="s-name" label="Name" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="State University" />
+            <Input id="s-id" label="LinkedIn ID" value={schoolId} onChange={(e) => setSchoolId(e.target.value)} placeholder="1234" />
             <Button size="sm" onClick={addSchool}>Add</Button>
           </div>
           {schools.map((s, i) => (

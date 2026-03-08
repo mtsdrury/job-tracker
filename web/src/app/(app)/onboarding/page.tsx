@@ -37,7 +37,7 @@ const SAMPLE_PREVIEW: Record<string, string> = {
   "{first_name}": "Alex",
   "{company}": "Google",
   "{role}": "Software Engineer",
-  "{connection}": "I'm also a Georgia Tech alum.",
+  "{connection}": "I'm also a State University alum.",
 };
 
 function renderPreview(body: string): string {
@@ -188,10 +188,11 @@ export default function OnboardingPage() {
                     Your Schools
                   </h2>
                   <p className="text-sm text-muted mt-1">
-                    Add schools to find alumni connections at companies
-                    you&apos;re targeting. The LinkedIn ID is the numeric
-                    identifier from the school&apos;s LinkedIn page URL (e.g.,
-                    linkedin.com/school/<strong>3558</strong>/).
+                    Add your schools to find alumni at target companies.
+                    To find the LinkedIn ID: go to LinkedIn, search for your
+                    school, open its page, and grab the number from the URL
+                    (e.g. linkedin.com/school/<strong>1234</strong>/).
+                    This powers the &quot;Find Alumni&quot; button on each job.
                   </p>
                 </div>
                 <div className="flex gap-2 items-end">
@@ -201,7 +202,7 @@ export default function OnboardingPage() {
                       label="School Name"
                       value={schoolName}
                       onChange={(e) => setSchoolName(e.target.value)}
-                      placeholder="Georgia Tech"
+                      placeholder="State University"
                       onKeyDown={(e) => e.key === "Enter" && addSchool()}
                     />
                   </div>
@@ -211,7 +212,7 @@ export default function OnboardingPage() {
                       label="LinkedIn ID"
                       value={schoolId}
                       onChange={(e) => setSchoolId(e.target.value)}
-                      placeholder="3558"
+                      placeholder="1234"
                       onKeyDown={(e) => e.key === "Enter" && addSchool()}
                     />
                   </div>
@@ -286,7 +287,7 @@ export default function OnboardingPage() {
                       label="Version Name"
                       value={newResume}
                       onChange={(e) => setNewResume(e.target.value)}
-                      placeholder="Data Scientist"
+                      placeholder="Software Engineer"
                       onKeyDown={(e) => e.key === "Enter" && addResume()}
                     />
                   </div>
