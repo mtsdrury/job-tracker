@@ -373,16 +373,18 @@ function calculateAvgDaysToInterview(jobs: any[]): number {
       (j.interviewStage === "interviewing" ||
         j.interviewStage === "offer") &&
       j.appliedAt &&
-      j.createdAt
+      j.interviews?.length > 0
   );
 
   if (jobsWithInterview.length === 0) return 0;
 
   const totalDays = jobsWithInterview.reduce((sum, j) => {
-    const created = new Date(j.createdAt).getTime();
     const applied = new Date(j.appliedAt).getTime();
-    const days = (applied - created) / (1000 * 60 * 60 * 24);
-    return sum + days;
+    const firstInterview = j.interviews
+      .map((i: any) => new Date(i.scheduledAt).getTime())
+      .sort((a: number, b: number) => a - b)[0];
+    const days = (firstInterview - applied) / (1000 * 60 * 60 * 24);
+    return sum + Math.max(0, days);
   }, 0);
 
   return Math.round(totalDays / jobsWithInterview.length);
@@ -390,16 +392,16 @@ function calculateAvgDaysToInterview(jobs: any[]): number {
 
 function calculateAvgDaysToOffer(jobs: any[]): number {
   const jobsWithOffer = jobs.filter(
-    (j) => j.interviewStage === "offer" && j.appliedAt && j.createdAt
+    (j) => j.interviewStage === "offer" && j.appliedAt
   );
 
   if (jobsWithOffer.length === 0) return 0;
 
   const totalDays = jobsWithOffer.reduce((sum, j) => {
-    const created = new Date(j.createdAt).getTime();
     const applied = new Date(j.appliedAt).getTime();
-    const days = (applied - created) / (1000 * 60 * 60 * 24);
-    return sum + days;
+    const lastUpdate = new Date(j.updatedAt).getTime();
+    const days = (lastUpdate - applied) / (1000 * 60 * 60 * 24);
+    return sum + Math.max(0, days);
   }, 0);
 
   return Math.round(totalDays / jobsWithOffer.length);

@@ -70,16 +70,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       body.notes = existing.notes ? `${existing.notes}\n${appInfo}` : appInfo;
     }
 
+    // Build a clean update object with only the fields that were sent
+    const updateData: Record<string, unknown> = {};
+    const allowedFields = [
+      "applied", "appliedAt", "resumeVersionId", "applicationMethod",
+      "applicationUrl", "notes", "interviewStage", "archived", "status",
+      "title", "company", "url", "location", "salary",
+    ];
+    for (const field of allowedFields) {
+      if (body[field] !== undefined) {
+        updateData[field] = body[field];
+      }
+    }
+
     const job = await prisma.job.update({
       where: { id },
-      data: {
-        applied: body.applied,
-        appliedAt: body.appliedAt,
-        resumeVersionId: body.resumeVersionId ?? undefined,
-        applicationMethod: body.applicationMethod ?? undefined,
-        applicationUrl: body.applicationUrl ?? undefined,
-        notes: body.notes ?? undefined,
-      },
+      data: updateData,
       include: {
         outreachEvents: {
           include: { contact: { select: { id: true, name: true, company: true } } },
