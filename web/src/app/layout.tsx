@@ -14,9 +14,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Job Tracker - Referral-First Job Search",
+  title: "KnowSomeone — Referral-First Job Search Platform",
   description:
-    "Stop applying cold. Find connections, build relationships, land referrals. A job search platform that puts networking first.",
+    "Stop applying into the void. KnowSomeone puts referral outreach at the center of your job search — guiding you from finding a role to getting someone on the inside to vouch for you.",
+  openGraph: {
+    title: "KnowSomeone — Referral-First Job Search Platform",
+    description:
+      "The only job search tool that tracks the full referral journey. Find connections, draft outreach, and apply with a warm introduction behind you.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({

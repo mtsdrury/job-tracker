@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, Briefcase, ExternalLink } from "lucide-react";
+import { Plus, Search, ExternalLink } from "lucide-react";
+import { JobsListSkeleton } from "@/components/ui/skeleton";
+import { EmptyJobs, EmptySearchResults } from "@/components/ui/empty-state";
 
 interface OutreachEvent {
   id: string;
@@ -128,17 +129,13 @@ export default function JobsPage() {
 
       {/* Job List */}
       {loading ? (
-        <div className="text-center py-12 text-muted">Loading...</div>
+        <JobsListSkeleton />
       ) : jobs.length === 0 ? (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Briefcase className="h-12 w-12 text-muted mx-auto mb-4" />
-            <p className="text-muted">No jobs found.</p>
-            <Link href="/jobs/new" className="mt-4 inline-block">
-              <Button variant="secondary" size="sm">Add your first job</Button>
-            </Link>
-          </CardContent>
-        </Card>
+        search || appliedFilter !== "all" || referralFilter !== "all" ? (
+          <EmptySearchResults />
+        ) : (
+          <EmptyJobs />
+        )
       ) : (
         <div className="space-y-2">
           {jobs.map((job) => (
@@ -153,8 +150,12 @@ export default function JobsPage() {
                   {job.location && <p className="text-xs text-muted">{job.location}</p>}
                 </div>
                 <div className="flex items-center gap-3 ml-4">
-                  {job.nextAction && !job.applied && (
-                    <Badge variant="info">{job.nextAction}</Badge>
+                  {job.nextAction && (
+                    <Badge variant={
+                      job.nextAction.includes("Follow up") ? "warning" :
+                      job.nextAction.includes("Apply") ? "danger" :
+                      "info"
+                    }>{job.nextAction}</Badge>
                   )}
                   {getStatusBadge(job)}
                   {job.outreachEvents.length > 0 && (

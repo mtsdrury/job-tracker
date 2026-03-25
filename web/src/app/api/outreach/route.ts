@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { deriveNextAction } from "@/lib/next-action";
 
 const STATUS_RANKS: Record<string, number> = {
   identified: 0,
@@ -57,6 +58,33 @@ export async function POST(req: NextRequest) {
       },
       include: { contact: true, job: true },
     });
+
+    // Re-derive the parent job's next action
+    const fullJob = await prisma.job.findUnique({
+      where: { id: jobId },
+      include: {
+        outreachEvents: {
+          include: { contact: { select: { id: true, name: true, company: true } } },
+        },
+      },
+    });
+
+    if (fullJob && !fullJob.nextActionOverride) {
+      const userCtx = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { strategyMode: true, stalledDays: true },
+      });
+      const derived = deriveNextAction(fullJob, {
+        strategyMode: userCtx?.strategyMode || "referral_first",
+        stalledDays: userCtx?.stalledDays ?? 5,
+      });
+      if (derived.action !== fullJob.nextAction) {
+        await prisma.job.update({
+          where: { id: jobId },
+          data: { nextAction: derived.action },
+        });
+      }
+    }
 
     return NextResponse.json(event, { status: 201 });
   } catch {

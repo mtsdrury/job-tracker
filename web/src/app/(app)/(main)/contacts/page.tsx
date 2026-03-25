@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Users, Search, ExternalLink } from "lucide-react";
+import { Search, ExternalLink } from "lucide-react";
+import { ContactsSkeleton } from "@/components/ui/skeleton";
+import { EmptyContacts, EmptySearchResults } from "@/components/ui/empty-state";
 
 interface OutreachEvent {
   id: string;
@@ -73,14 +72,9 @@ export default function ContactsPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-muted">Loading...</div>
+        <ContactsSkeleton />
       ) : contacts.length === 0 ? (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Users className="h-12 w-12 text-muted mx-auto mb-4" />
-            <p className="text-muted">No contacts yet. Add contacts from job detail pages.</p>
-          </CardContent>
-        </Card>
+        search ? <EmptySearchResults /> : <EmptyContacts />
       ) : (
         <div className="space-y-2">
           {contacts.map((contact) => (

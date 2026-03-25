@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { deriveNextAction } from "@/lib/next-action";
 
 // GET /api/jobs/[id]
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -59,7 +60,32 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const job = await prisma.job.update({
       where: { id },
       data: body,
+      include: {
+        outreachEvents: {
+          include: { contact: { select: { id: true, name: true, company: true } } },
+        },
+      },
     });
+
+    // Re-derive next action (unless user has manually overridden)
+    if (!job.nextActionOverride) {
+      const userCtx = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { strategyMode: true, stalledDays: true },
+      });
+      const derived = deriveNextAction(job, {
+        strategyMode: userCtx?.strategyMode || "referral_first",
+        stalledDays: userCtx?.stalledDays ?? 5,
+      });
+
+      if (derived.action !== job.nextAction) {
+        await prisma.job.update({
+          where: { id },
+          data: { nextAction: derived.action },
+        });
+        job.nextAction = derived.action;
+      }
+    }
 
     return NextResponse.json(job);
   } catch {

@@ -8,11 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowLeft, ExternalLink, Users, Plus, Search,
-  Check, Trash2,
+  Check, Trash2, Edit2, Copy, Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import { substituteTemplateVars, type TemplateContext } from "@/lib/template-substitution";
+import { useToast } from "@/components/ui/toast";
+import { JobDetailSkeleton } from "@/components/ui/skeleton";
 
 interface Contact {
   id: string;
@@ -27,6 +31,7 @@ interface Contact {
 
 interface OutreachEvent {
   id: string;
+  contactId: string;
   status: string;
   statusRank: number;
   messageDraft: string | null;
@@ -35,6 +40,34 @@ interface OutreachEvent {
   lastActionAt: string;
   notes: string | null;
   contact: Contact;
+}
+
+interface MessageTemplate {
+  id: string;
+  name: string;
+  body: string;
+}
+
+interface UserSettings {
+  resumeVersions: Array<{ id: string; name: string; isDefault: boolean }>;
+  messageTemplates: MessageTemplate[];
+  strategyMode: string;
+  stalledDays: number;
+  config?: Record<string, unknown>;
+}
+
+interface DraftingState {
+  eventId: string | null;
+  templateId: string | null;
+  connectionId: string | null;
+  message: string;
+  isLoading: boolean;
+  copied: boolean;
+}
+
+interface ConnectionOption {
+  label: string;
+  line: string;
 }
 
 interface Job {
@@ -86,6 +119,17 @@ export default function JobDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [drafting, setDrafting] = useState<DraftingState>({
+    eventId: null,
+    templateId: null,
+    connectionId: null,
+    message: "",
+    isLoading: false,
+    copied: false,
+  });
+
+  const toast = useToast();
 
   // Add contact form
   const [showAddContact, setShowAddContact] = useState(false);
@@ -102,75 +146,205 @@ export default function JobDetailPage() {
     setLoading(false);
   }, [params.id]);
 
+  const fetchSettings = useCallback(async () => {
+    const res = await fetch("/api/settings");
+    if (res.ok) {
+      setSettings(await res.json());
+    }
+  }, []);
+
   useEffect(() => {
     fetchJob();
-  }, [fetchJob]);
+    fetchSettings();
+  }, [fetchJob, fetchSettings]);
 
-  async function updateJob(data: Record<string, unknown>) {
+  async function updateJob(data: Record<string, unknown>, message?: string) {
     setSaving(true);
-    const res = await fetch(`/api/jobs/${params.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    if (res.ok) {
-      const updated = await res.json();
-      setJob((prev) => prev ? { ...prev, ...updated } : prev);
+    try {
+      const res = await fetch(`/api/jobs/${params.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setJob((prev) => prev ? { ...prev, ...updated } : prev);
+        if (message) toast.success(message);
+      } else {
+        toast.error("Failed to update job");
+      }
+    } catch {
+      toast.error("Network error");
     }
     setSaving(false);
   }
 
   async function handleApply() {
-    await updateJob({ applied: true });
+    await updateJob({ applied: true }, "Marked as applied");
     await fetchJob();
   }
 
   async function addContact() {
     setError("");
-    const res = await fetch("/api/contacts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...contactForm, company: contactForm.company || job?.company }),
-    });
+    try {
+      const res = await fetch("/api/contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...contactForm, company: contactForm.company || job?.company }),
+      });
 
-    if (!res.ok) {
-      setError("Failed to create contact");
-      return;
+      if (!res.ok) {
+        setError("Failed to create contact");
+        toast.error("Failed to add contact");
+        return;
+      }
+
+      const contact = await res.json();
+
+      // Create outreach event linking contact to this job
+      await fetch("/api/outreach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobId: job?.id,
+          contactId: contact.id,
+          status: "identified",
+        }),
+      });
+
+      setShowAddContact(false);
+      setContactForm({ name: "", title: "", company: "", linkedinUrl: "", email: "", connectionType: "cold", school: "", notes: "" });
+      toast.success(`Added ${contact.name} as a contact`);
+      await fetchJob();
+    } catch {
+      toast.error("Failed to add contact");
     }
-
-    const contact = await res.json();
-
-    // Create outreach event linking contact to this job
-    await fetch("/api/outreach", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jobId: job?.id,
-        contactId: contact.id,
-        status: "identified",
-      }),
-    });
-
-    setShowAddContact(false);
-    setContactForm({ name: "", title: "", company: "", linkedinUrl: "", email: "", connectionType: "cold", school: "", notes: "" });
-    await fetchJob();
   }
 
   async function updateOutreachStatus(eventId: string, status: string) {
-    await fetch(`/api/outreach/${eventId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    await fetchJob();
+    try {
+      await fetch(`/api/outreach/${eventId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      toast.success(`Status updated to ${status.replace(/_/g, " ")}`);
+      await fetchJob();
+    } catch {
+      toast.error("Failed to update status");
+    }
   }
 
   async function deleteOutreach(eventId: string) {
-    await fetch(`/api/outreach/${eventId}`, { method: "DELETE" });
-    await fetchJob();
+    try {
+      await fetch(`/api/outreach/${eventId}`, { method: "DELETE" });
+      toast.success("Contact removed from this job");
+      await fetchJob();
+    } catch {
+      toast.error("Failed to remove contact");
+    }
   }
 
-  if (loading) return <div className="text-center py-12 text-muted">Loading...</div>;
+  function getConnections(): ConnectionOption[] {
+    const config = settings?.config as Record<string, unknown> | undefined;
+    return (config?.connections as ConnectionOption[]) || [];
+  }
+
+  function getConnectionLine(connectionId: string): string {
+    const connections = getConnections();
+    const idx = parseInt(connectionId, 10);
+    return connections[idx]?.line || "";
+  }
+
+  function updateDraftMessage() {
+    if (!drafting.templateId || !job || !drafting.eventId) return;
+
+    const template = settings?.messageTemplates.find(
+      (t) => t.id === drafting.templateId
+    );
+    if (!template) return;
+
+    const event = job.outreachEvents.find((e) => e.id === drafting.eventId);
+    if (!event) return;
+
+    const firstName = event.contact.name.split(" ")[0];
+    const context: TemplateContext = {
+      firstName,
+      company: job.company,
+      role: job.title,
+      connection: drafting.connectionId ? getConnectionLine(drafting.connectionId) : "",
+    };
+
+    const substituted = substituteTemplateVars(template.body, context);
+    setDrafting((prev) => ({ ...prev, message: substituted }));
+  }
+
+  async function generateAIDraft(eventId: string) {
+    if (!job) return;
+
+    const event = job.outreachEvents.find((e) => e.id === eventId);
+    if (!event) return;
+
+    setDrafting((prev) => ({ ...prev, eventId, isLoading: true }));
+
+    try {
+      const res = await fetch("/api/ai/draft-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobId: job.id,
+          contactId: event.contactId,
+          templateId: drafting.templateId || null,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || "Failed to generate message");
+        return;
+      }
+
+      const data = await res.json();
+      setDrafting((prev) => ({ ...prev, message: data.message }));
+    } catch (err) {
+      setError("Failed to generate message");
+      console.error(err);
+    } finally {
+      setDrafting((prev) => ({ ...prev, isLoading: false }));
+    }
+  }
+
+  async function saveDraft(eventId: string) {
+    await fetch(`/api/outreach/${eventId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messageDraft: drafting.message,
+        status: job?.outreachEvents.find((e) => e.id === eventId)?.status === "identified"
+          ? "message_drafted"
+          : undefined,
+      }),
+    });
+    await fetchJob();
+    setDrafting({
+      eventId: null,
+      templateId: null,
+      connectionId: null,
+      message: "",
+      isLoading: false,
+      copied: false,
+    });
+  }
+
+  async function copyToClipboard() {
+    await navigator.clipboard.writeText(drafting.message);
+    setDrafting((prev) => ({ ...prev, copied: true }));
+    setTimeout(() => {
+      setDrafting((prev) => ({ ...prev, copied: false }));
+    }, 2000);
+  }
+
+  if (loading) return <JobDetailSkeleton />;
   if (!job) return <div className="text-center py-12 text-muted">Job not found.</div>;
 
   // Referral gating logic
@@ -364,41 +538,180 @@ export default function JobDetailPage() {
               ) : (
                 <div className="space-y-3">
                   {job.outreachEvents.map((event) => (
-                    <div key={event.id} className="rounded-lg border border-border p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <p className="font-medium text-sm">{event.contact.name}</p>
-                          <p className="text-xs text-muted">
-                            {event.contact.title}{event.contact.company ? ` at ${event.contact.company}` : ""}
-                          </p>
+                    <div key={event.id} className="rounded-lg border border-border overflow-hidden">
+                      <div className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <p className="font-medium text-sm">{event.contact.name}</p>
+                            <p className="text-xs text-muted">
+                              {event.contact.title}{event.contact.company ? ` at ${event.contact.company}` : ""}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={statusBadgeVariant(event.status)}>
+                              {event.status.replace(/_/g, " ")}
+                            </Badge>
+                            <button onClick={() => deleteOutreach(event.id)} className="text-muted hover:text-danger">
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={statusBadgeVariant(event.status)}>
-                            {event.status.replace(/_/g, " ")}
-                          </Badge>
-                          <button onClick={() => deleteOutreach(event.id)} className="text-muted hover:text-danger">
-                            <Trash2 className="h-3 w-3" />
+                        <div className="flex items-center gap-2 mt-2">
+                          <select
+                            value={event.status}
+                            onChange={(e) => updateOutreachStatus(event.id, e.target.value)}
+                            className="rounded border border-border bg-surface px-2 py-1 text-xs text-foreground"
+                          >
+                            {OUTREACH_STATUSES.map((s) => (
+                              <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
+                            ))}
+                          </select>
+                          {event.contact.linkedinUrl && (
+                            <a href={event.contact.linkedinUrl} target="_blank" rel="noopener noreferrer"
+                              className="text-xs text-accent hover:underline">LinkedIn</a>
+                          )}
+                          <span className="text-xs text-muted">
+                            Last: {new Date(event.lastActionAt).toLocaleDateString()}
+                          </span>
+                          <button
+                            onClick={() => {
+                              if (drafting.eventId === event.id) {
+                                setDrafting({
+                                  eventId: null,
+                                  templateId: null,
+                                  connectionId: null,
+                                  message: "",
+                                  isLoading: false,
+                                  copied: false,
+                                });
+                              } else {
+                                setDrafting({
+                                  eventId: event.id,
+                                  templateId: settings?.messageTemplates[0]?.id || null,
+                                  connectionId: null,
+                                  message: event.messageDraft || "",
+                                  isLoading: false,
+                                  copied: false,
+                                });
+                              }
+                            }}
+                            className="text-muted hover:text-accent ml-auto"
+                            title="Draft message"
+                          >
+                            <Edit2 className="h-4 w-4" />
                           </button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <select
-                          value={event.status}
-                          onChange={(e) => updateOutreachStatus(event.id, e.target.value)}
-                          className="rounded border border-border bg-surface px-2 py-1 text-xs text-foreground"
-                        >
-                          {OUTREACH_STATUSES.map((s) => (
-                            <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
-                          ))}
-                        </select>
-                        {event.contact.linkedinUrl && (
-                          <a href={event.contact.linkedinUrl} target="_blank" rel="noopener noreferrer"
-                            className="text-xs text-accent hover:underline">LinkedIn</a>
-                        )}
-                        <span className="text-xs text-muted">
-                          Last: {new Date(event.lastActionAt).toLocaleDateString()}
-                        </span>
-                      </div>
+
+                      {/* Drafting Panel */}
+                      {drafting.eventId === event.id && (
+                        <div className="border-t border-border bg-surface/30 p-4 space-y-3 max-h-[500px] overflow-y-auto">
+                          <div className="grid grid-cols-2 gap-3">
+                            <Select
+                              label="Template"
+                              value={drafting.templateId || ""}
+                              onChange={(e) => {
+                                setDrafting((prev) => ({ ...prev, templateId: e.target.value }));
+                              }}
+                            >
+                              <option value="">Select template...</option>
+                              {settings?.messageTemplates.map((t) => (
+                                <option key={t.id} value={t.id}>{t.name}</option>
+                              ))}
+                            </Select>
+                            <Select
+                              label="Connection"
+                              value={drafting.connectionId || ""}
+                              onChange={(e) => {
+                                setDrafting((prev) => ({ ...prev, connectionId: e.target.value }));
+                              }}
+                            >
+                              <option value="">Select connection...</option>
+                              {getConnections().map((conn, idx) => (
+                                <option key={idx} value={idx.toString()}>{conn.label}</option>
+                              ))}
+                            </Select>
+                          </div>
+
+                          {drafting.templateId && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={updateDraftMessage}
+                              className="w-full"
+                            >
+                              Apply Template
+                            </Button>
+                          )}
+
+                          <Textarea
+                            label="Message"
+                            value={drafting.message}
+                            onChange={(e) =>
+                              setDrafting((prev) => ({ ...prev, message: e.target.value }))
+                            }
+                            placeholder="Your message here..."
+                            className="min-h-[120px]"
+                          />
+
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant={drafting.copied ? "secondary" : "ghost"}
+                              onClick={copyToClipboard}
+                              disabled={!drafting.message}
+                            >
+                              {drafting.copied ? (
+                                <>
+                                  <Check className="h-4 w-4" />
+                                  Copied!
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="h-4 w-4" />
+                                  Copy
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => saveDraft(event.id)}
+                              disabled={!drafting.message}
+                            >
+                              Save Draft
+                            </Button>
+                            {session?.user?.billingStatus === "pro" ? (
+                              <Button
+                                size="sm"
+                                onClick={() => generateAIDraft(event.id)}
+                                disabled={drafting.isLoading}
+                              >
+                                <Sparkles className="h-4 w-4" />
+                                {drafting.isLoading ? "Generating..." : "AI Rewrite"}
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled
+                                title="Upgrade to Pro for AI-powered drafting"
+                              >
+                                <Sparkles className="h-4 w-4" />
+                                AI Rewrite
+                              </Button>
+                            )}
+                          </div>
+                          {session?.user?.billingStatus !== "pro" && (
+                            <p className="text-xs text-muted">
+                              <Link href="/billing" className="text-accent hover:underline">
+                                Upgrade to Pro
+                              </Link>
+                              {" "}for AI-powered drafting
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -439,10 +752,10 @@ export default function JobDetailPage() {
                   </select>
                 </div>
               )}
-              {!job.applied && (
+              {job.nextAction && (
                 <div>
                   <p className="text-xs text-muted mb-1">Next Action</p>
-                  <p className="text-sm">{job.nextAction || "Find referral"}</p>
+                  <p className="text-sm font-medium">{job.nextAction}</p>
                 </div>
               )}
               <div>
@@ -485,6 +798,7 @@ export default function JobDetailPage() {
                   onClick={async () => {
                     if (confirm("Delete this job? This cannot be undone.")) {
                       await fetch(`/api/jobs/${job.id}`, { method: "DELETE" });
+                      toast.success("Job deleted");
                       router.push("/jobs");
                     }
                   }}

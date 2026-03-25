@@ -19,95 +19,97 @@ import {
   ArrowRight,
   Check,
   X,
-  Play,
+  Link2,
+  Sparkles,
 } from "lucide-react";
 import { DemoButton } from "@/components/demo-button";
 
-const APP_NAME = "Job Tracker";
+const APP_NAME = "KnowSomeone";
 
 const steps = [
   {
     icon: Search,
-    title: "Search Jobs",
+    title: "Save a Job",
     description:
-      "Add roles you are interested in. Paste a URL or enter details manually.",
+      "Find a role on our job board or paste a URL. KnowSomeone immediately starts working for you.",
   },
   {
     icon: Users,
-    title: "Find Connections",
+    title: "Find Your Connection",
     description:
-      "Search your alumni networks and LinkedIn to find people at the company.",
+      "Search your alumni networks and LinkedIn. We surface who you know at the company so you're never starting cold.",
   },
   {
     icon: MessageSquare,
-    title: "Draft Outreach",
+    title: "Reach Out",
     description:
-      "Use customizable templates to draft personalized referral messages. Adapts to your tone and network.",
+      "Draft a personalized message using smart templates. We auto-fill your shared connections and background.",
   },
   {
     icon: Target,
-    title: "Track & Apply",
+    title: "Get Referred, Then Apply",
     description:
-      "Monitor referral progress, get nudges when follow-ups are due, then apply with confidence.",
+      "Track every conversation. Get nudged when follow-ups are due. Apply with a warm introduction behind you.",
   },
 ];
 
 const features = [
   {
-    icon: Zap,
-    title: "Template-Based Drafting",
+    icon: Link2,
+    title: "Closed-Loop Tracking",
     description:
-      "Customize message templates that auto-fill with contact details and shared connections.",
+      "The connection between 'I messaged this person' and 'for this specific job' is maintained end-to-end. No other tool does this.",
   },
   {
     icon: Shield,
-    title: "Referral Gating",
+    title: "Referral-First Gating",
     description:
-      "The app nudges you to exhaust referral options before submitting a cold application.",
+      "In referral mode, the apply button stays grayed out until you've reached out. A gentle nudge to try the warm route first.",
+  },
+  {
+    icon: Zap,
+    title: "Smart Message Drafting",
+    description:
+      "Templates that auto-fill with contact details and shared connections. Pro users get AI-powered rewrites.",
   },
   {
     icon: BarChart3,
-    title: "Pipeline Analytics",
+    title: "Pipeline Intelligence",
     description:
-      "See where your applications stand at a glance. Track conversion rates across strategies.",
+      "Know exactly where every job stands. Action items, stalled outreach alerts, and follow-up reminders — all automatic.",
   },
   {
     icon: Users,
-    title: "Multi-Resume Management",
+    title: "Contact Network",
     description:
-      "Tag each application with the resume variant you used. Know what works for which roles.",
+      "Build a reusable network as you search. Contacts are linked to specific jobs so you always know who's helping where.",
   },
   {
-    icon: MessageSquare,
-    title: "Smart Nudges",
+    icon: Sparkles,
+    title: "Strategy Modes",
     description:
-      "Get reminders when referrals go quiet. Configurable stalled thresholds keep you moving.",
-  },
-  {
-    icon: Target,
-    title: "Kanban & List Views",
-    description:
-      "Drag jobs between status columns or browse a filterable list. Your workflow, your way.",
+      "Referral-first or speed-first — you choose. Configurable stalled thresholds let you set how patient you want to be.",
   },
 ];
 
-interface PricingFeature {
-  free: string;
-  pro: string;
-  proOnly: boolean;
-}
+const freeFeatures = [
+  "Track up to 25 jobs",
+  "Full referral workflow",
+  "Message templates",
+  "Pipeline dashboard",
+  "Smart nudges & follow-ups",
+];
 
-const pricingFeatures: PricingFeature[] = [
-  { free: "Track up to 25 jobs", pro: "Unlimited jobs", proOnly: false },
-  { free: "Full referral workflow", pro: "Full referral workflow", proOnly: false },
-  { free: "Message templates", pro: "Message templates", proOnly: false },
-  { free: "Pipeline dashboard", pro: "Pipeline dashboard", proOnly: false },
-  { free: "Smart nudges", pro: "Smart nudges", proOnly: false },
-  { free: "Job board search", pro: "Job board search", proOnly: true },
-  { free: "AI message drafting", pro: "AI message drafting", proOnly: true },
-  { free: "AI cover letters", pro: "AI cover letters", proOnly: true },
-  { free: "Advanced analytics", pro: "Advanced analytics", proOnly: true },
-  { free: "Priority support", pro: "Priority support", proOnly: true },
+const proFeatures = [
+  "Unlimited jobs",
+  "Full referral workflow",
+  "Message templates",
+  "Pipeline dashboard",
+  "Smart nudges & follow-ups",
+  "AI message drafting",
+  "Job board search",
+  "Advanced analytics",
+  "Priority support",
 ];
 
 export default function Home() {
@@ -138,31 +140,49 @@ export default function Home() {
       <section className="mx-auto max-w-6xl px-6 pb-24 pt-20 md:pt-32">
         <div className="mx-auto max-w-3xl text-center">
           <p className="mb-4 text-sm font-medium uppercase tracking-widest text-accent">
-            Referral-first job search
+            The referral-first job search platform
           </p>
           <h1 className="text-4xl font-bold leading-tight tracking-tight text-foreground md:text-6xl md:leading-tight">
-            Stop applying into the void.
+            In this market, it&apos;s not what you know.
             <br />
-            <span className="text-accent">Get referred instead.</span>
+            <span className="text-accent">It&apos;s who you know.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted">
-            Cold applications get ignored. In this market, you need someone on
-            the inside. {APP_NAME} puts referral outreach at the center of your
-            job search, not as an afterthought.
+            Cold applications disappear into the void. Referrals get interviews.
+            {" "}{APP_NAME} is the only job search tool that puts networking first — guiding you
+            from &quot;I found a role&quot; to &quot;someone on the inside is vouching for me.&quot;
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link href="/register">
               <Button size="lg" className="gap-2">
-                Get Started - Free
+                Start Free
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
             <DemoButton />
-            <a href="#how-it-works">
-              <Button variant="secondary" size="lg">
-                Learn More
-              </Button>
-            </a>
+          </div>
+          <p className="mt-4 text-xs text-muted">
+            No credit card required. Free tier includes 25 jobs.
+          </p>
+        </div>
+      </section>
+
+      {/* Social proof / stat bar */}
+      <section className="border-y border-border bg-surface/50 py-8">
+        <div className="mx-auto flex max-w-4xl flex-col items-center justify-center gap-8 px-6 sm:flex-row sm:gap-16">
+          <div className="text-center">
+            <p className="text-3xl font-bold text-accent">5x</p>
+            <p className="mt-1 text-xs text-muted">higher response rate with referrals vs. cold apply</p>
+          </div>
+          <div className="hidden sm:block h-8 w-px bg-border" />
+          <div className="text-center">
+            <p className="text-3xl font-bold text-accent">70%</p>
+            <p className="mt-1 text-xs text-muted">of jobs are filled through networking</p>
+          </div>
+          <div className="hidden sm:block h-8 w-px bg-border" />
+          <div className="text-center">
+            <p className="text-3xl font-bold text-accent">10x</p>
+            <p className="mt-1 text-xs text-muted">more likely to get hired with an internal referral</p>
           </div>
         </div>
       </section>
@@ -170,12 +190,12 @@ export default function Home() {
       {/* How It Works */}
       <section
         id="how-it-works"
-        className="border-t border-border bg-surface py-24"
+        className="border-t border-border py-24"
       >
         <div className="mx-auto max-w-6xl px-6">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-bold text-foreground md:text-4xl">
-              How it works
+              How {APP_NAME} works
             </h2>
             <p className="mt-4 text-muted">
               Four steps from &quot;interested&quot; to &quot;referred.&quot;
@@ -199,6 +219,21 @@ export default function Home() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Key differentiator callout */}
+      <section className="border-t border-border bg-accent/5 py-16">
+        <div className="mx-auto max-w-3xl px-6 text-center">
+          <h2 className="text-2xl font-bold text-foreground md:text-3xl">
+            The missing link in job search tools
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-muted leading-relaxed">
+            Other trackers let you log that you applied somewhere. {APP_NAME} tracks
+            the entire referral journey — who you messaged, for which job, what they
+            said, and whether it turned into an actual referral. That closed loop is
+            what makes the difference.
+          </p>
         </div>
       </section>
 
@@ -237,45 +272,33 @@ export default function Home() {
         <div className="mx-auto max-w-6xl px-6">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-bold text-foreground md:text-4xl">
-              Simple pricing
+              Simple, fair pricing
             </h2>
             <p className="mt-4 text-muted">
-              Start free. Upgrade when you need more.
+              Start free. Upgrade when your search gets serious.
             </p>
           </div>
-          <div className="mx-auto mt-16 grid max-w-3xl gap-8 md:grid-cols-2">
+          <div className="mx-auto mt-16 grid max-w-4xl gap-8 md:grid-cols-3">
             {/* Free Tier */}
             <Card className="flex flex-col p-8">
               <CardHeader className="mb-6">
                 <CardTitle className="text-xl">Free</CardTitle>
                 <CardDescription className="mt-1">
-                  Everything you need to get started
+                  Get started with the basics
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-1 flex-col">
                 <p className="text-4xl font-bold text-foreground">
                   $0
                   <span className="text-base font-normal text-muted">
-                    /month
+                    /forever
                   </span>
                 </p>
                 <ul className="mt-8 flex-1 space-y-3">
-                  {pricingFeatures.map((f) => (
-                    <li
-                      key={f.free}
-                      className={clsx(
-                        "flex items-center gap-3 text-sm",
-                        f.proOnly ? "text-muted opacity-40" : "text-muted"
-                      )}
-                    >
-                      {f.proOnly ? (
-                        <X className="h-4 w-4 shrink-0 text-danger" />
-                      ) : (
-                        <Check className="h-4 w-4 shrink-0 text-success" />
-                      )}
-                      <span className={f.proOnly ? "line-through" : ""}>
-                        {f.free}
-                      </span>
+                  {freeFeatures.map((f) => (
+                    <li key={f} className="flex items-center gap-3 text-sm text-muted">
+                      <Check className="h-4 w-4 shrink-0 text-success" />
+                      {f}
                     </li>
                   ))}
                 </ul>
@@ -287,42 +310,106 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            {/* Pro Tier */}
+            {/* Pro Monthly */}
             <Card className="relative flex flex-col border-accent p-8">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-accent px-4 py-1 text-xs font-semibold text-white">
-                Popular
+                Most Popular
               </div>
               <CardHeader className="mb-6">
-                <CardTitle className="text-xl">Pro</CardTitle>
+                <CardTitle className="text-xl">Pro Monthly</CardTitle>
                 <CardDescription className="mt-1">
-                  For serious job searchers
+                  For active job searchers
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-1 flex-col">
                 <p className="text-4xl font-bold text-foreground">
-                  $15
+                  $12
                   <span className="text-base font-normal text-muted">
                     /month
                   </span>
                 </p>
                 <ul className="mt-8 flex-1 space-y-3">
-                  {pricingFeatures.map((f) => (
-                    <li
-                      key={f.pro}
-                      className="flex items-center gap-3 text-sm text-muted"
-                    >
+                  {proFeatures.map((f) => (
+                    <li key={f} className="flex items-center gap-3 text-sm text-muted">
                       <Check className="h-4 w-4 shrink-0 text-success" />
-                      {f.pro}
+                      {f}
                     </li>
                   ))}
                 </ul>
                 <Link href="/register" className="mt-8 block">
                   <Button size="lg" className="w-full">
-                    Upgrade to Pro
+                    Start Free, Upgrade Anytime
                   </Button>
                 </Link>
               </CardContent>
             </Card>
+
+            {/* Pro Bundles */}
+            <Card className="flex flex-col p-8">
+              <CardHeader className="mb-6">
+                <CardTitle className="text-xl">Pro Bundles</CardTitle>
+                <CardDescription className="mt-1">
+                  Save with a longer commitment
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-1 flex-col">
+                <div className="space-y-4">
+                  <div className="rounded-lg border border-border p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-foreground">3 months</span>
+                      <span className="rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
+                        Save 19%
+                      </span>
+                    </div>
+                    <p className="mt-1 text-2xl font-bold text-foreground">
+                      $29
+                      <span className="text-sm font-normal text-muted"> ($9.67/mo)</span>
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-border p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-foreground">6 months</span>
+                      <span className="rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
+                        Save 32%
+                      </span>
+                    </div>
+                    <p className="mt-1 text-2xl font-bold text-foreground">
+                      $49
+                      <span className="text-sm font-normal text-muted"> ($8.17/mo)</span>
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-6 text-xs text-center text-muted">
+                  All Pro features included. One-time payment, no auto-renewal.
+                </p>
+                <Link href="/register" className="mt-6 block">
+                  <Button variant="secondary" size="lg" className="w-full">
+                    Get Started
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="border-t border-border py-24">
+        <div className="mx-auto max-w-3xl px-6 text-center">
+          <h2 className="text-3xl font-bold text-foreground md:text-4xl">
+            Your next job starts with someone you know
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-muted leading-relaxed">
+            Stop sending applications into the void. Start building the connections that actually get you hired.
+          </p>
+          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <Link href="/register">
+              <Button size="lg" className="gap-2">
+                Get Started — It&apos;s Free
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+            <DemoButton />
           </div>
         </div>
       </section>

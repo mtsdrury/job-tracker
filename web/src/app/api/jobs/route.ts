@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { deriveNextAction } from "@/lib/next-action";
 
 // GET /api/jobs - List user's jobs
 export async function GET(req: NextRequest) {
@@ -79,6 +80,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Title and company are required" }, { status: 400 });
     }
 
+    // Derive initial next action based on user strategy
+    const userCtx = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { strategyMode: true, stalledDays: true },
+    });
+
+    const newJobInput = {
+      id: "",
+      company,
+      title,
+      applied: false,
+      appliedAt: null,
+      datePosted: datePosted ? new Date(datePosted) : null,
+      interviewStage: null,
+      url: url || null,
+      coverLetter: null,
+      coverLetterFileUrl: null,
+      resumeVersionId: null,
+      nextActionOverride: false,
+      strategyOverride: null,
+      archived: false,
+      createdAt: new Date(),
+      outreachEvents: [],
+    };
+
+    const derived = deriveNextAction(newJobInput, {
+      strategyMode: userCtx?.strategyMode || "referral_first",
+      stalledDays: userCtx?.stalledDays ?? 5,
+    });
+
     const job = await prisma.job.create({
       data: {
         userId: session.user.id,
@@ -93,7 +124,7 @@ export async function POST(req: NextRequest) {
         source: source || "manual",
         externalId,
         datePosted: datePosted ? new Date(datePosted) : null,
-        nextAction: "Find referral",
+        nextAction: derived.action,
       },
     });
 

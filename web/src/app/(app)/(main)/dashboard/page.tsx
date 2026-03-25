@@ -12,6 +12,8 @@ import {
   Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { generateNudges, deriveNextAction } from "@/lib/next-action";
+import { EmptyDashboard } from "@/components/ui/empty-state";
 
 export default async function DashboardPage() {
   const session = await requireOnboarding();
@@ -59,130 +61,40 @@ export default async function DashboardPage() {
 
   const notApplied = totalJobs - appliedJobs;
 
-  // Compute nudges
-  const nudges: Array<{
-    message: string;
-    urgency: "normal" | "warning" | "urgent";
-    jobId?: string;
-  }> = [];
-
+  // Compute nudges using the centralized derivation engine
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { stalledDays: true, strategyMode: true },
   });
-  const stalledDays = user?.stalledDays ?? 5;
+  const userContext = {
+    strategyMode: user?.strategyMode || "referral_first",
+    stalledDays: user?.stalledDays ?? 5,
+  };
 
+  const nudges = generateNudges(activeJobs, userContext);
+
+  // Also re-derive next actions for displayed jobs (keeps them fresh on page load)
   for (const job of activeJobs) {
-    // No referral found
-    if (!job.applied && job.outreachEvents.length === 0) {
-      nudges.push({
-        message: `No connections found for ${job.company} - ${job.title}`,
-        urgency: "normal",
-        jobId: job.id,
-      });
-    }
-
-    // Referral identified but not messaged
-    const identifiedOnly = job.outreachEvents.filter(
-      (e) => e.status === "identified"
-    );
-    if (
-      identifiedOnly.length > 0 &&
-      identifiedOnly.length === job.outreachEvents.length
-    ) {
-      nudges.push({
-        message: `You have contacts at ${job.company} but haven't reached out yet`,
-        urgency: "warning",
-        jobId: job.id,
-      });
-    }
-
-    // Stale outreach
-    for (const event of job.outreachEvents) {
-      if (event.status === "message_sent") {
-        const daysSince = Math.floor(
-          (Date.now() - new Date(event.lastActionAt).getTime()) /
-            (1000 * 60 * 60 * 24)
-        );
-        if (daysSince >= stalledDays + 4) {
-          nudges.push({
-            message: `No response from ${event.contact.name} at ${job.company} for ${daysSince} days`,
-            urgency: "urgent",
-            jobId: job.id,
-          });
-        } else if (daysSince >= stalledDays) {
-          nudges.push({
-            message: `${event.contact.name} at ${job.company} hasn't responded in ${daysSince} days. Follow up?`,
-            urgency: "warning",
-            jobId: job.id,
-          });
-        }
+    if (!job.nextActionOverride && !job.archived) {
+      const derived = deriveNextAction(job, userContext);
+      if (derived.action !== job.nextAction) {
+        job.nextAction = derived.action;
+        // Fire-and-forget DB update to keep it in sync
+        prisma.job.update({
+          where: { id: job.id },
+          data: { nextAction: derived.action },
+        }).catch(() => { /* non-critical */ });
       }
-    }
-
-    // Posting getting old
-    if (job.datePosted) {
-      const daysSincePosted = Math.floor(
-        (Date.now() - new Date(job.datePosted).getTime()) /
-          (1000 * 60 * 60 * 24)
-      );
-      if (daysSincePosted > 21) {
-        nudges.push({
-          message: `${job.company} - ${job.title} was posted ${daysSincePosted} days ago`,
-          urgency: "urgent",
-          jobId: job.id,
-        });
-      } else if (daysSincePosted > 5) {
-        nudges.push({
-          message: `${job.company} - ${job.title} was posted ${daysSincePosted} days ago`,
-          urgency: "warning",
-          jobId: job.id,
-        });
-      }
-    }
-
-    // Days since applied with no update
-    if (job.applied && job.appliedAt) {
-      const daysSinceApplied = Math.floor(
-        (Date.now() - new Date(job.appliedAt).getTime()) /
-          (1000 * 60 * 60 * 24)
-      );
-      if (daysSinceApplied > 28 && job.interviewStage === null) {
-        nudges.push({
-          message: `Applied to ${job.company} ${daysSinceApplied} days ago with no update`,
-          urgency: "urgent",
-          jobId: job.id,
-        });
-      } else if (daysSinceApplied > 14 && job.interviewStage === null) {
-        nudges.push({
-          message: `Applied to ${job.company} ${daysSinceApplied} days ago. Follow up?`,
-          urgency: "warning",
-          jobId: job.id,
-        });
-      }
-    }
-
-    // Missing URL
-    if (!job.url && !job.applied) {
-      nudges.push({
-        message: `${job.company} - ${job.title} has no URL`,
-        urgency: "normal",
-        jobId: job.id,
-      });
     }
   }
 
-  // Sort: urgent first, then warning, then normal
-  const urgencyOrder = { urgent: 0, warning: 1, normal: 2 };
-  nudges.sort((a, b) => urgencyOrder[a.urgency] - urgencyOrder[b.urgency]);
-
-  const urgencyBadge = (u: "normal" | "warning" | "urgent") => {
-    const map = {
+  const urgencyBadge = (u: string) => {
+    const map: Record<string, "default" | "warning" | "danger"> = {
       normal: "default",
       warning: "warning",
       urgent: "danger",
-    } as const;
-    return map[u];
+    };
+    return map[u] || "default";
   };
 
   return (
@@ -197,6 +109,10 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
+      {totalJobs === 0 ? (
+        <EmptyDashboard />
+      ) : (
+      <>
       {/* Pipeline Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
@@ -319,10 +235,15 @@ export default async function DashboardPage() {
                       <p className="text-xs text-muted">{job.title}</p>
                     </div>
                     <div className="flex items-center gap-2">
+                      {job.nextAction && (
+                        <Badge variant={
+                          job.nextAction.includes("Follow up") ? "warning" :
+                          job.nextAction.includes("Apply") ? "danger" :
+                          "info"
+                        }>{job.nextAction}</Badge>
+                      )}
                       {job.applied ? (
                         <Badge variant="success">Applied</Badge>
-                      ) : job.nextAction ? (
-                        <Badge variant="info">{job.nextAction}</Badge>
                       ) : (
                         <Badge>Not Applied</Badge>
                       )}
@@ -340,6 +261,8 @@ export default async function DashboardPage() {
           )}
         </CardContent>
       </Card>
+      </>
+      )}
     </div>
   );
 }

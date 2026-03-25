@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useToast } from "@/components/ui/toast";
 
 export default function NewJobPage() {
   const router = useRouter();
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -39,12 +41,15 @@ export default function NewJobPage() {
 
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error || "Something went wrong");
+      const msg = data.error || "Something went wrong";
+      setError(msg);
+      toast.error(msg);
       setLoading(false);
       return;
     }
 
     const job = await res.json();
+    toast.success(`Added ${form.company} — ${form.title}`);
     router.push(`/jobs/${job.id}`);
   }
 
