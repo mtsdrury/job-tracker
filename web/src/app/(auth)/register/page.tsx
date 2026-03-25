@@ -105,7 +105,7 @@ export default function RegisterPage() {
             <div className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted">Or continue with</span>
+            <span className="bg-card px-2 text-muted">OR</span>
           </div>
         </div>
 
