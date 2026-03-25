@@ -380,10 +380,12 @@ function calculateAvgDaysToInterview(jobs: any[]): number {
 
   const totalDays = jobsWithInterview.reduce((sum, j) => {
     const applied = new Date(j.appliedAt).getTime();
-    const firstInterview = j.interviews
+    const scheduledInterviews = j.interviews
+      .filter((i: any) => i.scheduledAt)
       .map((i: any) => new Date(i.scheduledAt).getTime())
-      .sort((a: number, b: number) => a - b)[0];
-    const days = (firstInterview - applied) / (1000 * 60 * 60 * 24);
+      .sort((a: number, b: number) => a - b);
+    if (scheduledInterviews.length === 0) return sum;
+    const days = (scheduledInterviews[0] - applied) / (1000 * 60 * 60 * 24);
     return sum + Math.max(0, days);
   }, 0);
 

@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
 
   if (user?.billingStatus === "free") {
     const jobCount = await prisma.job.count({
-      where: { userId: session.user.id, archived: false },
+      where: { userId: session.user.id },
     });
     if (jobCount >= 25) {
       return NextResponse.json(

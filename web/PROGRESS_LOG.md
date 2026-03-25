@@ -62,8 +62,24 @@ This document tracks every task completed during implementation sessions. Update
 - ✅ Footer links already existed (Privacy + Terms in landing page footer)
 
 **Remaining Phase 0:**
-- ⏳ E2E testing and bug fixes
-- ⏳ User gates: Google OAuth consent screen publishing, API keys in Vercel
+- ✅ E2E code audit and bug fixes (session 2026-03-25)
+- ✅ Google OAuth working (redirect URI fix + account linking)
+
+### Session: 2026-03-25
+
+**Bug fixes:**
+- ✅ Badge variant type error (interview outcome used invalid "secondary")
+- ✅ Select onChange type error in apply checklist (was passing raw state setter)
+- ✅ Button variant type error ("outline" not valid, changed to "ghost")
+- ✅ Removed all em dashes from frontend copy
+- ✅ Job PATCH route only saved apply fields; now accepts all editable fields
+- ✅ Analytics "days to interview" and "days to offer" calculated wrong metric
+- ✅ Google OAuth redirect_uri_mismatch (preview URL vs production URL)
+- ✅ Google OAuth account linking for existing email users
+- ✅ Null crash on contact.name when drafting messages
+- ✅ NaN in analytics when interviews have no scheduled date
+- ✅ Free tier job limit bypass via archiving (now counts all jobs)
+- ✅ Invalid "salary" field name in job update (corrected to salaryMin/salaryMax)
 
 ---
 

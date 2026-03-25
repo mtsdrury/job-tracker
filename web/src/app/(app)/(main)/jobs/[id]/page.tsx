@@ -327,7 +327,7 @@ export default function JobDetailPage() {
     const event = job.outreachEvents.find((e) => e.id === drafting.eventId);
     if (!event) return;
 
-    const firstName = event.contact.name.split(" ")[0];
+    const firstName = event.contact?.name?.split(" ")[0] || "there";
     const context: TemplateContext = {
       firstName,
       company: job.company,
