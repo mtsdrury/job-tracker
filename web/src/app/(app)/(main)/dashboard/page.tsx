@@ -10,6 +10,8 @@ import {
   AlertCircle,
   ArrowRight,
   Plus,
+  Bookmark,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { generateNudges, deriveNextAction } from "@/lib/next-action";
@@ -26,6 +28,8 @@ export default async function DashboardPage() {
     totalContacts,
     recentOutreach,
     activeJobs,
+    user,
+    savedSearches,
   ] = await Promise.all([
     prisma.job.count({ where: { userId, archived: false } }),
     prisma.job.count({ where: { userId, applied: true, archived: false } }),
@@ -57,15 +61,20 @@ export default async function DashboardPage() {
       orderBy: { updatedAt: "desc" },
       take: 10,
     }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { stalledDays: true, strategyMode: true, billingStatus: true },
+    }),
+    prisma.savedSearch.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }),
   ]);
 
   const notApplied = totalJobs - appliedJobs;
 
   // Compute nudges using the centralized derivation engine
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { stalledDays: true, strategyMode: true },
-  });
   const userContext = {
     strategyMode: user?.strategyMode || "referral_first",
     stalledDays: user?.stalledDays ?? 5,
@@ -261,6 +270,55 @@ export default async function DashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Saved Searches */}
+      {savedSearches.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Bookmark className="h-5 w-5 text-accent" />
+                Saved Searches
+              </CardTitle>
+              <Link
+                href="/jobs/search"
+                className="text-sm text-accent hover:underline"
+              >
+                Manage
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {savedSearches.map((search) => (
+                <Link
+                  key={search.id}
+                  href={`/jobs/search?query=${encodeURIComponent(search.query)}${
+                    search.location ? `&location=${encodeURIComponent(search.location)}` : ""
+                  }${search.remoteOnly ? "&remote=true" : ""}`}
+                >
+                  <div className="rounded-lg border border-border p-3 hover:bg-surface-hover transition-colors group">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{search.name}</p>
+                        <p className="text-xs text-muted truncate">{search.query}</p>
+                        {search.location && (
+                          <p className="text-xs text-muted">{search.location}</p>
+                        )}
+                        {search.remoteOnly && (
+                          <Badge variant="info" className="text-xs mt-1">
+                            Remote only
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
       </>
       )}
     </div>

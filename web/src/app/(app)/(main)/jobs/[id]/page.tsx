@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { ApplyChecklist } from "@/components/ui/apply-checklist";
 import {
   ArrowLeft, ExternalLink, Users, Plus, Search,
   Check, Trash2, Edit2, Copy, Sparkles, Calendar, ChevronDown, ChevronUp,
@@ -107,6 +108,8 @@ interface Job {
   strategyOverride: string | null;
   notes: string | null;
   archived: boolean;
+  applicationMethod: string | null;
+  applicationUrl: string | null;
   outreachEvents: OutreachEvent[];
   resumeVersion: { id: string; name: string } | null;
   interviews?: Interview[];
@@ -166,6 +169,9 @@ export default function JobDetailPage() {
   const [reflection, setReflection] = useState("");
   const [outcome, setOutcome] = useState("pending");
 
+  // Apply checklist state
+  const [showApplyChecklist, setShowApplyChecklist] = useState(false);
+
   const fetchJob = useCallback(async () => {
     const res = await fetch(`/api/jobs/${params.id}`);
     if (res.ok) {
@@ -215,8 +221,26 @@ export default function JobDetailPage() {
     setSaving(false);
   }
 
-  async function handleApply() {
-    await updateJob({ applied: true }, "Marked as applied");
+  function handleApplyClick() {
+    setShowApplyChecklist(true);
+  }
+
+  async function handleApplyConfirm(data: {
+    resumeVersionId: string;
+    applicationMethod: string;
+    applicationUrl: string;
+    applicationNotes: string;
+  }) {
+    const updateData = {
+      applied: true,
+      resumeVersionId: data.resumeVersionId,
+      applicationMethod: data.applicationMethod,
+      applicationUrl: data.applicationUrl || undefined,
+      applicationNotes: data.applicationNotes || undefined,
+    };
+
+    await updateJob(updateData, "Application confirmed");
+    setShowApplyChecklist(false);
     await fetchJob();
   }
 
@@ -511,19 +535,19 @@ export default function JobDetailPage() {
           )}
           {!job.applied && (
             canApply ? (
-              <Button onClick={handleApply} disabled={saving}>
+              <Button onClick={handleApplyClick} disabled={saving}>
                 <Check className="h-4 w-4" />
-                Mark as Applied
+                Apply
               </Button>
             ) : (
               <div className="text-right">
                 <Button disabled className="opacity-50">
                   <Check className="h-4 w-4" />
-                  Mark as Applied
+                  Apply
                 </Button>
                 <p className="text-xs text-muted mt-1">Find a connection first</p>
                 <button
-                  onClick={handleApply}
+                  onClick={handleApplyClick}
                   className="text-xs text-muted hover:text-foreground underline mt-1"
                 >
                   Override and apply anyway
@@ -538,6 +562,22 @@ export default function JobDetailPage() {
         <div className="rounded-lg bg-danger/10 border border-danger/20 px-4 py-3 text-sm text-danger">
           {error}
         </div>
+      )}
+
+      {/* Apply Checklist */}
+      {showApplyChecklist && job && settings && (
+        <ApplyChecklist
+          jobId={job.id}
+          jobCompany={job.company}
+          jobTitle={job.title}
+          resumeVersions={settings.resumeVersions}
+          currentResumeVersionId={job.resumeVersionId}
+          hasOutreach={job.outreachEvents.length > 0}
+          strategyMode={settings.strategyMode}
+          onApply={handleApplyConfirm}
+          onCancel={() => setShowApplyChecklist(false)}
+          isLoading={saving}
+        />
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

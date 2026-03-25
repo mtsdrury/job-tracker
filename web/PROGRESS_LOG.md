@@ -75,7 +75,7 @@ This document tracks every task completed during implementation sessions. Update
 - [x] Settings API updated to handle new fields (GET + PUT)
 - [x] New "About You" step added as Step 1 in onboarding wizard (target roles + experience level)
 - [x] Onboarding API updated to persist new fields
-- [ ] **NEEDS:** `prisma db push` to apply schema changes
+- [x] **DONE:** `prisma db push` applied
 
 ### Task: Interview Pipeline Tracker ✅ DONE
 - [x] Added `Interview` model to Prisma schema (17 fields: stage, scheduledAt, interviewer, notes, prepNotes, reflection, outcome)
@@ -86,4 +86,29 @@ This document tracks every task completed during implementation sessions. Update
 - [x] Add Interview inline form (stage, date/time, interviewer, notes)
 - [x] Post-interview reflection form (outcome + reflection text, appears after scheduled time passes)
 - [x] Outcome badges: Passed (green), Failed (red), Pending (yellow), Cancelled (gray)
-- [ ] **NEEDS:** `prisma db push` to apply schema changes
+- [x] **DONE:** `prisma db push` applied
+
+### Task: Guided Apply Flow ✅ DONE
+- [x] Created `ApplyChecklist` component (`components/ui/apply-checklist.tsx`)
+- [x] Visual progress indicator (green checkmarks for completed, gray circles for empty)
+- [x] Resume version selection dropdown (loads from user's configured resumes)
+- [x] Application method dropdown (Company Website, LinkedIn Easy Apply, Email, Recruiter, Other)
+- [x] Application URL field (optional)
+- [x] Application notes textarea (optional)
+- [x] Referral-first mode warning (shows if no outreach, allows override)
+- [x] Progress counter ("X of Y steps completed")
+- [x] Confirm + Cancel buttons
+- [x] Added `applicationMethod` and `applicationUrl` fields to Job schema
+- [x] Updated PATCH `/api/jobs/[id]` to handle new fields
+- [x] Integrated into job detail page — replaces simple "Mark as Applied" button
+- [ ] **NEEDS:** `prisma db push` for new Job fields
+
+### Task: Saved Job Searches ✅ DONE
+- [x] Added `SavedSearch` model to Prisma schema (name, query, location, remoteOnly, resultCount)
+- [x] Created `/api/saved-searches` GET/POST routes (with free tier limit: 5 searches)
+- [x] Created `/api/saved-searches/[id]` DELETE route
+- [x] "Save This Search" button on job search page (appears after search, auto-fills criteria)
+- [x] Saved Searches sidebar on job search page (click to apply, hover to delete)
+- [x] Saved Searches section on dashboard (cards with query info, click to navigate to search)
+- [x] Free tier: 5 saved searches, Pro: unlimited
+- [ ] **NEEDS:** `prisma db push` for SavedSearch model

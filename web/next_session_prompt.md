@@ -1,9 +1,9 @@
 # Next Session Prompt — KnowSomeone
 
-**Last updated:** 2026-03-26
+**Last updated:** 2026-03-26 (evening)
 
 ## Where We Left Off
-Phase 0 (Launch Blockers) is in progress. Building Privacy Policy page, Terms of Service page, account deletion, data export, and footer links autonomously.
+Phase 0 COMPLETE. Phase 1 in progress — enhanced user profile and interview tracker are built and deployed. Working on guided apply flow next.
 
 ## What's Been Done This Session
 - Deployed to Vercel at knowsomeone.vercel.app
@@ -12,9 +12,13 @@ Phase 0 (Launch Blockers) is in progress. Building Privacy Policy page, Terms of
 - Google sign-in button added to login + register pages
 - Three research docs produced: Legal Compliance Guide, LinkedIn Integration Research, Implementation Flowchart
 - Deep planning interview completed — full feature inventory (33 features, 5 phases)
+- **Phase 0 DONE:** Privacy Policy, Terms of Service, account deletion, data export
+- **Phase 1 started:** Enhanced user profile (target roles, locations, remote pref, experience level), interview pipeline tracker (6 stages, timeline UI, reflection)
+- API keys added to Vercel: RapidAPI (JSearch), Anthropic
+- Prisma schema pushed with new User fields + Interview model
 
 ## What's In Progress
-- Phase 0 autonomous build: Privacy Policy, Terms of Service, account deletion, data export, footer links
+- Phase 1: Guided apply flow, saved searches, analytics suite
 
 ## Key Files
 - `/web/IMPLEMENTATION_FLOWCHART.md` — Master plan with phases, tasks, user gates

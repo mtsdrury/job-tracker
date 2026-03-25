@@ -57,9 +57,29 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       body.appliedAt = new Date();
     }
 
+    // Build notes with application info if provided
+    if (body.applicationNotes) {
+      const appInfo = [
+        `[Applied via ${body.applicationMethod || "unknown"}]`,
+        body.applicationUrl && `URL: ${body.applicationUrl}`,
+        body.applicationNotes,
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+      body.notes = existing.notes ? `${existing.notes}\n${appInfo}` : appInfo;
+    }
+
     const job = await prisma.job.update({
       where: { id },
-      data: body,
+      data: {
+        applied: body.applied,
+        appliedAt: body.appliedAt,
+        resumeVersionId: body.resumeVersionId ?? undefined,
+        applicationMethod: body.applicationMethod ?? undefined,
+        applicationUrl: body.applicationUrl ?? undefined,
+        notes: body.notes ?? undefined,
+      },
       include: {
         outreachEvents: {
           include: { contact: { select: { id: true, name: true, company: true } } },

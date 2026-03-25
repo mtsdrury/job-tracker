@@ -144,6 +144,7 @@ model User {
   contacts         Contact[]
   outreachEvents   OutreachEvent[]
   interviews       Interview[]
+  savedSearches    SavedSearch[]
 }
 
 // ---------------------------------------------------------------------------
@@ -215,6 +216,11 @@ model Job {
   strategyOverride   StrategyMode?
   notes              String?         @db.Text
   archived           Boolean         @default(false)
+  // NOTE: The following fields have been added and require `prisma db push`:
+  // - applicationMethod String? (company_website, linkedin_easy_apply, email, recruiter, other)
+  // - applicationUrl String?
+  applicationMethod  String?
+  applicationUrl     String?
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @default(now()) @updatedAt
 
@@ -304,5 +310,25 @@ model Interview {
   updatedAt        DateTime  @updatedAt
 
   @@index([jobId])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Saved Searches
+// ---------------------------------------------------------------------------
+// NOTE: The following SavedSearch model has been added and requires `prisma db push`:
+model SavedSearch {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String   // e.g. "ML Engineer in NYC"
+  query     String   // search query text
+  location  String?  // location filter
+  remoteOnly Boolean @default(false)
+  lastRunAt DateTime?
+  resultCount Int?   // last known result count
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
 }
