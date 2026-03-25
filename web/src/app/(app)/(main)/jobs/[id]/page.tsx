@@ -11,7 +11,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowLeft, ExternalLink, Users, Plus, Search,
-  Check, Trash2, Edit2, Copy, Sparkles,
+  Check, Trash2, Edit2, Copy, Sparkles, Calendar, ChevronDown, ChevronUp,
 } from "lucide-react";
 import Link from "next/link";
 import { substituteTemplateVars, type TemplateContext } from "@/lib/template-substitution";
@@ -70,6 +70,21 @@ interface ConnectionOption {
   line: string;
 }
 
+interface Interview {
+  id: string;
+  stage: string;
+  scheduledAt: string | null;
+  completedAt: string | null;
+  interviewerName: string | null;
+  interviewerTitle: string | null;
+  notes: string | null;
+  prepNotes: string | null;
+  reflection: string | null;
+  outcome: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface Job {
   id: string;
   title: string;
@@ -94,6 +109,7 @@ interface Job {
   archived: boolean;
   outreachEvents: OutreachEvent[];
   resumeVersion: { id: string; name: string } | null;
+  interviews?: Interview[];
 }
 
 const OUTREACH_STATUSES = [
@@ -138,12 +154,31 @@ export default function JobDetailPage() {
     connectionType: "cold", school: "", notes: "",
   });
 
+  // Interviews state
+  const [interviews, setInterviews] = useState<Interview[]>([]);
+  const [showAddInterview, setShowAddInterview] = useState(false);
+  const [interviewForm, setInterviewForm] = useState({
+    stage: "phone_screen", scheduledAt: "", interviewerName: "",
+    interviewerTitle: "", notes: "", prepNotes: "",
+  });
+  const [expandedInterview, setExpandedInterview] = useState<string | null>(null);
+  const [reflectingInterview, setReflectingInterview] = useState<string | null>(null);
+  const [reflection, setReflection] = useState("");
+  const [outcome, setOutcome] = useState("pending");
+
   const fetchJob = useCallback(async () => {
     const res = await fetch(`/api/jobs/${params.id}`);
     if (res.ok) {
       setJob(await res.json());
     }
     setLoading(false);
+  }, [params.id]);
+
+  const fetchInterviews = useCallback(async () => {
+    const res = await fetch(`/api/interviews?jobId=${params.id}`);
+    if (res.ok) {
+      setInterviews(await res.json());
+    }
   }, [params.id]);
 
   const fetchSettings = useCallback(async () => {
@@ -155,8 +190,9 @@ export default function JobDetailPage() {
 
   useEffect(() => {
     fetchJob();
+    fetchInterviews();
     fetchSettings();
-  }, [fetchJob, fetchSettings]);
+  }, [fetchJob, fetchInterviews, fetchSettings]);
 
   async function updateJob(data: Record<string, unknown>, message?: string) {
     setSaving(true);
@@ -343,6 +379,90 @@ export default function JobDetailPage() {
       setDrafting((prev) => ({ ...prev, copied: false }));
     }, 2000);
   }
+
+  async function addInterview() {
+    try {
+      const res = await fetch("/api/interviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobId: params.id,
+          ...interviewForm,
+        }),
+      });
+
+      if (!res.ok) {
+        toast.error("Failed to add interview");
+        return;
+      }
+
+      toast.success("Interview added");
+      setInterviewForm({
+        stage: "phone_screen", scheduledAt: "", interviewerName: "",
+        interviewerTitle: "", notes: "", prepNotes: "",
+      });
+      setShowAddInterview(false);
+      await fetchInterviews();
+    } catch {
+      toast.error("Failed to add interview");
+    }
+  }
+
+  async function deleteInterview(interviewId: string) {
+    try {
+      await fetch(`/api/interviews/${interviewId}`, { method: "DELETE" });
+      toast.success("Interview deleted");
+      await fetchInterviews();
+    } catch {
+      toast.error("Failed to delete interview");
+    }
+  }
+
+  async function saveReflection(interviewId: string) {
+    try {
+      await fetch(`/api/interviews/${interviewId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reflection,
+          outcome,
+          completedAt: new Date().toISOString(),
+        }),
+      });
+      toast.success("Reflection saved");
+      setReflectingInterview(null);
+      setReflection("");
+      setOutcome("pending");
+      await fetchInterviews();
+    } catch {
+      toast.error("Failed to save reflection");
+    }
+  }
+
+  const stageLabels: Record<string, string> = {
+    phone_screen: "Phone Screen",
+    technical: "Technical Interview",
+    behavioral: "Behavioral Interview",
+    onsite: "On-site Interview",
+    final: "Final Round",
+    other: "Other",
+  };
+
+  const stageColors: Record<string, string> = {
+    phone_screen: "bg-blue-500",
+    technical: "bg-purple-500",
+    behavioral: "bg-indigo-500",
+    onsite: "bg-orange-500",
+    final: "bg-green-500",
+    other: "bg-gray-500",
+  };
+
+  const outcomeColors: Record<string, string> = {
+    passed: "bg-green-500/10 text-green-400 border-green-500/20",
+    failed: "bg-red-500/10 text-red-400 border-red-500/20",
+    pending: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+    cancelled: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+  };
 
   if (loading) return <JobDetailSkeleton />;
   if (!job) return <div className="text-center py-12 text-muted">Job not found.</div>;
@@ -718,6 +838,256 @@ export default function JobDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Interviews - Only show if job is applied or later */}
+          {job.applied && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Interview Pipeline
+                  </CardTitle>
+                  <Button size="sm" onClick={() => setShowAddInterview(!showAddInterview)}>
+                    <Plus className="h-4 w-4" />
+                    Add Interview
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Add Interview Form */}
+                {showAddInterview && (
+                  <div className="rounded-lg border border-border p-4 space-y-3 mb-6 bg-surface/30">
+                    <h4 className="font-medium text-sm">New Interview</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Select
+                        id="stage" label="Stage" value={interviewForm.stage}
+                        onChange={(e) => setInterviewForm({ ...interviewForm, stage: e.target.value })}
+                      >
+                        <option value="phone_screen">Phone Screen</option>
+                        <option value="technical">Technical</option>
+                        <option value="behavioral">Behavioral</option>
+                        <option value="onsite">On-site</option>
+                        <option value="final">Final Round</option>
+                        <option value="other">Other</option>
+                      </Select>
+                      <Input
+                        id="scheduled-at" label="Scheduled Date/Time" type="datetime-local"
+                        value={interviewForm.scheduledAt}
+                        onChange={(e) => setInterviewForm({ ...interviewForm, scheduledAt: e.target.value })}
+                      />
+                      <Input
+                        id="interviewer-name" label="Interviewer Name"
+                        value={interviewForm.interviewerName}
+                        onChange={(e) => setInterviewForm({ ...interviewForm, interviewerName: e.target.value })}
+                      />
+                      <Input
+                        id="interviewer-title" label="Interviewer Title"
+                        value={interviewForm.interviewerTitle}
+                        onChange={(e) => setInterviewForm({ ...interviewForm, interviewerTitle: e.target.value })}
+                      />
+                    </div>
+                    <Textarea
+                      id="prep-notes" label="Prep Notes"
+                      value={interviewForm.prepNotes}
+                      onChange={(e) => setInterviewForm({ ...interviewForm, prepNotes: e.target.value })}
+                      placeholder="What do you want to prepare for this interview?"
+                      className="min-h-[80px]"
+                    />
+                    <Textarea
+                      id="notes" label="Notes"
+                      value={interviewForm.notes}
+                      onChange={(e) => setInterviewForm({ ...interviewForm, notes: e.target.value })}
+                      placeholder="Add any other notes..."
+                      className="min-h-[80px]"
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={addInterview}>Save Interview</Button>
+                      <Button size="sm" variant="ghost" onClick={() => setShowAddInterview(false)}>Cancel</Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Timeline View */}
+                {interviews.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Calendar className="h-8 w-8 text-muted mx-auto mb-2" />
+                    <p className="text-sm text-muted">No interviews scheduled yet.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Progress Indicator */}
+                    <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                      {interviews.map((interview) => (
+                        <div
+                          key={interview.id}
+                          className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full text-xs font-medium text-white ${stageColors[interview.stage as keyof typeof stageColors] || 'bg-gray-500'}`}
+                          title={stageLabels[interview.stage as keyof typeof stageLabels] || interview.stage}
+                        >
+                          {interviews.indexOf(interview) + 1}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Timeline Cards */}
+                    <div className="relative space-y-3">
+                      {interviews.map((interview, idx) => (
+                        <div
+                          key={interview.id}
+                          className="rounded-lg border border-border p-4 hover:bg-surface/50 transition-colors"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className={`w-3 h-3 rounded-full ${stageColors[interview.stage as keyof typeof stageColors] || 'bg-gray-500'}`}
+                                />
+                                <p className="font-medium text-sm">
+                                  {stageLabels[interview.stage as keyof typeof stageLabels] || interview.stage}
+                                </p>
+                                {interview.outcome && (
+                                  <Badge
+                                    variant={
+                                      interview.outcome === 'passed'
+                                        ? 'success'
+                                        : interview.outcome === 'failed'
+                                        ? 'danger'
+                                        : interview.outcome === 'cancelled'
+                                        ? 'secondary'
+                                        : 'warning'
+                                    }
+                                  >
+                                    {interview.outcome}
+                                  </Badge>
+                                )}
+                              </div>
+                              {interview.scheduledAt && (
+                                <p className="text-xs text-muted mt-1">
+                                  {new Date(interview.scheduledAt).toLocaleString()}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() =>
+                                  setExpandedInterview(
+                                    expandedInterview === interview.id ? null : interview.id
+                                  )
+                                }
+                                className="text-muted hover:text-foreground"
+                              >
+                                {expandedInterview === interview.id ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )}
+                              </button>
+                              <button
+                                onClick={() => deleteInterview(interview.id)}
+                                className="text-muted hover:text-danger"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Interviewer Info */}
+                          {(interview.interviewerName || interview.interviewerTitle) && (
+                            <div className="text-xs text-muted mb-3 ml-5">
+                              {interview.interviewerName}
+                              {interview.interviewerTitle && ` • ${interview.interviewerTitle}`}
+                            </div>
+                          )}
+
+                          {/* Expanded Section */}
+                          {expandedInterview === interview.id && (
+                            <div className="mt-4 pt-4 border-t border-border/50 space-y-3">
+                              {interview.prepNotes && (
+                                <div>
+                                  <p className="text-xs font-medium text-muted mb-1">Prep Notes</p>
+                                  <p className="text-xs whitespace-pre-wrap">{interview.prepNotes}</p>
+                                </div>
+                              )}
+
+                              {interview.notes && (
+                                <div>
+                                  <p className="text-xs font-medium text-muted mb-1">Notes</p>
+                                  <p className="text-xs whitespace-pre-wrap">{interview.notes}</p>
+                                </div>
+                              )}
+
+                              {interview.reflection && (
+                                <div>
+                                  <p className="text-xs font-medium text-muted mb-1">Reflection</p>
+                                  <p className="text-xs whitespace-pre-wrap">{interview.reflection}</p>
+                                </div>
+                              )}
+
+                              {/* Reflect Button - show if interview is scheduled and time has passed */}
+                              {interview.scheduledAt &&
+                                !interview.reflection &&
+                                new Date(interview.scheduledAt) <= new Date() && (
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={() => setReflectingInterview(interview.id)}
+                                    className="w-full"
+                                  >
+                                    Add Reflection
+                                  </Button>
+                                )}
+
+                              {/* Reflection Form */}
+                              {reflectingInterview === interview.id && (
+                                <div className="space-y-3 bg-surface/30 -mx-4 -mb-4 p-4 rounded-b-lg">
+                                  <Select
+                                    id="outcome" label="Outcome"
+                                    value={outcome}
+                                    onChange={(e) => setOutcome(e.target.value)}
+                                  >
+                                    <option value="pending">Pending</option>
+                                    <option value="passed">Passed</option>
+                                    <option value="failed">Failed</option>
+                                    <option value="cancelled">Cancelled</option>
+                                  </Select>
+                                  <Textarea
+                                    id="reflection-notes" label="How did it go?"
+                                    value={reflection}
+                                    onChange={(e) => setReflection(e.target.value)}
+                                    placeholder="Your thoughts on the interview..."
+                                    className="min-h-[100px]"
+                                  />
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => saveReflection(interview.id)}
+                                    >
+                                      Save Reflection
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => {
+                                        setReflectingInterview(null);
+                                        setReflection("");
+                                        setOutcome("pending");
+                                      }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Sidebar */}

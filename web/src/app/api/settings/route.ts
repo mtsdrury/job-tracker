@@ -15,6 +15,10 @@ export async function GET() {
       strategyMode: true,
       stalledDays: true,
       config: true,
+      targetRoles: true,
+      preferredLocations: true,
+      remotePreference: true,
+      experienceLevel: true,
       resumeVersions: { select: { id: true, name: true, isDefault: true }, orderBy: { createdAt: "asc" } },
       messageTemplates: { select: { id: true, name: true, body: true, category: true }, orderBy: { createdAt: "asc" } },
     },
@@ -31,7 +35,17 @@ export async function PUT(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { strategyMode, stalledDays, schools, resumeVersions, templates } = body;
+    const {
+      strategyMode,
+      stalledDays,
+      schools,
+      resumeVersions,
+      templates,
+      targetRoles,
+      preferredLocations,
+      remotePreference,
+      experienceLevel
+    } = body;
 
     // Update user
     const currentUser = await prisma.user.findUnique({
@@ -45,6 +59,10 @@ export async function PUT(req: NextRequest) {
       data: {
         strategyMode: strategyMode || undefined,
         stalledDays: stalledDays || undefined,
+        targetRoles: targetRoles || undefined,
+        preferredLocations: preferredLocations || undefined,
+        remotePreference: remotePreference || undefined,
+        experienceLevel: experienceLevel || undefined,
         config: {
           ...currentConfig,
           schools: schools || currentConfig.schools || [],

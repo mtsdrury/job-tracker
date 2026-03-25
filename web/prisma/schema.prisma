@@ -109,6 +109,11 @@ model VerificationToken {
 // ---------------------------------------------------------------------------
 // User
 // ---------------------------------------------------------------------------
+// NOTE: The following fields have been added and require `prisma db push`:
+// - targetRoles String[] (array of job titles/roles)
+// - preferredLocations String[] (array of location preferences)
+// - remotePreference String? (one of: "remote", "hybrid", "onsite", "no_preference")
+// - experienceLevel String? (one of: "entry", "mid", "senior", "executive")
 
 model User {
   id                String        @id @default(uuid())
@@ -123,6 +128,10 @@ model User {
   strategyMode      StrategyMode  @default(referral_first)
   stalledDays       Int           @default(5)
   config            Json          @default("{}")
+  targetRoles       String[]      @default([])
+  preferredLocations String[]     @default([])
+  remotePreference  String?
+  experienceLevel   String?
 
   // NextAuth relations
   accounts Account[]
@@ -134,6 +143,7 @@ model User {
   jobs             Job[]
   contacts         Contact[]
   outreachEvents   OutreachEvent[]
+  interviews       Interview[]
 }
 
 // ---------------------------------------------------------------------------
@@ -211,6 +221,7 @@ model Job {
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   resumeVersion ResumeVersion? @relation(fields: [resumeVersionId], references: [id], onDelete: SetNull)
   outreachEvents OutreachEvent[]
+  interviews     Interview[]
 
   @@unique([userId, externalId])
   @@index([userId])
@@ -268,4 +279,30 @@ model OutreachEvent {
   @@index([userId, jobId])
   @@index([userId, contactId])
   @@index([userId, status, lastActionAt])
+}
+
+// ---------------------------------------------------------------------------
+// Interviews
+// ---------------------------------------------------------------------------
+// NOTE: The following Interview model has been added and requires `prisma db push`:
+model Interview {
+  id               String    @id @default(cuid())
+  jobId            String
+  job              Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stage            String    // phone_screen, technical, behavioral, onsite, final, other
+  scheduledAt      DateTime?
+  completedAt      DateTime?
+  interviewerName  String?
+  interviewerTitle String?
+  notes            String?   @db.Text
+  prepNotes        String?   @db.Text
+  reflection       String?   @db.Text
+  outcome          String?   // passed, failed, pending, cancelled
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([jobId])
+  @@index([userId])
 }

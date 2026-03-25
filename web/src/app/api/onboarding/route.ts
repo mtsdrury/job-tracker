@@ -10,13 +10,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { schools, resumeVersions, strategy, templates } = await req.json();
+    const { schools, resumeVersions, strategy, templates, targetRoles, experienceLevel } = await req.json();
 
-    // Update user config and strategy
+    // Update user config, strategy, and profile fields
     await prisma.user.update({
       where: { id: session.user.id },
       data: {
         strategyMode: strategy || "referral_first",
+        targetRoles: targetRoles || [],
+        experienceLevel: experienceLevel || null,
         config: {
           schools: schools || [],
           connections: (schools || []).map(

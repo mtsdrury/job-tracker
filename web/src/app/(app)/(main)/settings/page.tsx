@@ -46,6 +46,14 @@ export default function SettingsPage() {
   const [newResume, setNewResume] = useState("");
   const [templates, setTemplates] = useState<Template[]>([]);
 
+  // Profile fields
+  const [targetRoles, setTargetRoles] = useState<string[]>([]);
+  const [newRole, setNewRole] = useState("");
+  const [preferredLocations, setPreferredLocations] = useState<string[]>([]);
+  const [newLocation, setNewLocation] = useState("");
+  const [remotePreference, setRemotePreference] = useState<string>("");
+  const [experienceLevel, setExperienceLevel] = useState<string>("");
+
   const [loadError, setLoadError] = useState("");
 
   // Danger zone state
@@ -65,6 +73,10 @@ export default function SettingsPage() {
         setSchools(config.schools || []);
         setResumeVersions(data.resumeVersions || []);
         setTemplates(data.messageTemplates || []);
+        setTargetRoles(data.targetRoles || []);
+        setPreferredLocations(data.preferredLocations || []);
+        setRemotePreference(data.remotePreference || "");
+        setExperienceLevel(data.experienceLevel || "");
       } else {
         setLoadError("Failed to load settings. Please refresh the page.");
       }
@@ -85,6 +97,10 @@ export default function SettingsPage() {
         schools,
         resumeVersions: resumeVersions.map((r) => r.name),
         templates,
+        targetRoles,
+        preferredLocations,
+        remotePreference: remotePreference || null,
+        experienceLevel: experienceLevel || null,
       }),
     });
     setSaving(false);
@@ -105,6 +121,28 @@ export default function SettingsPage() {
     if (!newResume.trim()) return;
     setResumeVersions([...resumeVersions, { id: "", name: newResume.trim(), isDefault: false }]);
     setNewResume("");
+  }
+
+  function addRole() {
+    const trimmed = newRole.trim();
+    if (!trimmed || targetRoles.includes(trimmed)) return;
+    setTargetRoles([...targetRoles, trimmed]);
+    setNewRole("");
+  }
+
+  function removeRole(idx: number) {
+    setTargetRoles(targetRoles.filter((_, i) => i !== idx));
+  }
+
+  function addLocation() {
+    const trimmed = newLocation.trim();
+    if (!trimmed || preferredLocations.includes(trimmed)) return;
+    setPreferredLocations([...preferredLocations, trimmed]);
+    setNewLocation("");
+  }
+
+  function removeLocation(idx: number) {
+    setPreferredLocations(preferredLocations.filter((_, i) => i !== idx));
   }
 
   async function handleExportData() {
@@ -189,6 +227,99 @@ export default function SettingsPage() {
           {message}
         </div>
       )}
+
+      {/* Profile */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Target Job Titles</label>
+            <div className="flex gap-2 items-end mb-3">
+              <Input
+                id="new-role"
+                value={newRole}
+                onChange={(e) => setNewRole(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addRole())}
+                placeholder="e.g. Software Engineer, Product Manager"
+              />
+              <Button size="sm" onClick={addRole}>Add</Button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {targetRoles.map((role, i) => (
+                <div key={i} className="inline-flex items-center gap-2 rounded-full bg-accent/20 border border-accent/40 px-3 py-1">
+                  <span className="text-sm text-foreground">{role}</span>
+                  <button
+                    onClick={() => removeRole(i)}
+                    className="text-muted hover:text-danger text-xs font-medium"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Preferred Locations</label>
+            <div className="flex gap-2 items-end mb-3">
+              <Input
+                id="new-location"
+                value={newLocation}
+                onChange={(e) => setNewLocation(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addLocation())}
+                placeholder="e.g. San Francisco, CA; New York, NY"
+              />
+              <Button size="sm" onClick={addLocation}>Add</Button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {preferredLocations.map((location, i) => (
+                <div key={i} className="inline-flex items-center gap-2 rounded-full bg-accent/20 border border-accent/40 px-3 py-1">
+                  <span className="text-sm text-foreground">{location}</span>
+                  <button
+                    onClick={() => removeLocation(i)}
+                    className="text-muted hover:text-danger text-xs font-medium"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Remote Preference</label>
+              <select
+                value={remotePreference}
+                onChange={(e) => setRemotePreference(e.target.value)}
+                className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground w-full"
+              >
+                <option value="">No Preference</option>
+                <option value="remote">Remote</option>
+                <option value="hybrid">Hybrid</option>
+                <option value="onsite">On-site</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Experience Level</label>
+              <select
+                value={experienceLevel}
+                onChange={(e) => setExperienceLevel(e.target.value)}
+                className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground w-full"
+              >
+                <option value="">Select Level</option>
+                <option value="entry">Entry Level</option>
+                <option value="mid">Mid-Level</option>
+                <option value="senior">Senior</option>
+                <option value="executive">Executive</option>
+              </select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Strategy */}
       <Card>

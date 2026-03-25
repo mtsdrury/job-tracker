@@ -28,6 +28,11 @@ Phase 0 (Launch Blockers) is in progress. Building Privacy Policy page, Terms of
 - G4: Publish Google OAuth consent screen (user must do in Google Cloud Console)
 - G5: Add RapidAPI key + Anthropic API key to Vercel env vars
 
+## Don't Forget
+- Register email addresses for legal pages: privacy@knowsomeone.com, support@knowsomeone.com, legal@knowsomeone.com (needs custom domain first)
+- These emails are referenced in the Privacy Policy and Terms of Service pages
+- Options: set up with custom domain email (Google Workspace, Zoho, etc.) or use a forwarding service
+
 ## Active Repo
 - Code: `/sessions/intelligent-magical-pasteur/mnt/alenzie--job-tracker` (maps to `C:\Users\kenz2\source\alenzie\job-tracker`)
 - Git: `mtsdrury/job-tracker` on GitHub, branch `main`

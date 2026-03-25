@@ -31,7 +31,7 @@ Thanks so much!`,
   category: "initial_outreach",
 };
 
-const STEPS = ["Schools", "Resumes", "Strategy", "Templates"];
+const STEPS = ["About You", "Schools", "Resumes", "Strategy", "Templates"];
 
 const SAMPLE_PREVIEW: Record<string, string> = {
   "{first_name}": "Alex",
@@ -54,26 +54,42 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Step 1: Schools
+  // Step 1: About You
+  const [targetRoles, setTargetRoles] = useState<string[]>([]);
+  const [newRole, setNewRole] = useState("");
+  const [experienceLevel, setExperienceLevel] = useState("");
+
+  // Step 2: Schools
   const [schools, setSchools] = useState<School[]>([]);
   const [schoolName, setSchoolName] = useState("");
   const [schoolId, setSchoolId] = useState("");
   const [schoolStatus, setSchoolStatus] = useState<"Student" | "Alum">("Alum");
 
-  // Step 2: Resume Versions
+  // Step 3: Resume Versions
   const [resumeVersions, setResumeVersions] = useState<string[]>([]);
   const [newResume, setNewResume] = useState("");
 
-  // Step 3: Strategy
+  // Step 4: Strategy
   const [strategy, setStrategy] = useState<"referral_first" | "speed_first">(
     "referral_first"
   );
 
-  // Step 4: Templates
+  // Step 5: Templates
   const [templates, setTemplates] = useState<Template[]>([
     { ...DEFAULT_TEMPLATE },
   ]);
   const [showPreview, setShowPreview] = useState<number | null>(null);
+
+  function addRole() {
+    const trimmed = newRole.trim();
+    if (!trimmed || targetRoles.includes(trimmed)) return;
+    setTargetRoles([...targetRoles, trimmed]);
+    setNewRole("");
+  }
+
+  function removeRole(idx: number) {
+    setTargetRoles(targetRoles.filter((_, i) => i !== idx));
+  }
 
   function addSchool() {
     if (!schoolName.trim()) return;
@@ -118,6 +134,8 @@ export default function OnboardingPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          targetRoles,
+          experienceLevel: experienceLevel || null,
           schools,
           resumeVersions,
           strategy,
@@ -180,8 +198,81 @@ export default function OnboardingPage() {
               </div>
             )}
 
-            {/* Step 1: Schools */}
+            {/* Step 1: About You */}
             {step === 0 && (
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-foreground">
+                    About You
+                  </h2>
+                  <p className="text-sm text-muted mt-1">
+                    Tell us about the roles and experience level you&apos;re looking for. This helps personalize your job recommendations.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Target Job Titles
+                  </label>
+                  <div className="flex gap-2 items-end mb-3">
+                    <Input
+                      id="target-role"
+                      value={newRole}
+                      onChange={(e) => setNewRole(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addRole())}
+                      placeholder="e.g. Software Engineer, Product Manager"
+                    />
+                    <Button onClick={addRole} size="sm" className="shrink-0">
+                      Add
+                    </Button>
+                  </div>
+                  {targetRoles.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {targetRoles.map((role, i) => (
+                        <div
+                          key={i}
+                          className="inline-flex items-center gap-2 rounded-full bg-accent/20 border border-accent/40 px-3 py-1"
+                        >
+                          <span className="text-sm text-foreground">{role}</span>
+                          <button
+                            onClick={() => removeRole(i)}
+                            className="text-muted hover:text-danger text-xs font-medium transition-colors"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Experience Level
+                  </label>
+                  <select
+                    value={experienceLevel}
+                    onChange={(e) => setExperienceLevel(e.target.value)}
+                    className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground w-full hover:border-border-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
+                  >
+                    <option value="">Select your experience level</option>
+                    <option value="entry">Entry Level</option>
+                    <option value="mid">Mid-Level</option>
+                    <option value="senior">Senior</option>
+                    <option value="executive">Executive</option>
+                  </select>
+                </div>
+
+                {(targetRoles.length === 0 || !experienceLevel) && (
+                  <p className="text-sm text-muted italic">
+                    You can skip this step and add details later in settings.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Step 2: Schools */}
+            {step === 1 && (
               <div className="space-y-4">
                 <div>
                   <h2 className="text-xl font-semibold text-foreground">
@@ -268,8 +359,8 @@ export default function OnboardingPage() {
               </div>
             )}
 
-            {/* Step 2: Resume Versions */}
-            {step === 1 && (
+            {/* Step 3: Resume Versions */}
+            {step === 2 && (
               <div className="space-y-4">
                 <div>
                   <h2 className="text-xl font-semibold text-foreground">
@@ -322,8 +413,8 @@ export default function OnboardingPage() {
               </div>
             )}
 
-            {/* Step 3: Strategy */}
-            {step === 2 && (
+            {/* Step 4: Strategy */}
+            {step === 3 && (
               <div className="space-y-4">
                 <div>
                   <h2 className="text-xl font-semibold text-foreground">
@@ -375,8 +466,8 @@ export default function OnboardingPage() {
               </div>
             )}
 
-            {/* Step 4: Templates */}
-            {step === 3 && (
+            {/* Step 5: Templates */}
+            {step === 4 && (
               <div className="space-y-4">
                 <div>
                   <h2 className="text-xl font-semibold text-foreground">

@@ -149,7 +149,7 @@ The app needs a name that communicates "referral-first job search" in a way that
 - **ORM:** Prisma v7 with PrismaPg driver adapter
 - **Database:** PostgreSQL on Supabase
 - **Auth:** NextAuth.js (Credentials + optional Google OAuth, JWT strategy)
-- **Billing:** Stripe (not yet implemented)
+- **Billing:** Stripe (checkout, webhooks, portal, billing page)
 - **Job Search:** RapidAPI JSearch with in-memory caching (6hr TTL)
 - **Icons:** lucide-react
 - **Utilities:** clsx, bcryptjs
@@ -313,7 +313,7 @@ src/app/
       jobs/search/page.tsx
       contacts/page.tsx
       settings/page.tsx
-      billing/page.tsx        -- NOT YET BUILT
+      billing/page.tsx        -- 3 pricing tiers, Stripe checkout/portal
 ```
 
 ### Key Design Decisions
@@ -467,33 +467,25 @@ Checkout, webhook, portal, prices API routes. Billing page with 3 tiers. Test mo
 ### Phase D: Next Action Derivation — DONE
 `src/lib/next-action.ts` rules engine. Hooked into all mutation routes. Dashboard uses `generateNudges()`.
 
-### Phase E: UX Polish (next up)
-1. Loading states (skeleton screens for dashboard, jobs list, job detail)
-2. Error boundaries (catch and display errors gracefully)
-3. Empty state designs (no jobs, no contacts, no outreach)
-4. Mobile responsive review (nav, forms, cards)
-5. Form validation (client + server, all create/edit forms)
-6. Toast/notification system for success/error feedback
+### Phase E: UX Polish — DONE
+Loading skeletons (dashboard, jobs, contacts, job detail), error boundaries (global + route-level), empty states (onboarding-driven for all pages + search-aware), toast notification system, mutation hook with auto-feedback.
 
-### Phase F: Landing Page & Branding
-1. Update landing page copy for KnowSomeone branding
-2. Pricing section reflecting $12/mo with bundle discounts
-3. Feature marketing (referral-first philosophy, closed-loop tracking)
-4. SEO meta tags, Open Graph images
+### Phase F: Landing Page & Branding — DONE
+Rebranded to KnowSomeone. New hero, social proof stats, feature callouts, 3-column pricing, final CTA. OpenGraph meta tags. Nav updated.
 
-### Phase G: Testing & Legal
+### Phase G: Testing & Legal (next up)
 1. Privacy Policy and Terms of Service pages
 2. Edge cases (archived jobs, deleted contacts, demo user limits)
 3. Stripe billing edge cases (failed payments, cancellations, re-subscriptions)
 4. CSRF, rate limiting, input sanitization review
 
-### Phase H: Deployment
-- Frontend + API: Vercel
-- Database: Supabase (already set up)
-- Environment variables: mirror .env.example into Vercel project settings
-- Stripe webhooks: point to production URL once deployed
-- Custom domain setup
-- Launch checklist
+### Phase H: Deployment — DONE
+Deployed to Vercel at knowsomeone.vercel.app. Root directory `web`. Supabase DB connected. Google OAuth configured. Stripe test mode keys set. `.npmrc` with `package-lock=false` for cross-platform compatibility.
+
+### Remaining Production Setup
+- Stripe webhooks: point to `https://knowsomeone.vercel.app/api/stripe/webhook`
+- Custom domain (optional)
+- Publish Google OAuth consent screen (currently in testing mode)
 
 ## Migration Path: Desktop to Web
 
@@ -504,3 +496,4 @@ However:
 - The JSON config should map to the web onboarding. If someone has a config from the desktop app, the web app should be able to read it and pre-fill their profile. (Phase 2)
 
 The desktop app stays open-source. The web app is the freemium product.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   

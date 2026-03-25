@@ -64,3 +64,26 @@ This document tracks every task completed during implementation sessions. Update
 **Remaining Phase 0:**
 - ⏳ E2E testing and bug fixes
 - ⏳ User gates: Google OAuth consent screen publishing, API keys in Vercel
+
+---
+
+## Phase 1: V1 Core Features
+
+### Task: Enhanced User Profile ✅ DONE
+- [x] Added 4 new User fields to Prisma schema: `targetRoles`, `preferredLocations`, `remotePreference`, `experienceLevel`
+- [x] New "Profile" section in settings page with tag-style inputs for roles/locations, dropdowns for remote pref/experience
+- [x] Settings API updated to handle new fields (GET + PUT)
+- [x] New "About You" step added as Step 1 in onboarding wizard (target roles + experience level)
+- [x] Onboarding API updated to persist new fields
+- [ ] **NEEDS:** `prisma db push` to apply schema changes
+
+### Task: Interview Pipeline Tracker ✅ DONE
+- [x] Added `Interview` model to Prisma schema (17 fields: stage, scheduledAt, interviewer, notes, prepNotes, reflection, outcome)
+- [x] Created `/api/interviews` POST route (create interview for a job)
+- [x] Created `/api/interviews/[id]` GET/PATCH/DELETE routes
+- [x] Interview Pipeline section in job detail page (appears only for applied jobs)
+- [x] Timeline view with color-coded stage dots (phone screen, technical, behavioral, onsite, final, other)
+- [x] Add Interview inline form (stage, date/time, interviewer, notes)
+- [x] Post-interview reflection form (outcome + reflection text, appears after scheduled time passes)
+- [x] Outcome badges: Passed (green), Failed (red), Pending (yellow), Cancelled (gray)
+- [ ] **NEEDS:** `prisma db push` to apply schema changes
