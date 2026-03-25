@@ -517,9 +517,8 @@ export default function JobDetailPage() {
   const canApply = effectiveStrategy === "speed_first" || contactedEvents.length > 0;
 
   // Build LinkedIn alumni search URL
-  const userConfig = (session as unknown as { user: { config?: { schools?: Array<{ linkedin_id: string }> } } })?.user?.config;
-  const schools = (userConfig?.schools || []) as Array<{ linkedin_id: string }>;
-  const schoolIds = schools.map((s) => s.linkedin_id).filter(Boolean);
+  const configSchools = (settings?.config as Record<string, unknown>)?.schools as Array<{ linkedin_id: string }> | undefined;
+  const schoolIds = (configSchools || []).map((s) => s.linkedin_id).filter(Boolean);
   const linkedinSearchUrl = schoolIds.length > 0
     ? `https://www.linkedin.com/search/results/people/?company=${encodeURIComponent(job.company)}&schoolFilter=${encodeURIComponent(JSON.stringify(schoolIds))}`
     : `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(job.company)}`;
