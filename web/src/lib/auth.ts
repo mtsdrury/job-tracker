@@ -53,6 +53,57 @@ export const authOptions: NextAuthOptions = {
       : []),
   ],
   callbacks: {
+    async signIn({ user, account }) {
+      // Allow credentials sign-in to pass through
+      if (account?.provider === "credentials") return true;
+
+      // For OAuth (Google), link to existing account if email matches
+      if (account?.provider === "google" && user.email) {
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email },
+          include: { accounts: true },
+        });
+
+        if (existingUser) {
+          // Check if Google account is already linked
+          const alreadyLinked = existingUser.accounts.some(
+            (a) => a.provider === "google"
+          );
+
+          if (!alreadyLinked) {
+            // Link Google account to existing user
+            await prisma.account.create({
+              data: {
+                userId: existingUser.id,
+                type: account.type,
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+                access_token: account.access_token as string | undefined,
+                refresh_token: account.refresh_token as string | undefined,
+                expires_at: account.expires_at,
+                token_type: account.token_type,
+                scope: account.scope,
+                id_token: account.id_token as string | undefined,
+              },
+            });
+          }
+
+          // Update name/image from Google if missing
+          if (!existingUser.image && user.image) {
+            await prisma.user.update({
+              where: { id: existingUser.id },
+              data: { image: user.image },
+            });
+          }
+
+          // Override the user object so the JWT gets the right ID
+          user.id = existingUser.id;
+          return true;
+        }
+      }
+
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
