@@ -147,7 +147,7 @@ export function deriveNextAction(
   if (job.interviewStage === "accepted") {
     return {
       action: "Accepted!",
-      detail: "Congratulations — you accepted this offer!",
+      detail: "Congratulations! You accepted this offer!",
       urgency: "normal",
       category: "closed",
     };
@@ -177,7 +177,7 @@ export function deriveNextAction(
       };
     }
 
-    // Applied but no interview stage — check for staleness
+    // Applied but no interview stage; check for staleness
     if (job.appliedAt) {
       const daysSince = daysBetween(job.appliedAt, now);
 
@@ -262,7 +262,7 @@ export function deriveNextAction(
   // --- Referral secured → apply or wait for submission ---
   if (best >= 6) {
     return {
-      action: "Apply — referral secured",
+      action: "Apply (referral secured)",
       detail: `${topEvent?.contact.name} secured your referral at ${job.company}. Apply and confirm submission.`,
       urgency: "warning",
       category: "pre_apply",
@@ -285,7 +285,7 @@ export function deriveNextAction(
     if (daysSince >= stalledThreshold) {
       return {
         action: "Check in",
-        detail: `${topName} at ${job.company} is working on your referral. It's been ${daysSince} days — a gentle check-in might help.`,
+        detail: `${topName} at ${job.company} is working on your referral. It's been ${daysSince} days, so a gentle check-in might help.`,
         urgency: "warning",
         category: "pre_apply",
       };
@@ -428,14 +428,14 @@ export function generateNudges(
       const daysSincePosted = daysBetween(job.datePosted, now);
       if (daysSincePosted > 21) {
         nudges.push({
-          message: `${job.company} — ${job.title} was posted ${daysSincePosted} days ago. This posting may expire soon.`,
+          message: `${job.company}: ${job.title} was posted ${daysSincePosted} days ago. This posting may expire soon.`,
           urgency: "urgent",
           jobId: job.id,
           action: "Old posting",
         });
       } else if (daysSincePosted > 10) {
         nudges.push({
-          message: `${job.company} — ${job.title} was posted ${daysSincePosted} days ago.`,
+          message: `${job.company}: ${job.title} was posted ${daysSincePosted} days ago.`,
           urgency: "warning",
           jobId: job.id,
           action: "Aging posting",
@@ -446,7 +446,7 @@ export function generateNudges(
     // Missing URL nudge
     if (!job.url && !job.applied) {
       nudges.push({
-        message: `${job.company} — ${job.title} has no job URL saved.`,
+        message: `${job.company}: ${job.title} has no job URL saved.`,
         urgency: "normal",
         jobId: job.id,
         action: "Add URL",

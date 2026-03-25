@@ -134,7 +134,7 @@ export default function PrivacyPolicy() {
             <h3 className="font-semibold text-foreground mb-2">Stripe (Payment Processing)</h3>
             <p className="text-muted text-sm">
               Processes all subscription payments and billing. Stripe is PCI Level 1 certified (the highest security
-              standard for payment processing). {APP_NAME} never touches your credit card data—it goes directly to Stripe's
+              standard for payment processing). {APP_NAME} never touches your credit card data - it goes directly to Stripe's
               secure servers.
             </p>
           </div>
@@ -152,7 +152,7 @@ export default function PrivacyPolicy() {
             <h3 className="font-semibold text-foreground mb-2">Google (Authentication & OAuth)</h3>
             <p className="text-muted text-sm">
               If you sign in with Google, your authentication is handled directly by Google. {APP_NAME} only receives
-              your name, email, and profile picture—we never see your password. Google is responsible for securing your
+              your name, email, and profile picture - we never see your password. Google is responsible for securing your
               credentials.
             </p>
           </div>
@@ -267,7 +267,7 @@ export default function PrivacyPolicy() {
           <p className="text-muted mt-4">
             We will respond within <strong className="text-foreground">30 days (GDPR)</strong> or{" "}
             <strong className="text-foreground">45 days (CCPA)</strong>, with a possible 30-day extension if your request
-            is complex. You may designate an authorized agent to submit requests on your behalf—we'll ask for proof of authorization.
+            is complex. You may designate an authorized agent to submit requests on your behalf, and we will ask for proof of authorization.
           </p>
         </div>
       </section>
@@ -421,7 +421,7 @@ export default function PrivacyPolicy() {
 
         <p className="text-muted mt-4">
           <strong className="text-foreground">KnowSomeone is not responsible for your compliance with privacy laws in your own outreach.</strong>
-          If a contact recipient files a complaint about your messages, you are solely liable. We recommend you follow GDPR
+          If a contact recipient files a complaint about your messages, you are solely liable. We recommend you follow best GDPR
           best practices: don't send more than one follow-up email to unresponsive contacts within 30 days, honor unsubscribe
           requests immediately, and keep records of consent.
         </p>
@@ -461,7 +461,7 @@ export default function PrivacyPolicy() {
         </ul>
 
         <p className="text-muted mt-4">
-          You can disable Chat at any time in your account settings. All Chat suggestions are optional—you remain in control
+          You can disable Chat at any time in your account settings. All Chat suggestions are optional, and you remain in control
           of your outreach messages.
         </p>
       </section>

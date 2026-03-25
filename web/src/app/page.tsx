@@ -76,7 +76,7 @@ const features = [
     icon: BarChart3,
     title: "Pipeline Intelligence",
     description:
-      "Know exactly where every job stands. Action items, stalled outreach alerts, and follow-up reminders — all automatic.",
+      "Know exactly where every job stands. Action items, stalled outreach alerts, and follow-up reminders, all automatic.",
   },
   {
     icon: Users,
@@ -88,7 +88,7 @@ const features = [
     icon: Sparkles,
     title: "Strategy Modes",
     description:
-      "Referral-first or speed-first — you choose. Configurable stalled thresholds let you set how patient you want to be.",
+      "Referral-first or speed-first: you choose. Configurable stalled thresholds let you set how patient you want to be.",
   },
 ];
 
@@ -149,7 +149,7 @@ export default function Home() {
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted">
             Cold applications disappear into the void. Referrals get interviews.
-            {" "}{APP_NAME} is the only job search tool that puts networking first — guiding you
+            {" "}{APP_NAME} is the only job search tool that puts networking first, guiding you
             from &quot;I found a role&quot; to &quot;someone on the inside is vouching for me.&quot;
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -230,7 +230,7 @@ export default function Home() {
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-muted leading-relaxed">
             Other trackers let you log that you applied somewhere. {APP_NAME} tracks
-            the entire referral journey — who you messaged, for which job, what they
+            the entire referral journey: who you messaged, for which job, what they
             said, and whether it turned into an actual referral. That closed loop is
             what makes the difference.
           </p>
@@ -405,7 +405,7 @@ export default function Home() {
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link href="/register">
               <Button size="lg" className="gap-2">
-                Get Started — It&apos;s Free
+                Get Started (It&apos;s Free)
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
