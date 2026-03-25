@@ -15,6 +15,7 @@ import {
   Loader2,
   Search,
   CreditCard,
+  BarChart3,
 } from "lucide-react";
 
 const APP_NAME = "KnowSomeone";
@@ -24,6 +25,7 @@ const navItems = [
   { href: "/jobs", label: "Jobs", icon: Briefcase },
   { href: "/jobs/search", label: "Search", icon: Search },
   { href: "/contacts", label: "Contacts", icon: Users },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/billing", label: "Billing", icon: CreditCard },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

@@ -101,7 +101,7 @@ This document tracks every task completed during implementation sessions. Update
 - [x] Added `applicationMethod` and `applicationUrl` fields to Job schema
 - [x] Updated PATCH `/api/jobs/[id]` to handle new fields
 - [x] Integrated into job detail page — replaces simple "Mark as Applied" button
-- [ ] **NEEDS:** `prisma db push` for new Job fields
+- [x] **DONE:** `prisma db push` applied
 
 ### Task: Saved Job Searches ✅ DONE
 - [x] Added `SavedSearch` model to Prisma schema (name, query, location, remoteOnly, resultCount)
@@ -111,4 +111,17 @@ This document tracks every task completed during implementation sessions. Update
 - [x] Saved Searches sidebar on job search page (click to apply, hover to delete)
 - [x] Saved Searches section on dashboard (cards with query info, click to navigate to search)
 - [x] Free tier: 5 saved searches, Pro: unlimited
-- [ ] **NEEDS:** `prisma db push` for SavedSearch model
+- [x] **DONE:** `prisma db push` applied
+
+### Task: Full Analytics Suite ✅ DONE
+- [x] Created `/api/analytics` GET route — server-side computation of all metrics
+- [x] Pipeline breakdown (jobs by status), application funnel with conversion rates
+- [x] Outreach stats (response rate, avg response time)
+- [x] Resume version performance (apps sent, interviews, interview rate per version)
+- [x] Template effectiveness (usage count, response rate per template)
+- [x] Activity timeline (jobs added + apps per week, last 12 weeks)
+- [x] Interview performance by stage (pass rates)
+- [x] Time metrics (avg days to apply, to interview, to offer)
+- [x] Created `/analytics` page with 8 visualization sections — all pure CSS/Tailwind, no chart library
+- [x] Key metric cards, pipeline funnel, activity timeline, outreach performance, resume table, top companies, interview performance, template effectiveness
+- [x] Added Analytics link to nav bar with BarChart3 icon
