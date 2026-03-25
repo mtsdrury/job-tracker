@@ -241,7 +241,7 @@ export function ApplyChecklist({
           <Button
             onClick={onCancel}
             disabled={isLoading}
-            variant="outline"
+            variant="ghost"
           >
             Cancel
           </Button>
