@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useToast } from "@/components/ui/toast";
 
 interface School {
   name: string;
@@ -28,6 +30,9 @@ interface ResumeVersion {
 
 export default function SettingsPage() {
   const { data: session } = useSession();
+  const router = useRouter();
+  const { success, error } = useToast();
+
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -42,6 +47,12 @@ export default function SettingsPage() {
   const [templates, setTemplates] = useState<Template[]>([]);
 
   const [loadError, setLoadError] = useState("");
+
+  // Danger zone state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Load current settings
   useEffect(() => {
@@ -94,6 +105,73 @@ export default function SettingsPage() {
     if (!newResume.trim()) return;
     setResumeVersions([...resumeVersions, { id: "", name: newResume.trim(), isDefault: false }]);
     setNewResume("");
+  }
+
+  async function handleExportData() {
+    try {
+      setIsExporting(true);
+      const res = await fetch("/api/account/export");
+
+      if (!res.ok) {
+        throw new Error("Failed to export data");
+      }
+
+      // Get filename from Content-Disposition header
+      const contentDisposition = res.headers.get("content-disposition");
+      let filename = "knowsomeone-export.json";
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="(.+?)"/);
+        if (match) filename = match[1];
+      }
+
+      // Convert response to blob and trigger download
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+
+      success("Data exported successfully!");
+    } catch (err) {
+      error("Failed to export data. Please try again.");
+      console.error(err);
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (deleteConfirmInput !== "DELETE") {
+      error("Please type 'DELETE' to confirm");
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      const res = await fetch("/api/account/delete", {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to delete account");
+      }
+
+      success("Account deleted successfully");
+      // Wait a moment for the toast to show, then redirect
+      setTimeout(() => {
+        signOut({ redirect: false }).then(() => {
+          router.push("/");
+        });
+      }, 500);
+    } catch (err) {
+      error("Failed to delete account. Please try again.");
+      console.error(err);
+      setIsDeleting(false);
+    }
   }
 
   return (
@@ -243,6 +321,95 @@ export default function SettingsPage() {
       <Button onClick={saveSettings} disabled={saving} className="w-full">
         {saving ? "Saving..." : "Save Settings"}
       </Button>
+
+      {/* Danger Zone */}
+      <Card className="border-danger/30 bg-danger/5">
+        <CardHeader>
+          <CardTitle className="text-danger">Danger Zone</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <p className="text-sm text-muted">Export all your data in JSON format for backup or migration.</p>
+            <Button
+              variant="secondary"
+              onClick={handleExportData}
+              disabled={isExporting}
+              className="w-full"
+            >
+              {isExporting ? "Exporting..." : "Export My Data"}
+            </Button>
+          </div>
+
+          <div className="border-t border-danger/20 pt-4 space-y-2">
+            <p className="text-sm text-muted">
+              Permanently delete your account and all associated data. This action cannot be undone.
+            </p>
+            <Button
+              variant="danger"
+              onClick={() => setShowDeleteModal(true)}
+              disabled={isDeleting}
+              className="w-full"
+            >
+              Delete My Account
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="text-danger">Delete Account</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-danger/10 border border-danger/20 rounded-lg p-3 text-sm text-foreground">
+                <p className="font-medium mb-2">This will permanently delete:</p>
+                <ul className="text-xs space-y-1 text-muted">
+                  <li>• Your account and profile</li>
+                  <li>• All jobs and applications</li>
+                  <li>• All contacts and outreach events</li>
+                  <li>• All resume versions and message templates</li>
+                  <li>• All user settings and preferences</li>
+                </ul>
+              </div>
+
+              <p className="text-sm text-muted">
+                Type <strong>DELETE</strong> to confirm:
+              </p>
+
+              <Input
+                placeholder="Type DELETE to confirm"
+                value={deleteConfirmInput}
+                onChange={(e) => setDeleteConfirmInput(e.target.value)}
+              />
+
+              <div className="flex gap-3">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeleteConfirmInput("");
+                  }}
+                  disabled={isDeleting}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="danger"
+                  onClick={handleDeleteAccount}
+                  disabled={isDeleting || deleteConfirmInput !== "DELETE"}
+                  className="flex-1"
+                >
+                  {isDeleting ? "Deleting..." : "Delete Account"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
