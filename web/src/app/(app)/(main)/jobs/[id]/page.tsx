@@ -993,7 +993,7 @@ export default function JobDetailPage() {
                                         : interview.outcome === 'failed'
                                         ? 'danger'
                                         : interview.outcome === 'cancelled'
-                                        ? 'secondary'
+                                        ? 'info'
                                         : 'warning'
                                     }
                                   >
