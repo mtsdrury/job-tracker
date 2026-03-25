@@ -26,9 +26,9 @@ export default async function DashboardPage() {
   let interviewingJobs = 0;
   let totalContacts = 0;
   let recentOutreach = 0;
-  let activeJobs = [];
-  let user = null;
-  let savedSearches = [];
+  let activeJobs: any[] = [];
+  let user: any = null;
+  let savedSearches: any[] = [];
   let fetchError = false;
 
   try {
