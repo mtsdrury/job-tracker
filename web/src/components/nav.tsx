@@ -14,6 +14,7 @@ import {
   RotateCcw,
   Loader2,
   Search,
+  CreditCard,
 } from "lucide-react";
 
 const APP_NAME = "Job Tracker";
@@ -23,6 +24,7 @@ const navItems = [
   { href: "/jobs", label: "Jobs", icon: Briefcase },
   { href: "/jobs/search", label: "Search", icon: Search },
   { href: "/contacts", label: "Contacts", icon: Users },
+  { href: "/billing", label: "Billing", icon: CreditCard },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
