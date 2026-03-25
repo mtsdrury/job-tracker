@@ -16,6 +16,8 @@ import {
   Search,
   CreditCard,
   BarChart3,
+  Menu,
+  X,
 } from "lucide-react";
 
 const APP_NAME = "KnowSomeone";
@@ -34,6 +36,7 @@ export function Nav() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [resetting, setResetting] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const isDemo = session?.user?.isDemo === true;
 
@@ -118,8 +121,41 @@ export function Nav() {
                 </button>
               </>
             )}
+            {/* Mobile menu toggle */}
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="sm:hidden flex items-center text-muted hover:text-foreground"
+            >
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile nav drawer */}
+        {mobileOpen && (
+          <div className="sm:hidden border-t border-border py-2 px-2">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={clsx(
+                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-accent/10 text-accent"
+                      : "text-muted hover:text-foreground hover:bg-surface"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
     </nav>
   );

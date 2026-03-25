@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Search, MapPin, Loader2, Plus, ExternalLink, Check, X, Bookmark } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface JobResult {
   externalId: string;
@@ -31,6 +33,7 @@ interface SavedSearch {
 }
 
 export default function JobSearchPage() {
+  const toast = useToast();
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
   const [remote, setRemote] = useState(false);
@@ -111,12 +114,13 @@ export default function JobSearchPage() {
         setSavedSearches([newSearch, ...savedSearches]);
         setShowSaveForm(false);
         setSearchName("");
+        toast.success("Search saved successfully");
       } else {
         const data = await res.json();
-        setError(data.error || "Failed to save search");
+        toast.error(data.error || "Failed to save search");
       }
     } catch {
-      setError("Failed to save search");
+      toast.error("Failed to save search");
     } finally {
       setSavingSearch(false);
     }
@@ -129,9 +133,12 @@ export default function JobSearchPage() {
       const res = await fetch(`/api/saved-searches/${id}`, { method: "DELETE" });
       if (res.ok) {
         setSavedSearches(savedSearches.filter((s) => s.id !== id));
+        toast.success("Search deleted successfully");
+      } else {
+        toast.error("Failed to delete search");
       }
     } catch {
-      setError("Failed to delete search");
+      toast.error("Failed to delete search");
     }
   }
 
@@ -232,6 +239,23 @@ export default function JobSearchPage() {
           {error && (
             <div className="rounded-lg bg-danger/10 border border-danger/20 px-4 py-3 text-sm text-danger">
               {error}
+            </div>
+          )}
+
+          {loading && (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Card key={i}>
+                  <CardContent className="pt-4">
+                    <div className="space-y-3">
+                      <Skeleton className="h-6 w-2/3" />
+                      <Skeleton className="h-4 w-1/2" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
 

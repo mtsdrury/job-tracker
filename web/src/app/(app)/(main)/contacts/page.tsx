@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, ExternalLink } from "lucide-react";
 import { ContactsSkeleton } from "@/components/ui/skeleton";
 import { EmptyContacts, EmptySearchResults } from "@/components/ui/empty-state";
+import { useToast } from "@/components/ui/toast";
 
 interface OutreachEvent {
   id: string;
@@ -25,18 +26,31 @@ interface Contact {
 }
 
 export default function ContactsPage() {
+  const toast = useToast();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [error, setError] = useState("");
 
   const fetchContacts = useCallback(async () => {
     setLoading(true);
+    setError("");
     const params = new URLSearchParams();
     if (search) params.set("search", search);
-    const res = await fetch(`/api/contacts?${params.toString()}`);
-    if (res.ok) setContacts(await res.json());
+    try {
+      const res = await fetch(`/api/contacts?${params.toString()}`);
+      if (res.ok) {
+        setContacts(await res.json());
+      } else {
+        setError("Failed to load contacts");
+        toast.error("Failed to load contacts");
+      }
+    } catch {
+      setError("Network error while loading contacts");
+      toast.error("Network error while loading contacts");
+    }
     setLoading(false);
-  }, [search]);
+  }, [search, toast]);
 
   useEffect(() => {
     const timer = setTimeout(fetchContacts, 300);
@@ -59,6 +73,12 @@ export default function ContactsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Contacts</h1>
       </div>
+
+      {error && (
+        <div className="rounded-lg bg-danger/10 border border-danger/20 px-4 py-3 text-sm text-danger">
+          {error}
+        </div>
+      )}
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />

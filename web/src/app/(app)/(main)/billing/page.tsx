@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 
 const plans = [
   {
@@ -52,6 +53,7 @@ const plans = [
 ];
 
 export default function BillingPage() {
+  const toast = useToast();
   const { data: session, status } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
@@ -119,6 +121,8 @@ export default function BillingPage() {
       if (!response.ok) {
         const error = await response.json();
         console.error("Checkout error:", error);
+        toast.error(error.error || "Failed to start checkout");
+        setLoading(null);
         return;
       }
 
@@ -128,7 +132,7 @@ export default function BillingPage() {
       }
     } catch (error) {
       console.error("Checkout error:", error);
-    } finally {
+      toast.error("Failed to start checkout. Please try again.");
       setLoading(null);
     }
   };
@@ -144,6 +148,8 @@ export default function BillingPage() {
       if (!response.ok) {
         const error = await response.json();
         console.error("Portal error:", error);
+        toast.error(error.error || "Failed to open billing portal");
+        setLoading(null);
         return;
       }
 
@@ -153,7 +159,7 @@ export default function BillingPage() {
       }
     } catch (error) {
       console.error("Portal error:", error);
-    } finally {
+      toast.error("Failed to open billing portal. Please try again.");
       setLoading(null);
     }
   };

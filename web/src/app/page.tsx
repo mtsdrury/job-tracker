@@ -393,6 +393,52 @@ export default function Home() {
         </div>
       </section>
 
+      {/* FAQ */}
+      <section className="border-t border-border py-24">
+        <div className="mx-auto max-w-3xl px-6">
+          <h2 className="text-center text-3xl font-bold text-foreground md:text-4xl">
+            Common questions
+          </h2>
+          <div className="mt-12 space-y-6">
+            {[
+              {
+                q: "How is this different from a spreadsheet?",
+                a: "A spreadsheet tracks where you applied. KnowSomeone tracks who you talked to, what you said, and whether it turned into a referral. It connects outreach to specific jobs and nudges you when follow-ups are overdue.",
+              },
+              {
+                q: "Do I need to know people at every company?",
+                a: "No. KnowSomeone helps you find connections through your alumni networks and LinkedIn. You'd be surprised how many second-degree connections you have at companies you're interested in.",
+              },
+              {
+                q: "What if I want to just apply quickly?",
+                a: "Switch to Speed-first mode. It loosens the referral gating so you can apply immediately while still tracking outreach in the background.",
+              },
+              {
+                q: "Is my data private?",
+                a: "Yes. Your job search data is stored securely and never shared with employers, recruiters, or other users. You can export or delete everything at any time.",
+              },
+              {
+                q: "What do I get with the free tier?",
+                a: "Track up to 25 jobs, the full referral workflow, message templates, pipeline dashboard, and smart nudges. No credit card required, no time limit.",
+              },
+            ].map((faq) => (
+              <details
+                key={faq.q}
+                className="group rounded-lg border border-border bg-surface/50 px-6 py-4"
+              >
+                <summary className="flex cursor-pointer items-center justify-between text-base font-medium text-foreground">
+                  {faq.q}
+                  <span className="ml-4 text-muted transition-transform group-open:rotate-45">+</span>
+                </summary>
+                <p className="mt-3 text-sm leading-relaxed text-muted">
+                  {faq.a}
+                </p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Final CTA */}
       <section className="border-t border-border py-24">
         <div className="mx-auto max-w-3xl px-6 text-center">

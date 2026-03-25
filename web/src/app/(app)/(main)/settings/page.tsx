@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface School {
   name: string;
@@ -34,6 +35,7 @@ export default function SettingsPage() {
   const { success, error } = useToast();
 
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
   // Settings state
@@ -64,6 +66,7 @@ export default function SettingsPage() {
 
   // Load current settings
   useEffect(() => {
+    setLoading(true);
     fetch("/api/settings").then(async (res) => {
       if (res.ok) {
         const data = await res.json();
@@ -80,33 +83,41 @@ export default function SettingsPage() {
       } else {
         setLoadError("Failed to load settings. Please refresh the page.");
       }
+      setLoading(false);
     }).catch(() => {
       setLoadError("Could not connect to the server. Please check your connection.");
+      setLoading(false);
     });
   }, []);
 
   async function saveSettings() {
     setSaving(true);
     setMessage("");
-    const res = await fetch("/api/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        strategyMode: strategy,
-        stalledDays,
-        schools,
-        resumeVersions: resumeVersions.map((r) => r.name),
-        templates,
-        targetRoles,
-        preferredLocations,
-        remotePreference: remotePreference || null,
-        experienceLevel: experienceLevel || null,
-      }),
-    });
-    setSaving(false);
-    if (res.ok) {
-      setMessage("Settings saved!");
-      setTimeout(() => setMessage(""), 3000);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          strategyMode: strategy,
+          stalledDays,
+          schools,
+          resumeVersions: resumeVersions.map((r) => r.name),
+          templates,
+          targetRoles,
+          preferredLocations,
+          remotePreference: remotePreference || null,
+          experienceLevel: experienceLevel || null,
+        }),
+      });
+      setSaving(false);
+      if (res.ok) {
+        success("Settings saved successfully");
+      } else {
+        error("Failed to save settings");
+      }
+    } catch {
+      error("Network error while saving settings");
+      setSaving(false);
     }
   }
 
@@ -228,6 +239,22 @@ export default function SettingsPage() {
         </div>
       )}
 
+      {loading ? (
+        <div className="space-y-6">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-6 w-32" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <>
       {/* Profile */}
       <Card>
         <CardHeader>
@@ -540,6 +567,8 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </div>
+      )}
+        </>
       )}
     </div>
   );

@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Terms of Service",
+  description: "KnowSomeone terms of service, billing policies, and user responsibilities.",
+};
+
 export default function TermsOfService() {
   return (
     <div className="min-h-screen bg-background text-foreground">

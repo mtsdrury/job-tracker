@@ -176,6 +176,8 @@ export default function JobDetailPage() {
     const res = await fetch(`/api/jobs/${params.id}`);
     if (res.ok) {
       setJob(await res.json());
+    } else if (res.status === 404) {
+      setJob(null);
     }
     setLoading(false);
   }, [params.id]);
@@ -489,7 +491,24 @@ export default function JobDetailPage() {
   };
 
   if (loading) return <JobDetailSkeleton />;
-  if (!job) return <div className="text-center py-12 text-muted">Job not found.</div>;
+  if (!job) {
+    return (
+      <div className="space-y-6 max-w-4xl mx-auto">
+        <div className="flex items-center gap-4">
+          <button onClick={() => router.back()} className="text-muted hover:text-foreground">
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="text-center py-12">
+          <h2 className="text-lg font-semibold mb-2">Job not found</h2>
+          <p className="text-muted mb-6">This job may have been deleted or you do not have access to it.</p>
+          <Link href="/jobs">
+            <Button>Back to Jobs</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   // Referral gating logic
   const userStrategy = session?.user?.strategyMode || "referral_first";

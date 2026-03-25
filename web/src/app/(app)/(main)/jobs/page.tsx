@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, ExternalLink } from "lucide-react";
 import { JobsListSkeleton } from "@/components/ui/skeleton";
 import { EmptyJobs, EmptySearchResults } from "@/components/ui/empty-state";
+import { useToast } from "@/components/ui/toast";
 
 interface OutreachEvent {
   id: string;
@@ -31,32 +32,43 @@ interface Job {
 }
 
 export default function JobsPage() {
+  const toast = useToast();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [appliedFilter, setAppliedFilter] = useState("all");
   const [referralFilter, setReferralFilter] = useState("all");
+  const [error, setError] = useState("");
 
   const fetchJobs = useCallback(async () => {
     setLoading(true);
+    setError("");
     const params = new URLSearchParams();
     if (search) params.set("search", search);
     if (appliedFilter === "applied") params.set("applied", "true");
     if (appliedFilter === "not_applied") params.set("applied", "false");
 
-    const res = await fetch(`/api/jobs?${params.toString()}`);
-    if (res.ok) {
-      let data = await res.json();
-      // Client-side referral filter
-      if (referralFilter === "has_referral") {
-        data = data.filter((j: Job) => j.outreachEvents.length > 0);
-      } else if (referralFilter === "no_referral") {
-        data = data.filter((j: Job) => j.outreachEvents.length === 0);
+    try {
+      const res = await fetch(`/api/jobs?${params.toString()}`);
+      if (res.ok) {
+        let data = await res.json();
+        // Client-side referral filter
+        if (referralFilter === "has_referral") {
+          data = data.filter((j: Job) => j.outreachEvents.length > 0);
+        } else if (referralFilter === "no_referral") {
+          data = data.filter((j: Job) => j.outreachEvents.length === 0);
+        }
+        setJobs(data);
+      } else {
+        setError("Failed to load jobs");
+        toast.error("Failed to load jobs");
       }
-      setJobs(data);
+    } catch {
+      setError("Network error while loading jobs");
+      toast.error("Network error while loading jobs");
     }
     setLoading(false);
-  }, [search, appliedFilter, referralFilter]);
+  }, [search, appliedFilter, referralFilter, toast]);
 
   useEffect(() => {
     fetchJobs();
@@ -94,6 +106,12 @@ export default function JobsPage() {
           </Button>
         </Link>
       </div>
+
+      {error && (
+        <div className="rounded-lg bg-danger/10 border border-danger/20 px-4 py-3 text-sm text-danger">
+          {error}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">

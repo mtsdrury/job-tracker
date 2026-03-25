@@ -21,56 +21,78 @@ export default async function DashboardPage() {
   const session = await requireOnboarding();
   const userId = session.user.id;
 
-  const [
-    totalJobs,
-    appliedJobs,
-    interviewingJobs,
-    totalContacts,
-    recentOutreach,
-    activeJobs,
-    user,
-    savedSearches,
-  ] = await Promise.all([
-    prisma.job.count({ where: { userId, archived: false } }),
-    prisma.job.count({ where: { userId, applied: true, archived: false } }),
-    prisma.job.count({
-      where: {
-        userId,
-        interviewStage: "interviewing",
-        archived: false,
-      },
-    }),
-    prisma.contact.count({ where: { userId } }),
-    prisma.outreachEvent.count({
-      where: {
-        userId,
-        lastActionAt: {
-          gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+  let totalJobs = 0;
+  let appliedJobs = 0;
+  let interviewingJobs = 0;
+  let totalContacts = 0;
+  let recentOutreach = 0;
+  let activeJobs = [];
+  let user = null;
+  let savedSearches = [];
+  let fetchError = false;
+
+  try {
+    const [
+      tjobs,
+      ajobs,
+      ijobs,
+      tcontacts,
+      routreach,
+      ajobsList,
+      udata,
+      ssearches,
+    ] = await Promise.all([
+      prisma.job.count({ where: { userId, archived: false } }),
+      prisma.job.count({ where: { userId, applied: true, archived: false } }),
+      prisma.job.count({
+        where: {
+          userId,
+          interviewStage: "interviewing",
+          archived: false,
         },
-      },
-    }),
-    prisma.job.findMany({
-      where: { userId, archived: false },
-      include: {
-        outreachEvents: {
-          include: { contact: true },
-          orderBy: { lastActionAt: "desc" },
+      }),
+      prisma.contact.count({ where: { userId } }),
+      prisma.outreachEvent.count({
+        where: {
+          userId,
+          lastActionAt: {
+            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+          },
         },
-        resumeVersion: true,
-      },
-      orderBy: { updatedAt: "desc" },
-      take: 10,
-    }),
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: { stalledDays: true, strategyMode: true, billingStatus: true },
-    }),
-    prisma.savedSearch.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    }),
-  ]);
+      }),
+      prisma.job.findMany({
+        where: { userId, archived: false },
+        include: {
+          outreachEvents: {
+            include: { contact: true },
+            orderBy: { lastActionAt: "desc" },
+          },
+          resumeVersion: true,
+        },
+        orderBy: { updatedAt: "desc" },
+        take: 10,
+      }),
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { stalledDays: true, strategyMode: true, billingStatus: true },
+      }),
+      prisma.savedSearch.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      }),
+    ]);
+    totalJobs = tjobs;
+    appliedJobs = ajobs;
+    interviewingJobs = ijobs;
+    totalContacts = tcontacts;
+    recentOutreach = routreach;
+    activeJobs = ajobsList;
+    user = udata;
+    savedSearches = ssearches;
+  } catch {
+    fetchError = true;
+  }
 
   const notApplied = totalJobs - appliedJobs;
 
@@ -117,6 +139,12 @@ export default async function DashboardPage() {
           </Button>
         </Link>
       </div>
+
+      {fetchError && (
+        <div className="rounded-lg bg-danger/10 border border-danger/20 px-4 py-3 text-sm text-danger">
+          Failed to load dashboard. Please refresh the page.
+        </div>
+      )}
 
       {totalJobs === 0 ? (
         <EmptyDashboard />
