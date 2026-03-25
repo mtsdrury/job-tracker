@@ -170,13 +170,16 @@ export function ApplyChecklist({
           </label>
           <Select
             value={resumeVersionId}
-            onChange={setResumeVersionId}
-            options={resumeVersions.map((v) => ({
-              value: v.id,
-              label: `${v.name}${v.isDefault ? " (default)" : ""}`,
-            }))}
+            onChange={(e) => setResumeVersionId(e.target.value)}
             disabled={isLoading}
-          />
+          >
+            <option value="">Select resume version...</option>
+            {resumeVersions.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.name}{v.isDefault ? " (default)" : ""}
+              </option>
+            ))}
+          </Select>
         </div>
 
         {/* Application method */}
@@ -186,10 +189,16 @@ export function ApplyChecklist({
           </label>
           <Select
             value={applicationMethod}
-            onChange={setApplicationMethod}
-            options={APPLICATION_METHODS}
+            onChange={(e) => setApplicationMethod(e.target.value)}
             disabled={isLoading}
-          />
+          >
+            <option value="">Select method...</option>
+            {APPLICATION_METHODS.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </Select>
         </div>
 
         {/* Application URL */}
