@@ -177,6 +177,10 @@ export default function JobDetailPage() {
     connectionType: "cold", school: "", notes: "",
   });
 
+  // Cover letter state
+  const [generatingCoverLetter, setGeneratingCoverLetter] = useState(false);
+  const [coverLetterCopied, setCoverLetterCopied] = useState(false);
+
   // Interviews state
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [showAddInterview, setShowAddInterview] = useState(false);
@@ -1304,6 +1308,85 @@ export default function JobDetailPage() {
               userBillingStatus={session?.user?.billingStatus as "free" | "pro"}
             />
           )}
+
+          {/* Cover Letter */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5" />
+                  Cover Letter
+                </CardTitle>
+                <div className="flex gap-2">
+                  {job.coverLetter && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(job.coverLetter || "");
+                          setCoverLetterCopied(true);
+                          toast.success("Copied to clipboard");
+                          setTimeout(() => setCoverLetterCopied(false), 2000);
+                        }}
+                      >
+                        {coverLetterCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        {coverLetterCopied ? "Copied" : "Copy"}
+                      </Button>
+                    </>
+                  )}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={generatingCoverLetter || session?.user?.billingStatus !== "pro"}
+                    onClick={async () => {
+                      setGeneratingCoverLetter(true);
+                      try {
+                        const res = await fetch("/api/ai/cover-letter", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ jobId: job.id }),
+                        });
+                        if (!res.ok) {
+                          const err = await res.json();
+                          toast.error(err.error || "Failed to generate");
+                          return;
+                        }
+                        const data = await res.json();
+                        setJob({ ...job, coverLetter: data.coverLetter });
+                        await updateJob({ coverLetter: data.coverLetter });
+                        toast.success("Cover letter generated");
+                      } catch {
+                        toast.error("Failed to generate cover letter");
+                      } finally {
+                        setGeneratingCoverLetter(false);
+                      }
+                    }}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    {generatingCoverLetter ? "Generating..." : job.coverLetter ? "Regenerate" : "Generate"}
+                  </Button>
+                </div>
+              </div>
+              {session?.user?.billingStatus !== "pro" && (
+                <p className="text-xs text-muted mt-1">Upgrade to Pro to generate AI cover letters</p>
+              )}
+            </CardHeader>
+            <CardContent>
+              {job.coverLetter ? (
+                <textarea
+                  value={job.coverLetter}
+                  onChange={(e) => setJob({ ...job, coverLetter: e.target.value })}
+                  onBlur={() => updateJob({ coverLetter: job.coverLetter })}
+                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted min-h-[250px] resize-y focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+              ) : (
+                <p className="text-sm text-muted">
+                  No cover letter yet. Click Generate to create one based on your resume, tone profile, and the job description.
+                </p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Notes */}
           <Card>

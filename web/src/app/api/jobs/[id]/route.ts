@@ -76,6 +76,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       "applied", "appliedAt", "resumeVersionId", "applicationMethod",
       "applicationUrl", "companyContactEmail", "notes", "interviewStage", "archived", "status",
       "title", "company", "url", "location", "salaryMin", "salaryMax",
+      "coverLetter", "coverLetterFileUrl",
     ];
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
