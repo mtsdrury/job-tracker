@@ -82,7 +82,7 @@ export async function POST(
       resumeId: updated.id,
       resumeName: updated.name,
       keywords: updated.keywords || [],
-      keywordCount: (updated.keywords || []).length,
+      keywordCount: Array.isArray(updated.keywords) ? updated.keywords.length : 0,
     });
   } catch (error) {
     console.error("Failed to extract keywords:", error);
@@ -134,7 +134,7 @@ export async function GET(
       resumeId: resumeVersion.id,
       resumeName: resumeVersion.name,
       keywords: resumeVersion.keywords || [],
-      keywordCount: (resumeVersion.keywords || []).length,
+      keywordCount: Array.isArray(resumeVersion.keywords) ? resumeVersion.keywords.length : 0,
     });
   } catch (error) {
     console.error("Failed to retrieve keywords:", error);
