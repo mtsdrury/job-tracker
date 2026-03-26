@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell, X } from "lucide-react";
 import { clsx } from "clsx";
-import { generateNotifications, getTimeAgoString, getNotificationIcon } from "@/lib/notifications";
+import { getTimeAgoString, getNotificationIcon } from "@/lib/notification-utils";
 
 interface Notification {
   id: string;
