@@ -21,6 +21,8 @@ import { useToast } from "@/components/ui/toast";
 import { useCelebration } from "@/components/celebration-provider";
 import { JobDetailSkeleton } from "@/components/ui/skeleton";
 import { EnrichButton } from "@/components/ui/enrich-button";
+import { FindEmailButton } from "@/components/ui/find-email-button";
+import { ContactSidebar } from "@/components/jobs/ContactSidebar";
 
 const InterviewPrep = dynamic(
   () => import("@/components/ui/interview-prep").then(mod => ({ default: mod.InterviewPrep })),
@@ -126,6 +128,8 @@ interface Job {
   strategyOverride: string | null;
   notes: string | null;
   archived: boolean;
+  isClosed: boolean;
+  closedAt: string | null;
   applicationMethod: string | null;
   applicationUrl: string | null;
   companyContactEmail: string | null;
@@ -196,6 +200,12 @@ export default function JobDetailPage() {
   // Apply checklist state
   const [showApplyChecklist, setShowApplyChecklist] = useState(false);
 
+  // Contact sidebar state
+  const [showContactSidebar, setShowContactSidebar] = useState(false);
+
+  // Close/Reopen job state
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+
   const fetchJob = useCallback(async () => {
     const res = await fetch(`/api/jobs/${params.id}`);
     if (res.ok) {
@@ -225,17 +235,6 @@ export default function JobDetailPage() {
     fetchInterviews();
     fetchSettings();
   }, [fetchJob, fetchInterviews, fetchSettings]);
-
-  // Listen for contact additions from the popup window
-  useEffect(() => {
-    function handleMessage(event: MessageEvent) {
-      if (event.data?.type === "contacts-updated" && event.data?.jobId === params.id) {
-        fetchJob();
-      }
-    }
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, [params.id, fetchJob]);
 
   async function updateJob(data: Record<string, unknown>, message?: string) {
     setSaving(true);
@@ -273,6 +272,11 @@ export default function JobDetailPage() {
   }
 
   function handleApplyClick() {
+    // Open the job URL in a new tab if it exists
+    if (job?.url || job?.applicationUrl) {
+      window.open(job.url || job.applicationUrl, "_blank");
+    }
+    // Show the inline confirmation card
     setShowApplyChecklist(true);
   }
 
@@ -284,6 +288,7 @@ export default function JobDetailPage() {
   }) {
     const updateData = {
       applied: true,
+      appliedAt: new Date().toISOString(),
       resumeVersionId: data.resumeVersionId,
       applicationMethod: data.applicationMethod,
       applicationUrl: data.applicationUrl || undefined,
@@ -455,6 +460,24 @@ export default function JobDetailPage() {
     }, 2000);
   }
 
+  async function handleCloseJob() {
+    try {
+      const now = new Date().toISOString();
+      await updateJob({ isClosed: true, closedAt: now }, "Job marked as closed");
+      setShowCloseConfirm(false);
+    } catch {
+      toast.error("Failed to close job");
+    }
+  }
+
+  async function handleReopenJob() {
+    try {
+      await updateJob({ isClosed: false, closedAt: null }, "Job reopened");
+    } catch {
+      toast.error("Failed to reopen job");
+    }
+  }
+
   async function addInterview() {
     try {
       const res = await fetch("/api/interviews", {
@@ -600,7 +623,7 @@ export default function JobDetailPage() {
               </Button>
             </a>
           )}
-          {!job.applied && (
+          {!job.isClosed && !job.applied && (
             canApply ? (
               <Button onClick={handleApplyClick} disabled={saving} className="w-full sm:w-auto">
                 <Check className="h-4 w-4" />
@@ -622,8 +645,27 @@ export default function JobDetailPage() {
               </div>
             )
           )}
+          {!job.isClosed && (
+            <Button onClick={() => setShowCloseConfirm(true)} variant="danger" size="sm" disabled={saving} className="w-full sm:w-auto">
+              Close Job
+            </Button>
+          )}
         </div>
       </div>
+
+      {job.isClosed && (
+        <div className="rounded-lg bg-danger/10 border border-danger/20 px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Badge variant="danger">Job Closed</Badge>
+            <p className="text-sm text-foreground">
+              Closed on {job.closedAt ? new Date(job.closedAt).toLocaleDateString() : "unknown date"}
+            </p>
+          </div>
+          <Button onClick={handleReopenJob} variant="ghost" size="sm" disabled={saving}>
+            Reopen
+          </Button>
+        </div>
+      )}
 
       {error && (
         <div className="rounded-lg bg-danger/10 border border-danger/20 px-4 py-3 text-sm text-danger">
@@ -645,6 +687,30 @@ export default function JobDetailPage() {
           onCancel={() => setShowApplyChecklist(false)}
           isLoading={saving}
         />
+      )}
+
+      {/* Close Job Confirmation Dialog */}
+      {showCloseConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <Card className="w-full max-w-sm mx-4">
+            <CardHeader>
+              <CardTitle>Mark Job as Closed?</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted">
+                This will prevent you from applying to this job and will mark it as closed. You can reopen it later if needed.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <Button onClick={() => setShowCloseConfirm(false)} variant="secondary" disabled={saving}>
+                  Cancel
+                </Button>
+                <Button onClick={handleCloseJob} variant="danger" disabled={saving}>
+                  Close Job
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
@@ -721,14 +787,8 @@ export default function JobDetailPage() {
                     variant="secondary"
                     size="sm"
                     onClick={() => {
-                      // Open LinkedIn search in a new tab
                       window.open(linkedinSearchUrl, "_blank");
-                      // Open the add-contacts popup window
-                      window.open(
-                        `/jobs/${job.id}/add-contacts`,
-                        `add-contacts-${job.id}`,
-                        "width=480,height=640,left=100,top=100,scrollbars=yes,resizable=yes"
-                      );
+                      setShowContactSidebar(true);
                     }}
                   >
                     <Search className="h-4 w-4" />
@@ -832,8 +892,16 @@ export default function JobDetailPage() {
                               contactId={event.contact.id}
                               contactName={event.contact.name}
                               enrichedAt={event.contact.enrichedAt ? new Date(event.contact.enrichedAt) : null}
-                              onEnrichSuccess={(data) => {
-                                // Refresh the job to get updated contact data
+                              onEnrichSuccess={() => {
+                                fetchJob();
+                              }}
+                            />
+                            <FindEmailButton
+                              contactId={event.contact.id}
+                              contactName={event.contact.name}
+                              contactEmail={event.contact.email}
+                              companyDomain={undefined}
+                              onEmailFound={() => {
                                 fetchJob();
                               }}
                             />
@@ -1434,6 +1502,18 @@ export default function JobDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Contact Sidebar */}
+      {job && (
+        <ContactSidebar
+          jobId={job.id}
+          company={job.company}
+          jobTitle={job.title}
+          isOpen={showContactSidebar}
+          onClose={() => setShowContactSidebar(false)}
+          onContactAdded={() => fetchJob()}
+        />
+      )}
     </div>
   );
 }

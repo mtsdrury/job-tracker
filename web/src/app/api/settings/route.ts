@@ -18,14 +18,14 @@ export async function GET() {
       targetRoles: true,
       preferredLocations: true,
       remotePreference: true,
-      experienceLevel: true,
       emailDigest: true,
       emailDigestDay: true,
       billingStatus: true,
       toneProfile: true,
       writingSamples: true,
       apolloApiKey: true,
-      resumeVersions: { select: { id: true, name: true, isDefault: true, fileUrl: true }, orderBy: { createdAt: "asc" } },
+      hunterApiKey: true,
+      resumeVersions: { select: { id: true, name: true, isDefault: true, fileUrl: true, experienceLevel: true }, orderBy: { createdAt: "asc" } },
       messageTemplates: { select: { id: true, name: true, body: true, category: true }, orderBy: { createdAt: "asc" } },
     },
   });
@@ -39,6 +39,9 @@ export async function GET() {
     ...user,
     apolloApiKey: user.apolloApiKey
       ? `${"*".repeat(user.apolloApiKey.length - 4)}${user.apolloApiKey.slice(-4)}`
+      : null,
+    hunterApiKey: user.hunterApiKey
+      ? `${"*".repeat(user.hunterApiKey.length - 4)}${user.hunterApiKey.slice(-4)}`
       : null,
   };
 
@@ -62,12 +65,12 @@ export async function PUT(req: NextRequest) {
       targetRoles,
       preferredLocations,
       remotePreference,
-      experienceLevel,
       emailDigest,
       emailDigestDay,
       toneProfile,
       writingSamples,
-      apolloApiKey
+      apolloApiKey,
+      hunterApiKey
     } = body;
 
     // Update user
@@ -85,12 +88,12 @@ export async function PUT(req: NextRequest) {
         targetRoles: targetRoles || undefined,
         preferredLocations: preferredLocations || undefined,
         remotePreference: remotePreference || undefined,
-        experienceLevel: experienceLevel || undefined,
         emailDigest: emailDigest !== undefined ? emailDigest : undefined,
         emailDigestDay: emailDigestDay !== undefined ? emailDigestDay : undefined,
         toneProfile: toneProfile || undefined,
         writingSamples: writingSamples || undefined,
         apolloApiKey: apolloApiKey || undefined,
+        hunterApiKey: hunterApiKey || undefined,
         config: {
           ...currentConfig,
           schools: schools || currentConfig.schools || [],
@@ -107,11 +110,16 @@ export async function PUT(req: NextRequest) {
       await prisma.resumeVersion.deleteMany({ where: { userId: session.user.id } });
       if (resumeVersions.length > 0) {
         await prisma.resumeVersion.createMany({
-          data: resumeVersions.map((name: string, i: number) => ({
-            userId: session.user.id,
-            name,
-            isDefault: i === 0,
-          })),
+          data: resumeVersions.map((rv: { name?: string; experienceLevel?: string | null } | string, i: number) => {
+            const name = typeof rv === "string" ? rv : (rv.name || "");
+            const experienceLevel = typeof rv === "string" ? null : (rv.experienceLevel || null);
+            return {
+              userId: session.user.id,
+              name,
+              experienceLevel,
+              isDefault: i === 0,
+            };
+          }),
         });
       }
     }

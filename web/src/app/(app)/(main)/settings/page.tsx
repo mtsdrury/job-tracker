@@ -43,6 +43,7 @@ interface ResumeVersion {
   name: string;
   isDefault: boolean;
   fileUrl?: string | null;
+  experienceLevel?: string | null;
 }
 
 interface ToneProfile {
@@ -80,6 +81,8 @@ export default function SettingsPage() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [apolloApiKey, setApolloApiKey] = useState("");
   const [showApolloKey, setShowApolloKey] = useState(false);
+  const [hunterApiKey, setHunterApiKey] = useState("");
+  const [showHunterKey, setShowHunterKey] = useState(false);
 
   // Profile fields
   const [targetRoles, setTargetRoles] = useState<string[]>([]);
@@ -87,7 +90,6 @@ export default function SettingsPage() {
   const [preferredLocations, setPreferredLocations] = useState<string[]>([]);
   const [newLocation, setNewLocation] = useState("");
   const [remotePreference, setRemotePreference] = useState<string>("");
-  const [experienceLevel, setExperienceLevel] = useState<string>("");
 
   const [loadError, setLoadError] = useState("");
 
@@ -120,12 +122,12 @@ export default function SettingsPage() {
         setTargetRoles(data.targetRoles || []);
         setPreferredLocations(data.preferredLocations || []);
         setRemotePreference(data.remotePreference || "");
-        setExperienceLevel(data.experienceLevel || "");
         setEmailDigest(data.emailDigest !== false);
         setEmailDigestDay(data.emailDigestDay || 1);
         setToneProfile(data.toneProfile || null);
         setWritingSamples(data.writingSamples || []);
         setApolloApiKey(data.apolloApiKey || "");
+        setHunterApiKey(data.hunterApiKey || "");
       } else {
         setLoadError("Failed to load settings. Please refresh the page.");
       }
@@ -147,15 +149,15 @@ export default function SettingsPage() {
           strategyMode: strategy,
           stalledDays,
           schools,
-          resumeVersions: resumeVersions.map((r) => r.name),
+          resumeVersions: resumeVersions.map((r) => ({ name: r.name, experienceLevel: r.experienceLevel || null })),
           templates,
           targetRoles,
           preferredLocations,
           remotePreference: remotePreference || null,
-          experienceLevel: experienceLevel || null,
           emailDigest,
           emailDigestDay,
           apolloApiKey: apolloApiKey || null,
+          hunterApiKey: hunterApiKey || null,
         }),
       });
 
@@ -186,7 +188,7 @@ export default function SettingsPage() {
 
   function addResume() {
     if (!newResume.trim()) return;
-    setResumeVersions([...resumeVersions, { id: "", name: newResume.trim(), isDefault: false, fileUrl: null }]);
+    setResumeVersions([...resumeVersions, { id: "", name: newResume.trim(), isDefault: false, fileUrl: null, experienceLevel: null }]);
     setNewResume("");
   }
 
@@ -200,12 +202,11 @@ export default function SettingsPage() {
           strategyMode: strategy,
           stalledDays,
           schools,
-          resumeVersions: [...resumeVersions.map((r) => r.name), name],
+          resumeVersions: [...resumeVersions.map((r) => ({ name: r.name, experienceLevel: r.experienceLevel || null })), { name, experienceLevel: null }],
           templates,
           targetRoles,
           preferredLocations,
           remotePreference: remotePreference || null,
-          experienceLevel: experienceLevel || null,
           emailDigest,
           emailDigestDay,
         }),
@@ -413,6 +414,40 @@ export default function SettingsPage() {
               </p>
             </div>
           </div>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium mb-2">Hunter.io API Key</label>
+              <p className="text-xs text-muted mb-3">
+                Add your Hunter.io API key to find professional email addresses for your contacts.
+              </p>
+              <div className="flex gap-2 mb-3">
+                <Input
+                  type={showHunterKey ? "text" : "password"}
+                  value={hunterApiKey}
+                  onChange={(e) => setHunterApiKey(e.target.value)}
+                  placeholder="Enter your Hunter.io API key..."
+                  className="flex-1"
+                />
+                <button
+                  onClick={() => setShowHunterKey(!showHunterKey)}
+                  className="px-3 py-2 rounded-lg border border-border text-muted hover:text-foreground transition-colors text-sm"
+                >
+                  {showHunterKey ? "Hide" : "Show"}
+                </button>
+              </div>
+              <p className="text-xs text-muted">
+                Get your free Hunter.io API key (25 searches/month):{" "}
+                <a
+                  href="https://hunter.io/api-keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-accent hover:underline"
+                >
+                  hunter.io/api-keys
+                </a>
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -530,35 +565,18 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Remote Preference</label>
-              <select
-                value={remotePreference}
-                onChange={(e) => setRemotePreference(e.target.value)}
-                className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground w-full"
-              >
-                <option value="">No Preference</option>
-                <option value="remote">Remote</option>
-                <option value="hybrid">Hybrid</option>
-                <option value="onsite">On-site</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Experience Level</label>
-              <select
-                value={experienceLevel}
-                onChange={(e) => setExperienceLevel(e.target.value)}
-                className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground w-full"
-              >
-                <option value="">Select Level</option>
-                <option value="entry">Entry Level</option>
-                <option value="mid">Mid-Level</option>
-                <option value="senior">Senior</option>
-                <option value="executive">Executive</option>
-              </select>
-            </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Remote Preference</label>
+            <select
+              value={remotePreference}
+              onChange={(e) => setRemotePreference(e.target.value)}
+              className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground w-full"
+            >
+              <option value="">No Preference</option>
+              <option value="remote">Remote</option>
+              <option value="hybrid">Hybrid</option>
+              <option value="onsite">On-site</option>
+            </select>
           </div>
         </CardContent>
       </Card>
@@ -696,6 +714,24 @@ export default function SettingsPage() {
                     Delete
                   </button>
                 )}
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted mb-1">Experience Level</label>
+                <select
+                  value={r.experienceLevel || ""}
+                  onChange={(e) => {
+                    const updated = [...resumeVersions];
+                    updated[i] = { ...updated[i], experienceLevel: e.target.value || null };
+                    setResumeVersions(updated);
+                  }}
+                  className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground w-full"
+                >
+                  <option value="">Select experience level</option>
+                  <option value="0-2 years">0-2 years</option>
+                  <option value="3-5 years">3-5 years</option>
+                  <option value="6-10 years">6-10 years</option>
+                  <option value="10+ years">10+ years</option>
+                </select>
               </div>
               {r.id && (
                 <ResumeUpload
