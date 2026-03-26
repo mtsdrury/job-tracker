@@ -63,6 +63,34 @@ function buildCacheKey(query: string, location: string, remote: boolean): string
 }
 
 /**
+ * Follow redirects to resolve the final destination URL.
+ * Job boards (JoobRapido, Talent.com, etc.) use redirect chains
+ * that ultimately land on the company's actual careers page.
+ * Returns the original URL if resolution fails or times out.
+ */
+async function resolveRedirectUrl(url: string): Promise<string> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    const res = await fetch(url, {
+      method: "HEAD",
+      redirect: "follow",
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; KnowSomeone/1.0)",
+      },
+    });
+
+    clearTimeout(timeout);
+    // res.url is the final URL after all redirects
+    return res.url || url;
+  } catch {
+    return url;
+  }
+}
+
+/**
  * Pick the best application URL: prefer a direct company link over
  * third-party job board redirects (JoobRapido, Talent.com, etc.).
  */
@@ -102,6 +130,22 @@ function mapResult(r: JSearchResult): JobSearchResult {
     salaryMax: r.job_max_salary,
     datePosted: r.job_posted_at_datetime_utc,
   };
+}
+
+/**
+ * Resolve redirect URLs for all results in parallel.
+ * Runs after mapping so we don't slow down the initial response
+ * if a redirect is slow -- each has a 5s timeout.
+ */
+async function resolveUrls(results: JobSearchResult[]): Promise<JobSearchResult[]> {
+  const resolved = await Promise.all(
+    results.map(async (r) => {
+      if (!r.url) return r;
+      const finalUrl = await resolveRedirectUrl(r.url);
+      return { ...r, url: finalUrl };
+    })
+  );
+  return resolved;
 }
 
 export async function searchJobs(
@@ -144,7 +188,8 @@ export async function searchJobs(
   }
 
   const json = await res.json();
-  const results: JobSearchResult[] = (json.data || []).map(mapResult);
+  const mapped: JobSearchResult[] = (json.data || []).map(mapResult);
+  const results = await resolveUrls(mapped);
 
   if (cache.size >= CACHE_MAX_SIZE) {
     sweepExpiredEntries();
