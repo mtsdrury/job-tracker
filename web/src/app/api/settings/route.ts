@@ -21,12 +21,28 @@ export async function GET() {
       experienceLevel: true,
       emailDigest: true,
       emailDigestDay: true,
+      billingStatus: true,
+      toneProfile: true,
+      writingSamples: true,
+      apolloApiKey: true,
       resumeVersions: { select: { id: true, name: true, isDefault: true, fileUrl: true }, orderBy: { createdAt: "asc" } },
       messageTemplates: { select: { id: true, name: true, body: true, category: true }, orderBy: { createdAt: "asc" } },
     },
   });
 
-  return NextResponse.json(user);
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  // Mask the Apollo API key (show only last 4 chars)
+  const maskedUser = {
+    ...user,
+    apolloApiKey: user.apolloApiKey
+      ? `${"*".repeat(user.apolloApiKey.length - 4)}${user.apolloApiKey.slice(-4)}`
+      : null,
+  };
+
+  return NextResponse.json(maskedUser);
 }
 
 export async function PUT(req: NextRequest) {
@@ -48,7 +64,10 @@ export async function PUT(req: NextRequest) {
       remotePreference,
       experienceLevel,
       emailDigest,
-      emailDigestDay
+      emailDigestDay,
+      toneProfile,
+      writingSamples,
+      apolloApiKey
     } = body;
 
     // Update user
@@ -69,6 +88,9 @@ export async function PUT(req: NextRequest) {
         experienceLevel: experienceLevel || undefined,
         emailDigest: emailDigest !== undefined ? emailDigest : undefined,
         emailDigestDay: emailDigestDay !== undefined ? emailDigestDay : undefined,
+        toneProfile: toneProfile || undefined,
+        writingSamples: writingSamples || undefined,
+        apolloApiKey: apolloApiKey || undefined,
         config: {
           ...currentConfig,
           schools: schools || currentConfig.schools || [],

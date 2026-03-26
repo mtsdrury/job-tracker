@@ -134,6 +134,9 @@ model User {
   experienceLevel   String?
   emailDigest       Boolean       @default(true)
   emailDigestDay    Int           @default(1)
+  toneProfile       Json?
+  writingSamples    Json?         // Array of {promptId: string, response: string}
+  apolloApiKey      String?       // User's Apollo.io API key (encrypted in production)
 
   // NextAuth relations
   accounts Account[]
@@ -255,6 +258,12 @@ model Contact {
   connectionType ConnectionType @default(cold)
   school         String?
   notes          String?        @db.Text
+  enrichedAt     DateTime?      // When contact was last enriched
+  headline       String?        // Professional headline from Apollo
+  photoUrl       String?        // Profile photo URL
+  city           String?        // Location city
+  state          String?        // Location state
+  country        String?        // Location country
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @default(now()) @updatedAt
 

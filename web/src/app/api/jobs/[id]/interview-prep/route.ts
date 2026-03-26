@@ -82,6 +82,8 @@ Format your response as a JSON array of objects with the following structure:
   ...
 ]
 
+CRITICAL RULE: Never use em dashes (the long dash character) in questions. Use commas, periods, or short dashes instead.
+
 Only respond with valid JSON, no other text.`;
 
     const client = new Anthropic({ apiKey });

@@ -21,6 +21,7 @@ import { substituteTemplateVars, type TemplateContext } from "@/lib/template-sub
 import { useToast } from "@/components/ui/toast";
 import { useCelebration } from "@/components/celebration-provider";
 import { JobDetailSkeleton } from "@/components/ui/skeleton";
+import { EnrichButton } from "@/components/ui/enrich-button";
 
 const InterviewPrep = dynamic(
   () => import("@/components/ui/interview-prep").then(mod => ({ default: mod.InterviewPrep })),
@@ -40,6 +41,12 @@ interface Contact {
   email: string | null;
   connectionType: string;
   school: string | null;
+  enrichedAt?: Date | null;
+  headline?: string | null;
+  photoUrl?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
 }
 
 interface OutreachEvent {
@@ -777,8 +784,14 @@ export default function JobDetailPage() {
                             <p className="text-xs text-muted truncate">
                               {event.contact.title}{event.contact.company ? ` at ${event.contact.company}` : ""}
                             </p>
+                            {event.contact.email && (
+                              <p className="text-xs text-muted mt-1">{event.contact.email}</p>
+                            )}
+                            {event.contact.headline && (
+                              <p className="text-xs text-muted mt-1">{event.contact.headline}</p>
+                            )}
                           </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
                             <Badge variant={statusBadgeVariant(event.status)} className="text-xs">
                               {event.status.replace(/_/g, " ")}
                             </Badge>
@@ -798,6 +811,15 @@ export default function JobDetailPage() {
                             ))}
                           </select>
                           <div className="flex items-center gap-2 flex-wrap">
+                            <EnrichButton
+                              contactId={event.contact.id}
+                              contactName={event.contact.name}
+                              enrichedAt={event.contact.enrichedAt ? new Date(event.contact.enrichedAt) : null}
+                              onEnrichSuccess={(data) => {
+                                // Refresh the job to get updated contact data
+                                fetchJob();
+                              }}
+                            />
                             {event.contact.linkedinUrl && (
                               <a href={event.contact.linkedinUrl} target="_blank" rel="noopener noreferrer"
                                 className="text-accent hover:underline">LinkedIn</a>

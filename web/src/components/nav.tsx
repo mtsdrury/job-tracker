@@ -19,6 +19,7 @@ import {
   Menu,
   X,
   Upload,
+  Sparkles,
 } from "lucide-react";
 import { NotificationBell } from "./ui/notification-bell";
 
@@ -31,6 +32,7 @@ const navItems = [
   { href: "/jobs/search", label: "Job Search", icon: Search },
   { href: "/contacts", label: "Contacts", icon: Users },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/quiz", label: "Tone Quiz", icon: Sparkles },
   { href: "/billing", label: "Billing", icon: CreditCard },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

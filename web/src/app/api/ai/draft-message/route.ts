@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Anthropic } from "@anthropic-ai/sdk";
+import { generateToneGuidance, type ToneProfile } from "@/lib/tone-quiz";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
     // Check billing status
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { billingStatus: true, name: true, config: true },
+      select: { billingStatus: true, name: true, config: true, toneProfile: true, writingSamples: true },
     });
 
     if (!user) {
@@ -83,6 +84,7 @@ export async function POST(req: NextRequest) {
     const config = (user.config as Record<string, unknown>) || {};
     const schools = (config.schools as Array<{ name?: string }>) || [];
     const connections = (config.connections as Array<{ label?: string; line?: string }>) || [];
+    const toneProfile = user.toneProfile as ToneProfile | null;
 
     // Check for ANTHROPIC_API_KEY
     const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -106,6 +108,45 @@ export async function POST(req: NextRequest) {
       .map((c) => `${c.label}: "${c.line}"`)
       .join("\n");
 
+    // Build tone guidance if profile exists
+    let toneGuidance = "";
+    if (toneProfile) {
+      toneGuidance = `\nCommunication Style Guidelines (based on the user's tone profile):\n${generateToneGuidance(toneProfile)}\n`;
+    }
+
+    // Build writing samples section if they exist
+    let writingSamplesSection = "";
+    if (user.writingSamples) {
+      try {
+        const samples = Array.isArray(user.writingSamples) ? user.writingSamples : (user.writingSamples as Record<string, unknown> || []);
+        if (Array.isArray(samples) && samples.length > 0) {
+          const sampleLabels: Record<string, string> = {
+            email_reply: "Email Reply",
+            story: "Casual Story",
+            boss_request: "Professional Response",
+          };
+
+          const sampleTexts = samples
+            .map((sample: Record<string, string> | unknown) => {
+              if (typeof sample === 'object' && sample !== null) {
+                const s = sample as Record<string, string>;
+                const label = sampleLabels[s.promptId] || s.promptId;
+                return `[${label}]\n${s.response}`;
+              }
+              return "";
+            })
+            .filter(Boolean)
+            .join("\n\n");
+
+          if (sampleTexts) {
+            writingSamplesSection = `\nHere are examples of how this person actually writes in different situations. Match their natural voice, vocabulary, and sentence structure:\n\n${sampleTexts}\n`;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to parse writing samples:", err);
+      }
+    }
+
     const systemPrompt = `You are an expert at writing personalized LinkedIn and email outreach messages for job referrals.
 
 Job Information:
@@ -125,6 +166,8 @@ User Profile:
 ${schoolsText ? `- Schools: ${schoolsText}` : ""}
 - Configured Connections:
 ${connectionsText || "No configured connections"}
+${toneGuidance}
+${writingSamplesSection}
 
 ${templateBody ? `Style Reference (use this as guidance for tone and structure):\n${templateBody}` : ""}
 
@@ -134,6 +177,11 @@ Write a personalized LinkedIn or email outreach message that:
 3. References their shared connection if applicable
 4. Mentions the specific role naturally
 5. Asks for a brief conversation or advice
+
+CRITICAL RULES FOR DRAFTING:
+- Never use em dashes (the long dash character). Use commas, periods, or short dashes instead.
+- Never use the words "I'd be happy to" or "I wanted to reach out"
+- Match the user's actual writing style from the samples above
 
 Do not include placeholders like {first_name} or {company}. Write the message with actual values filled in.`;
 

@@ -179,6 +179,8 @@ Provide your analysis in JSON format with these exact fields:
   "suggestions": [<list of 3-5 concrete things candidate can do to improve fit>]
 }
 
+CRITICAL RULE: Never use em dashes (the long dash character) in any fields. Use commas, periods, or short dashes instead.
+
 Return ONLY valid JSON, no other text.`,
         },
       ],

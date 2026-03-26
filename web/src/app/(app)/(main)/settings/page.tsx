@@ -11,6 +11,20 @@ import { useToast } from "@/components/ui/toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ResumeUpload } from "@/components/ui/resume-upload";
 
+const ARCHETYPE_ICONS: Record<string, string> = {
+  "The Connector": "🤝",
+  "The Strategist": "🎯",
+  "The Natural": "😄",
+  "The Professional": "💼",
+  "The Storyteller": "📖",
+  "The Minimalist": "⚡",
+  "The Balanced": "⚖️",
+};
+
+function getArchetypeIcon(archetype: string): string {
+  return ARCHETYPE_ICONS[archetype] || "✨";
+}
+
 interface School {
   name: string;
   linkedin_id: string;
@@ -31,6 +45,21 @@ interface ResumeVersion {
   fileUrl?: string | null;
 }
 
+interface ToneProfile {
+  archetype: string;
+  description: string;
+  formality: number;
+  warmth: number;
+  directness: number;
+  energy: number;
+  humor: number;
+}
+
+interface WritingSample {
+  promptId: string;
+  response: string;
+}
+
 export default function SettingsPage() {
   const { data: session } = useSession();
   const router = useRouter();
@@ -49,6 +78,8 @@ export default function SettingsPage() {
   const [resumeVersions, setResumeVersions] = useState<ResumeVersion[]>([]);
   const [newResume, setNewResume] = useState("");
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [apolloApiKey, setApolloApiKey] = useState("");
+  const [showApolloKey, setShowApolloKey] = useState(false);
 
   // Profile fields
   const [targetRoles, setTargetRoles] = useState<string[]>([]);
@@ -63,6 +94,10 @@ export default function SettingsPage() {
   // Email preferences
   const [emailDigest, setEmailDigest] = useState(true);
   const [emailDigestDay, setEmailDigestDay] = useState(1);
+
+  // Tone profile
+  const [toneProfile, setToneProfile] = useState<ToneProfile | null>(null);
+  const [writingSamples, setWritingSamples] = useState<WritingSample[]>([]);
 
   // Danger zone state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -88,6 +123,9 @@ export default function SettingsPage() {
         setExperienceLevel(data.experienceLevel || "");
         setEmailDigest(data.emailDigest !== false);
         setEmailDigestDay(data.emailDigestDay || 1);
+        setToneProfile(data.toneProfile || null);
+        setWritingSamples(data.writingSamples || []);
+        setApolloApiKey(data.apolloApiKey || "");
       } else {
         setLoadError("Failed to load settings. Please refresh the page.");
       }
@@ -117,6 +155,7 @@ export default function SettingsPage() {
           experienceLevel: experienceLevel || null,
           emailDigest,
           emailDigestDay,
+          apolloApiKey: apolloApiKey || null,
         }),
       });
 
@@ -334,6 +373,103 @@ export default function SettingsPage() {
         </div>
       ) : (
         <>
+      {/* Integrations */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Integrations</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3 pb-4 border-b border-border">
+            <div>
+              <label className="block text-sm font-medium mb-2">Apollo.io API Key</label>
+              <p className="text-xs text-muted mb-3">
+                Add your Apollo.io API key to enrich contacts with emails, titles, and LinkedIn URLs.
+              </p>
+              <div className="flex gap-2 mb-3">
+                <Input
+                  type={showApolloKey ? "text" : "password"}
+                  value={apolloApiKey}
+                  onChange={(e) => setApolloApiKey(e.target.value)}
+                  placeholder="sk_live_..."
+                  className="flex-1"
+                />
+                <button
+                  onClick={() => setShowApolloKey(!showApolloKey)}
+                  className="px-3 py-2 rounded-lg border border-border text-muted hover:text-foreground transition-colors text-sm"
+                >
+                  {showApolloKey ? "Hide" : "Show"}
+                </button>
+              </div>
+              <p className="text-xs text-muted">
+                Get your free Apollo.io API key:{" "}
+                <a
+                  href="https://app.apollo.io/settings/integrations/api"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-accent hover:underline"
+                >
+                  app.apollo.io/settings/integrations/api
+                </a>
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tone Profile */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Communication Style</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {toneProfile ? (
+            <div className="space-y-4">
+              <div className="bg-accent/10 border border-accent/30 rounded-lg p-4">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="text-3xl">{getArchetypeIcon(toneProfile.archetype)}</div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg">{toneProfile.archetype}</h3>
+                    <p className="text-sm text-muted mt-1">{toneProfile.description}</p>
+                  </div>
+                </div>
+              </div>
+              {writingSamples && writingSamples.length > 0 && (
+                <div className="bg-surface border border-border rounded-lg p-3">
+                  <p className="text-sm font-medium text-foreground mb-2">
+                    {writingSamples.length} writing sample{writingSamples.length !== 1 ? 's' : ''} saved
+                  </p>
+                  <p className="text-xs text-muted">
+                    Your writing samples help ensure AI-drafted messages match your natural voice.
+                  </p>
+                </div>
+              )}
+              <p className="text-sm text-muted">
+                Your communication style is personalized in all AI-powered message drafting to match your authentic voice.
+              </p>
+              <Button
+                variant="secondary"
+                onClick={() => router.push("/quiz")}
+                className="w-full"
+              >
+                Retake Tone Quiz
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-muted">
+                Discover your communication style with our Tone Profile Quiz. Your results will personalize your AI-drafted messages to match your authentic voice.
+              </p>
+              <Button
+                onClick={() => router.push("/quiz")}
+                className="w-full"
+              >
+                Take Tone Quiz
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Profile */}
       <Card>
         <CardHeader>

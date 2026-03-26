@@ -6,6 +6,7 @@ import { Search, ExternalLink } from "lucide-react";
 import { ContactsSkeleton } from "@/components/ui/skeleton";
 import { EmptyContacts, EmptySearchResults } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
+import { EnrichButton } from "@/components/ui/enrich-button";
 
 interface OutreachEvent {
   id: string;
@@ -22,6 +23,12 @@ interface Contact {
   email: string | null;
   connectionType: string;
   school: string | null;
+  enrichedAt: Date | null;
+  headline: string | null;
+  photoUrl: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
   outreachEvents: OutreachEvent[];
 }
 
@@ -99,9 +106,9 @@ export default function ContactsPage() {
         <div className="space-y-2">
           {contacts.map((contact) => (
             <div key={contact.id} className="rounded-xl border border-border bg-surface px-5 py-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-medium">{contact.name}</p>
                     <Badge variant={connectionBadge(contact.connectionType)}>
                       {contact.connectionType.replace(/_/g, " ")}
@@ -113,11 +120,47 @@ export default function ContactsPage() {
                   <p className="text-sm text-muted">
                     {contact.title}{contact.company ? ` at ${contact.company}` : ""}
                   </p>
+                  {contact.email && (
+                    <p className="text-xs text-muted mt-1">{contact.email}</p>
+                  )}
+                  {contact.headline && (
+                    <p className="text-xs text-muted mt-1">{contact.headline}</p>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <EnrichButton
+                    contactId={contact.id}
+                    contactName={contact.name}
+                    enrichedAt={contact.enrichedAt ? new Date(contact.enrichedAt) : null}
+                    onEnrichSuccess={(data) => {
+                      // Update the contact in state
+                      setContacts(
+                        contacts.map((c) =>
+                          c.id === contact.id
+                            ? {
+                                ...c,
+                                email: data.email || c.email,
+                                title: data.title || c.title,
+                                linkedinUrl: data.linkedinUrl || c.linkedinUrl,
+                                headline: data.headline,
+                                photoUrl: data.photoUrl,
+                                city: data.city,
+                                state: data.state,
+                                country: data.country,
+                                enrichedAt: new Date(),
+                              }
+                            : c
+                        )
+                      );
+                    }}
+                  />
                   {contact.linkedinUrl && (
-                    <a href={contact.linkedinUrl} target="_blank" rel="noopener noreferrer"
-                      className="text-muted hover:text-accent">
+                    <a
+                      href={contact.linkedinUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-muted hover:text-accent"
+                    >
                       <ExternalLink className="h-4 w-4" />
                     </a>
                   )}
