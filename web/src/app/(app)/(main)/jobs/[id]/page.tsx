@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { ApplyChecklist } from "@/components/ui/apply-checklist";
-import { LinkedInSearchLinks } from "@/components/ui/linkedin-search";
 import {
   ArrowLeft, ExternalLink, Users, Plus, Search,
   Check, Trash2, Edit2, Copy, Sparkles, Calendar, ChevronDown, ChevronUp,
@@ -222,6 +221,17 @@ export default function JobDetailPage() {
     fetchInterviews();
     fetchSettings();
   }, [fetchJob, fetchInterviews, fetchSettings]);
+
+  // Listen for contact additions from the popup window
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      if (event.data?.type === "contacts-updated" && event.data?.jobId === params.id) {
+        fetchJob();
+      }
+    }
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [params.id, fetchJob]);
 
   async function updateJob(data: Record<string, unknown>, message?: string) {
     setSaving(true);
@@ -636,14 +646,6 @@ export default function JobDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
         {/* Main Content */}
         <div className="md:col-span-2 space-y-4 sm:space-y-6">
-          {/* LinkedIn Search Links */}
-          {settings?.config && (
-            <LinkedInSearchLinks
-              companyName={job.company}
-              schools={(settings.config as Record<string, unknown>)?.schools as any}
-            />
-          )}
-
           {/* Job Details */}
           <Card>
             <CardHeader>
@@ -711,12 +713,23 @@ export default function JobDetailPage() {
                   Referrals & Outreach
                 </CardTitle>
                 <div className="flex gap-2">
-                  <a href={linkedinSearchUrl} target="_blank" rel="noopener noreferrer">
-                    <Button variant="secondary" size="sm">
-                      <Search className="h-4 w-4" />
-                      Find Alumni
-                    </Button>
-                  </a>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      // Open LinkedIn search in a new tab
+                      window.open(linkedinSearchUrl, "_blank");
+                      // Open the add-contacts popup window
+                      window.open(
+                        `/jobs/${job.id}/add-contacts`,
+                        `add-contacts-${job.id}`,
+                        "width=480,height=640,left=100,top=100,scrollbars=yes,resizable=yes"
+                      );
+                    }}
+                  >
+                    <Search className="h-4 w-4" />
+                    Find Connections
+                  </Button>
                   <Button size="sm" onClick={() => setShowAddContact(true)}>
                     <Plus className="h-4 w-4" />
                     Add Contact
