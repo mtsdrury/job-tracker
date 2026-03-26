@@ -53,12 +53,19 @@ export const authOptions: NextAuthOptions = {
       : []),
   ],
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
       // Allow credentials sign-in to pass through
       if (account?.provider === "credentials") return true;
 
-      // For OAuth (Google), link to existing account if email matches
+      // For OAuth (Google), verify email is confirmed before linking
       if (account?.provider === "google" && user.email) {
+        // Check if email is verified on the Google account
+        const emailVerified = (profile as { email_verified?: boolean })?.email_verified;
+        if (!emailVerified) {
+          console.warn(`Rejecting Google sign-in: email ${user.email} not verified on Google account`);
+          return false;
+        }
+
         const existingUser = await prisma.user.findUnique({
           where: { email: user.email },
           include: { accounts: true },

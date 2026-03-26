@@ -188,7 +188,7 @@ export default function BillingPage() {
       {!isDemo && (
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
               <div>
                 <p className="text-sm text-muted">Current Plan</p>
                 <p className="text-xl font-semibold capitalize">
@@ -199,6 +199,7 @@ export default function BillingPage() {
                 <Button
                   onClick={handleManagePortal}
                   disabled={loading === "portal"}
+                  className="w-full sm:w-auto"
                 >
                   {loading === "portal" ? (
                     <>
@@ -226,8 +227,8 @@ export default function BillingPage() {
       {/* Pricing Plans */}
       {!isPro && (
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Upgrade to Pro</h2>
-          <div className="grid md:grid-cols-3 gap-6">
+          <h2 className="text-lg sm:text-xl font-semibold">Upgrade to Pro</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {plans.map((plan) => (
               <Card
                 key={plan.name}
@@ -299,7 +300,7 @@ export default function BillingPage() {
             <CardTitle>What&apos;s included in Free</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
                 "Up to 25 jobs",
                 "Template-based messaging",

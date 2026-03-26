@@ -114,7 +114,7 @@ export function ApplyChecklist({
   }
 
   return (
-    <Card className="border-blue-500/50 bg-blue-950/20 mb-4">
+    <Card className="border-accent/50 bg-accent/20 mb-4">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center justify-between">
           <span>Apply to {jobCompany}</span>
@@ -131,7 +131,7 @@ export function ApplyChecklist({
 
       <CardContent className="space-y-4">
         {/* Progress indicator */}
-        <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
+        <div className="flex items-center gap-2 text-sm text-muted mb-4">
           <div className="flex gap-1">
             {checklist.map((item) => (
               <div
@@ -140,9 +140,9 @@ export function ApplyChecklist({
                 title={item.title}
               >
                 {item.completed ? (
-                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                  <CheckCircle2 className="w-5 h-5 text-success" />
                 ) : (
-                  <Circle className="w-5 h-5 text-gray-600" />
+                  <Circle className="w-5 h-5 text-muted" />
                 )}
               </div>
             ))}
@@ -154,7 +154,7 @@ export function ApplyChecklist({
 
         {/* Outreach warning */}
         {showOutreachWarning && (
-          <div className="rounded-lg bg-yellow-950/30 border border-yellow-700/50 p-3 text-sm text-yellow-200">
+          <div className="rounded-lg bg-warning/10 border border-warning/20 p-3 text-sm text-warning">
             <div className="font-semibold mb-1">Referral-First Mode</div>
             <p>
               You haven't reached out to any contacts yet. Consider finding a
@@ -166,7 +166,7 @@ export function ApplyChecklist({
         {/* Resume version */}
         <div>
           <label className="block text-sm font-medium mb-2">
-            Resume Version <span className="text-red-500">*</span>
+            Resume Version <span className="text-danger">*</span>
           </label>
           <Select
             value={resumeVersionId}
@@ -185,7 +185,7 @@ export function ApplyChecklist({
         {/* Application method */}
         <div>
           <label className="block text-sm font-medium mb-2">
-            Application Method <span className="text-red-500">*</span>
+            Application Method <span className="text-danger">*</span>
           </label>
           <Select
             value={applicationMethod}

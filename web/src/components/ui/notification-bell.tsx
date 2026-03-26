@@ -157,19 +157,21 @@ export function NotificationBell() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-muted hover:text-foreground transition-colors"
-        aria-label="Notifications"
+        className="relative p-2 text-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
+        aria-expanded={isOpen}
+        aria-controls="notifications-dropdown"
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1 -translate-y-1 bg-danger rounded-full">
+          <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1 -translate-y-1 bg-danger rounded-full" aria-label={`${unreadCount} unread notifications`}>
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 max-h-[500px] overflow-hidden rounded-lg border border-border bg-background shadow-lg z-50 flex flex-col">
+        <div id="notifications-dropdown" className="absolute right-0 mt-2 w-80 max-h-[500px] overflow-hidden rounded-lg border border-border bg-background shadow-lg z-50 flex flex-col" role="menu">
           {/* Header */}
           <div className="border-b border-border px-4 py-3 flex items-center justify-between">
             <h3 className="font-semibold text-foreground">Notifications</h3>
@@ -177,7 +179,8 @@ export function NotificationBell() {
               <button
                 onClick={handleMarkAllAsRead}
                 disabled={isLoading}
-                className="text-xs font-medium text-accent hover:text-accent/80 transition-colors disabled:opacity-50"
+                className="text-xs font-medium text-accent hover:text-accent/80 transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                aria-label={isLoading ? "Marking all notifications as read" : "Mark all notifications as read"}
               >
                 {isLoading ? "Marking..." : "Mark all as read"}
               </button>
@@ -250,8 +253,10 @@ function NotificationItem({ notification, onClick }: NotificationItemProps) {
       className={clsx(
         "w-full text-left px-4 py-3 border-b border-border hover:bg-surface transition-colors",
         bgClass,
-        "focus:outline-none focus:ring-2 focus:ring-accent/50"
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
       )}
+      role="menuitem"
+      aria-label={`${notification.title}: ${notification.message}`}
     >
       <div className="flex gap-3">
         <div className="flex-shrink-0 mt-1">

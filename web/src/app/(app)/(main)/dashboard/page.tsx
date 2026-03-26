@@ -11,11 +11,11 @@ import {
   ArrowRight,
   Plus,
   Bookmark,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { generateNudges, deriveNextAction } from "@/lib/next-action";
 import { EmptyDashboard } from "@/components/ui/empty-state";
+import { DashboardJobCard } from "@/components/dashboard-job-card";
 
 export default async function DashboardPage() {
   const session = await requireOnboarding();
@@ -130,8 +130,8 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
         <Link href="/jobs/new">
           <Button size="sm">
             <Plus className="h-4 w-4" />
@@ -141,7 +141,7 @@ export default async function DashboardPage() {
       </div>
 
       {fetchError && (
-        <div className="rounded-lg bg-danger/10 border border-danger/20 px-4 py-3 text-sm text-danger">
+        <div className="rounded-lg bg-danger/10 border border-danger/20 px-4 py-3 text-sm text-danger" role="alert">
           Failed to load dashboard. Please refresh the page.
         </div>
       )}
@@ -151,7 +151,9 @@ export default async function DashboardPage() {
       ) : (
       <>
       {/* Pipeline Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <section aria-labelledby="pipeline-summary-heading">
+      <h2 id="pipeline-summary-heading" className="sr-only">Pipeline Summary</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
@@ -205,13 +207,15 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+      </section>
 
       {/* Nudges / Action Items */}
       {nudges.length > 0 && (
+        <section aria-labelledby="action-items-heading">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-warning" />
+            <CardTitle id="action-items-heading" className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-warning" aria-hidden="true" />
               Action Items
             </CardTitle>
           </CardHeader>
@@ -220,16 +224,16 @@ export default async function DashboardPage() {
               {nudges.slice(0, 8).map((nudge, i) => (
                 <div
                   key={i}
-                  className="flex items-center justify-between rounded-lg border border-border px-4 py-3"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-lg border border-border px-4 py-3 gap-2 sm:gap-3"
                 >
-                  <div className="flex items-center gap-3">
-                    <Badge variant={urgencyBadge(nudge.urgency)}>
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <Badge variant={urgencyBadge(nudge.urgency)} className="flex-shrink-0">
                       {nudge.urgency}
                     </Badge>
-                    <span className="text-sm">{nudge.message}</span>
+                    <span className="text-xs sm:text-sm break-words">{nudge.message}</span>
                   </div>
                   {nudge.jobId && (
-                    <Link href={`/jobs/${nudge.jobId}`}>
+                    <Link href={`/jobs/${nudge.jobId}`} className="flex-shrink-0">
                       <ArrowRight className="h-4 w-4 text-muted hover:text-foreground" />
                     </Link>
                   )}
@@ -238,13 +242,15 @@ export default async function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+        </section>
       )}
 
       {/* Recent Jobs */}
+      <section aria-labelledby="recent-jobs-heading">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Recent Jobs</CardTitle>
+            <CardTitle id="recent-jobs-heading">Recent Jobs</CardTitle>
             <Link href="/jobs" className="text-sm text-accent hover:underline">
               View all
             </Link>
@@ -265,47 +271,22 @@ export default async function DashboardPage() {
           ) : (
             <div className="space-y-2">
               {activeJobs.slice(0, 5).map((job) => (
-                <Link key={job.id} href={`/jobs/${job.id}`}>
-                  <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3 hover:bg-surface-hover transition-colors">
-                    <div>
-                      <p className="text-sm font-medium">{job.company}</p>
-                      <p className="text-xs text-muted">{job.title}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {job.nextAction && (
-                        <Badge variant={
-                          job.nextAction.includes("Follow up") ? "warning" :
-                          job.nextAction.includes("Apply") ? "danger" :
-                          "info"
-                        }>{job.nextAction}</Badge>
-                      )}
-                      {job.applied ? (
-                        <Badge variant="success">Applied</Badge>
-                      ) : (
-                        <Badge>Not Applied</Badge>
-                      )}
-                      {job.outreachEvents.length > 0 && (
-                        <Badge variant="info">
-                          {job.outreachEvents.length} contact
-                          {job.outreachEvents.length !== 1 ? "s" : ""}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </Link>
+                <DashboardJobCard key={job.id} job={job} />
               ))}
             </div>
           )}
         </CardContent>
       </Card>
+      </section>
 
       {/* Saved Searches */}
       {savedSearches.length > 0 && (
+        <section aria-labelledby="saved-searches-heading">
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Bookmark className="h-5 w-5 text-accent" />
+              <CardTitle id="saved-searches-heading" className="flex items-center gap-2">
+                <Bookmark className="h-5 w-5 text-accent" aria-hidden="true" />
                 Saved Searches
               </CardTitle>
               <Link
@@ -346,6 +327,7 @@ export default async function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+        </section>
       )}
       </>
       )}

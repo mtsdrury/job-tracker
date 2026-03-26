@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth";
+import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { extractTextFromPdf } from "@/lib/pdf-extract";
@@ -25,7 +26,16 @@ export async function POST(
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return new Response("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Verify Anthropic API key is configured
+    if (!process.env.ANTHROPIC_API_KEY) {
+      console.error("ANTHROPIC_API_KEY is not configured");
+      return NextResponse.json(
+        { error: "Service configuration error" },
+        { status: 503 }
+      );
     }
 
     const { id } = await params;
@@ -33,9 +43,9 @@ export async function POST(
     const { resumeVersionId } = body;
 
     if (!resumeVersionId) {
-      return new Response(
-        JSON.stringify({ error: "resumeVersionId is required" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+      return NextResponse.json(
+        { error: "resumeVersionId is required" },
+        { status: 400 }
       );
     }
 
@@ -46,11 +56,11 @@ export async function POST(
     });
 
     if (!user || user.billingStatus !== "pro") {
-      return new Response(
-        JSON.stringify({
+      return NextResponse.json(
+        {
           error: "This feature requires a Pro subscription. Please upgrade to unlock AI-powered resume matching.",
-        }),
-        { status: 403, headers: { "Content-Type": "application/json" } }
+        },
+        { status: 403 }
       );
     }
 
@@ -68,15 +78,15 @@ export async function POST(
     });
 
     if (!job || job.userId !== session.user.id) {
-      return new Response("Job not found", { status: 404 });
+      return NextResponse.json({ error: "Job not found" }, { status: 404 });
     }
 
     if (!job.description) {
-      return new Response(
-        JSON.stringify({
+      return NextResponse.json(
+        {
           error: "This job does not have a description. Save a job from Job Search to get AI match analysis.",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        },
+        { status: 400 }
       );
     }
 
@@ -94,7 +104,10 @@ export async function POST(
     });
 
     if (!resumeVersion || resumeVersion.userId !== session.user.id) {
-      return new Response("Resume version not found", { status: 404 });
+      return NextResponse.json(
+        { error: "Resume version not found" },
+        { status: 404 }
+      );
     }
 
     // Get resume text
@@ -129,11 +142,11 @@ export async function POST(
     }
 
     if (!resumeText) {
-      return new Response(
-        JSON.stringify({
+      return NextResponse.json(
+        {
           error: "Could not extract text from resume. Please ensure the resume PDF is readable.",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        },
+        { status: 400 }
       );
     }
 
@@ -199,17 +212,11 @@ Return ONLY valid JSON, no other text.`,
     // Clamp score to 0-100
     matchData.score = Math.max(0, Math.min(100, Math.round(matchData.score)));
 
-    return new Response(JSON.stringify(matchData), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return NextResponse.json(matchData, { status: 200 });
   } catch (error) {
     console.error("Match score API error:", error);
     const message =
       error instanceof Error ? error.message : "Internal server error";
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -124,7 +124,7 @@ model User {
   image             String?
   createdAt         DateTime      @default(now())
   billingStatus     BillingStatus @default(free)
-  stripeCustomerId  String?
+  stripeCustomerId  String?       @unique
   strategyMode      StrategyMode  @default(referral_first)
   stalledDays       Int           @default(5)
   config            Json          @default("{}")
@@ -291,6 +291,8 @@ model OutreachEvent {
   @@index([userId, jobId])
   @@index([userId, contactId])
   @@index([userId, status, lastActionAt])
+  @@index([jobId, status])
+  @@index([contactId, status])
 }
 
 // ---------------------------------------------------------------------------
@@ -317,6 +319,7 @@ model Interview {
 
   @@index([jobId])
   @@index([userId])
+  @@index([userId, scheduledAt])
 }
 
 // ---------------------------------------------------------------------------

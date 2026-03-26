@@ -80,8 +80,8 @@ export async function PUT(req: NextRequest) {
       },
     });
 
-    // Sync resume versions: delete all and recreate
-    if (resumeVersions) {
+    // Sync resume versions: only delete and recreate if resumeVersions is provided in request
+    if (Array.isArray(resumeVersions)) {
       await prisma.resumeVersion.deleteMany({ where: { userId: session.user.id } });
       if (resumeVersions.length > 0) {
         await prisma.resumeVersion.createMany({
@@ -94,8 +94,8 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    // Sync templates
-    if (templates) {
+    // Sync templates: only delete and recreate if templates is provided in request
+    if (Array.isArray(templates)) {
       await prisma.messageTemplate.deleteMany({ where: { userId: session.user.id } });
       const validTemplates = templates.filter((t: { name: string; body: string }) => t.name && t.body);
       if (validTemplates.length > 0) {

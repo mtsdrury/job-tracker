@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown } from "lucide-react";
@@ -91,9 +91,9 @@ export default function AnalyticsPage() {
     return (
       <div className="space-y-8">
         <h1 className="text-2xl font-bold">Analytics</h1>
-        <Card className="border-red-500/20 bg-red-500/5">
+        <Card className="border-danger/20 bg-danger/5">
           <CardContent className="pt-6">
-            <p className="text-red-600">Error: {error}</p>
+            <p className="text-danger">Error: {error}</p>
           </CardContent>
         </Card>
       </div>
@@ -118,7 +118,7 @@ export default function AnalyticsPage() {
       <h1 className="text-2xl font-bold">Analytics</h1>
 
       {/* Row 1: Key Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           label="Total Applications"
           value={data.summary.totalApplications}
@@ -195,7 +195,7 @@ export default function AnalyticsPage() {
 // Metric Card Component
 // ============================================================================
 
-function MetricCard({
+const MetricCard = memo(function MetricCard({
   label,
   value,
   unit,
@@ -239,18 +239,18 @@ function MetricCard({
       </CardContent>
     </Card>
   );
-}
+});
 
 // ============================================================================
 // Pipeline Funnel Component
 // ============================================================================
 
-function PipelineFunnel({ funnel }: { funnel: Record<string, any> }) {
+const PipelineFunnel = memo(function PipelineFunnel({ funnel }: { funnel: Record<string, any> }) {
   const stages = [
     { key: "saved", label: "Saved", color: "bg-accent" },
-    { key: "networking", label: "Networking", color: "bg-blue-600" },
+    { key: "networking", label: "Networking", color: "bg-accent" },
     { key: "applied", label: "Applied", color: "bg-violet-600" },
-    { key: "interview", label: "Interview", color: "bg-orange-600" },
+    { key: "interview", label: "Interview", color: "bg-warning" },
     { key: "offer", label: "Offer", color: "bg-success" },
   ];
 
@@ -274,14 +274,14 @@ function PipelineFunnel({ funnel }: { funnel: Record<string, any> }) {
 
             return (
               <div key={stage.key} className="space-y-2">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-sm">{stage.label}</span>
                     <Badge variant="default" className="text-xs">
                       {count}
                     </Badge>
                   </div>
-                  <div className="flex gap-4 text-xs text-muted">
+                  <div className="flex flex-col sm:flex-row gap-1 sm:gap-4 text-xs text-muted">
                     <span>{percentage.toFixed(1)}% of all</span>
                     {index > 0 && (
                       <span className="text-success">
@@ -303,13 +303,13 @@ function PipelineFunnel({ funnel }: { funnel: Record<string, any> }) {
       </CardContent>
     </Card>
   );
-}
+});
 
 // ============================================================================
 // Activity Timeline Component
 // ============================================================================
 
-function ActivityTimeline({
+const ActivityTimeline = memo(function ActivityTimeline({
   timelineData,
 }: {
   timelineData: Array<{ week: string; jobsAdded: number; applicationsSubmitted: number }>;
@@ -387,13 +387,13 @@ function ActivityTimeline({
       </CardContent>
     </Card>
   );
-}
+});
 
 // ============================================================================
 // Outreach Performance Component
 // ============================================================================
 
-function OutreachPerformance({
+const OutreachPerformance = memo(function OutreachPerformance({
   stats,
 }: {
   stats: {
@@ -415,7 +415,7 @@ function OutreachPerformance({
       </CardHeader>
       <CardContent className="space-y-6">
         <div>
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
             <span className="text-sm font-medium">Response Rate</span>
             <span className="text-2xl font-bold text-success">
               {stats.responseRate.toFixed(1)}%
@@ -433,7 +433,7 @@ function OutreachPerformance({
         </div>
 
         {/* Breakdown */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="rounded-lg bg-success/10 p-4">
             <p className="text-xs text-muted mb-1">Responded</p>
             <p className="text-2xl font-bold text-success">{stats.responded}</p>
@@ -457,13 +457,13 @@ function OutreachPerformance({
       </CardContent>
     </Card>
   );
-}
+});
 
 // ============================================================================
 // Resume Performance Table Component
 // ============================================================================
 
-function ResumePerformanceTable({
+const ResumePerformanceTable = memo(function ResumePerformanceTable({
   resumes,
 }: {
   resumes: Array<{
@@ -541,13 +541,13 @@ function ResumePerformanceTable({
       </CardContent>
     </Card>
   );
-}
+});
 
 // ============================================================================
 // Top Companies Placeholder Table Component
 // ============================================================================
 
-function TopCompaniesTable({
+const TopCompaniesTable = memo(function TopCompaniesTable({
   pipelineBreakdown,
 }: {
   pipelineBreakdown: Record<string, number>;
@@ -555,9 +555,9 @@ function TopCompaniesTable({
   const total = Object.values(pipelineBreakdown).reduce((a, b) => a + b, 0);
 
   const breakdown = [
-    { label: "Networking", count: pipelineBreakdown.networking, color: "text-blue-600" },
+    { label: "Networking", count: pipelineBreakdown.networking, color: "text-accent" },
     { label: "Applied", count: pipelineBreakdown.applied, color: "text-violet-600" },
-    { label: "Interviewing", count: pipelineBreakdown.interviewing, color: "text-orange-600" },
+    { label: "Interviewing", count: pipelineBreakdown.interviewing, color: "text-warning" },
     { label: "Offer", count: pipelineBreakdown.offer, color: "text-success" },
     { label: "Rejected", count: pipelineBreakdown.rejected, color: "text-danger" },
   ].filter((b) => b.count > 0);
@@ -586,7 +586,7 @@ function TopCompaniesTable({
             const percentage = total > 0 ? (item.count / total) * 100 : 0;
             return (
               <div key={item.label}>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
                   <span className="text-sm font-medium">{item.label}</span>
                   <span className={`text-sm font-semibold ${item.color}`}>
                     {item.count}
@@ -605,13 +605,13 @@ function TopCompaniesTable({
       </CardContent>
     </Card>
   );
-}
+});
 
 // ============================================================================
 // Interview Performance Component
 // ============================================================================
 
-function InterviewPerformance({
+const InterviewPerformance = memo(function InterviewPerformance({
   interviews,
 }: {
   interviews: Array<{
@@ -635,7 +635,7 @@ function InterviewPerformance({
 
             return (
               <div key={interview.stage}>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
                   <div>
                     <p className="text-sm font-medium capitalize">
                       {interview.stage.replace("_", " ")}
@@ -661,13 +661,13 @@ function InterviewPerformance({
       </CardContent>
     </Card>
   );
-}
+});
 
 // ============================================================================
 // Template Effectiveness Table Component
 // ============================================================================
 
-function TemplateEffectivenessTable({
+const TemplateEffectivenessTable = memo(function TemplateEffectivenessTable({
   templates,
 }: {
   templates: Array<{
@@ -732,4 +732,4 @@ function TemplateEffectivenessTable({
       </CardContent>
     </Card>
   );
-}
+});

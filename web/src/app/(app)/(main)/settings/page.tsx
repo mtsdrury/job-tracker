@@ -342,7 +342,7 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-2">Target Job Titles</label>
-            <div className="flex gap-2 items-end mb-3">
+            <div className="flex flex-col sm:flex-row gap-2 items-end mb-3">
               <Input
                 id="new-role"
                 value={newRole}
@@ -350,7 +350,7 @@ export default function SettingsPage() {
                 onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addRole())}
                 placeholder="e.g. Software Engineer, Product Manager"
               />
-              <Button size="sm" onClick={addRole}>Add</Button>
+              <Button size="sm" onClick={addRole} className="w-full sm:w-auto">Add</Button>
             </div>
             <div className="flex flex-wrap gap-2">
               {targetRoles.map((role, i) => (
@@ -369,7 +369,7 @@ export default function SettingsPage() {
 
           <div>
             <label className="block text-sm font-medium mb-2">Preferred Locations</label>
-            <div className="flex gap-2 items-end mb-3">
+            <div className="flex flex-col sm:flex-row gap-2 items-end mb-3">
               <Input
                 id="new-location"
                 value={newLocation}
@@ -377,7 +377,7 @@ export default function SettingsPage() {
                 onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addLocation())}
                 placeholder="e.g. San Francisco, CA; New York, NY"
               />
-              <Button size="sm" onClick={addLocation}>Add</Button>
+              <Button size="sm" onClick={addLocation} className="w-full sm:w-auto">Add</Button>
             </div>
             <div className="flex flex-wrap gap-2">
               {preferredLocations.map((location, i) => (
@@ -394,7 +394,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Remote Preference</label>
               <select
@@ -474,7 +474,7 @@ export default function SettingsPage() {
           <CardTitle>Strategy</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button
               onClick={() => setStrategy("referral_first")}
               className={`text-left rounded-lg border p-3 text-sm transition-colors ${
@@ -520,10 +520,10 @@ export default function SettingsPage() {
             search for your school on LinkedIn, go to its page, and copy the number from the URL
             (e.g. linkedin.com/school/<strong>1234</strong>/).
           </p>
-          <div className="flex gap-2 items-end">
+          <div className="flex flex-col sm:flex-row gap-2 items-end">
             <Input id="s-name" label="Name" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="State University" />
             <Input id="s-id" label="LinkedIn ID" value={schoolId} onChange={(e) => setSchoolId(e.target.value)} placeholder="1234" />
-            <Button size="sm" onClick={addSchool}>Add</Button>
+            <Button size="sm" onClick={addSchool} className="w-full sm:w-auto">Add</Button>
           </div>
           {schools.map((s, i) => (
             <div key={i} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm">
@@ -540,9 +540,9 @@ export default function SettingsPage() {
           <CardTitle>Resume Versions</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2 items-end">
+          <div className="flex flex-col sm:flex-row gap-2 items-end">
             <Input id="r-name" label="Version Name" value={newResume} onChange={(e) => setNewResume(e.target.value)} placeholder="ML Engineer" />
-            <Button size="sm" onClick={addResume}>Add</Button>
+            <Button size="sm" onClick={addResume} className="w-full sm:w-auto">Add</Button>
           </div>
           {resumeVersions.map((r, i) => (
             <div key={r.id || i} className="space-y-3 pb-4 border-b border-border last:border-0 last:pb-0">
@@ -582,7 +582,7 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           {templates.map((t, i) => (
             <div key={i} className="space-y-2 pb-4 border-b border-border last:border-0">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
                 <Input
                   id={`t-name-${i}`}
                   value={t.name}
@@ -593,7 +593,7 @@ export default function SettingsPage() {
                   }}
                   placeholder="Template name"
                 />
-                <button onClick={() => setTemplates(templates.filter((_, j) => j !== i))} className="text-muted hover:text-danger text-xs ml-2">Remove</button>
+                <button onClick={() => setTemplates(templates.filter((_, j) => j !== i))} className="text-muted hover:text-danger text-xs sm:flex-shrink-0">Remove</button>
               </div>
               <Textarea
                 id={`t-body-${i}`}

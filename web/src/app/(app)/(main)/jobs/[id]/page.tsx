@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -18,8 +19,15 @@ import Link from "next/link";
 import { substituteTemplateVars, type TemplateContext } from "@/lib/template-substitution";
 import { useToast } from "@/components/ui/toast";
 import { JobDetailSkeleton } from "@/components/ui/skeleton";
-import { InterviewPrep } from "@/components/ui/interview-prep";
-import { MatchScore } from "@/components/ui/match-score";
+
+const InterviewPrep = dynamic(
+  () => import("@/components/ui/interview-prep").then(mod => ({ default: mod.InterviewPrep })),
+  { ssr: false }
+);
+const MatchScore = dynamic(
+  () => import("@/components/ui/match-score").then(mod => ({ default: mod.MatchScore })),
+  { ssr: false }
+);
 
 interface Contact {
   id: string;
@@ -483,14 +491,14 @@ export default function JobDetailPage() {
     behavioral: "bg-indigo-500",
     onsite: "bg-orange-500",
     final: "bg-green-500",
-    other: "bg-gray-500",
+    other: "bg-muted",
   };
 
   const outcomeColors: Record<string, string> = {
-    passed: "bg-green-500/10 text-green-400 border-green-500/20",
-    failed: "bg-red-500/10 text-red-400 border-red-500/20",
-    pending: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-    cancelled: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+    passed: "bg-success/10 text-success border-success/20",
+    failed: "bg-danger/10 text-danger border-danger/20",
+    pending: "bg-warning/10 text-warning border-warning/20",
+    cancelled: "bg-muted/10 text-muted border-muted/20",
   };
 
   if (loading) return <JobDetailSkeleton />;
@@ -537,18 +545,18 @@ export default function JobDetailPage() {
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <button onClick={() => router.back()} className="text-muted hover:text-foreground">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:gap-4 gap-3">
+        <button onClick={() => router.back()} className="text-muted hover:text-foreground flex-shrink-0">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">{job.company}</h1>
-          <p className="text-muted">{job.title}</p>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold truncate">{job.company}</h1>
+          <p className="text-sm sm:text-base text-muted truncate">{job.title}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-shrink-0">
           {job.url && (
             <a href={job.url} target="_blank" rel="noopener noreferrer">
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className="w-full sm:w-auto">
                 <ExternalLink className="h-4 w-4" />
                 View Posting
               </Button>
@@ -556,13 +564,13 @@ export default function JobDetailPage() {
           )}
           {!job.applied && (
             canApply ? (
-              <Button onClick={handleApplyClick} disabled={saving}>
+              <Button onClick={handleApplyClick} disabled={saving} className="w-full sm:w-auto">
                 <Check className="h-4 w-4" />
                 Apply
               </Button>
             ) : (
-              <div className="text-right">
-                <Button disabled className="opacity-50">
+              <div className="text-left sm:text-right w-full sm:w-auto">
+                <Button disabled className="opacity-50 w-full sm:w-auto">
                   <Check className="h-4 w-4" />
                   Apply
                 </Button>
@@ -601,16 +609,16 @@ export default function JobDetailPage() {
         />
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="md:col-span-2 space-y-4 sm:space-y-6">
           {/* Job Details */}
           <Card>
             <CardHeader>
               <CardTitle>Job Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-muted">Location</p>
                   <p className="text-sm">{job.location || "Not specified"}</p>
@@ -688,7 +696,7 @@ export default function JobDetailPage() {
               {showAddContact && (
                 <div className="mb-6 rounded-lg border border-border p-4 space-y-3">
                   <h4 className="font-medium text-sm">New Contact</h4>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Input
                       id="contact-name" label="Name" value={contactForm.name}
                       onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
@@ -738,15 +746,15 @@ export default function JobDetailPage() {
                   {job.outreachEvents.map((event) => (
                     <div key={event.id} className="rounded-lg border border-border overflow-hidden">
                       <div className="p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div>
-                            <p className="font-medium text-sm">{event.contact.name}</p>
-                            <p className="text-xs text-muted">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm truncate">{event.contact.name}</p>
+                            <p className="text-xs text-muted truncate">
                               {event.contact.title}{event.contact.company ? ` at ${event.contact.company}` : ""}
                             </p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant={statusBadgeVariant(event.status)}>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <Badge variant={statusBadgeVariant(event.status)} className="text-xs">
                               {event.status.replace(/_/g, " ")}
                             </Badge>
                             <button onClick={() => deleteOutreach(event.id)} className="text-muted hover:text-danger">
@@ -754,57 +762,59 @@ export default function JobDetailPage() {
                             </button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 mt-2">
+                        <div className="flex flex-col sm:flex-row gap-2 mt-2 text-xs">
                           <select
                             value={event.status}
                             onChange={(e) => updateOutreachStatus(event.id, e.target.value)}
-                            className="rounded border border-border bg-surface px-2 py-1 text-xs text-foreground"
+                            className="rounded border border-border bg-surface px-2 py-1 text-xs text-foreground w-full sm:w-auto"
                           >
                             {OUTREACH_STATUSES.map((s) => (
                               <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
                             ))}
                           </select>
-                          {event.contact.linkedinUrl && (
-                            <a href={event.contact.linkedinUrl} target="_blank" rel="noopener noreferrer"
-                              className="text-xs text-accent hover:underline">LinkedIn</a>
-                          )}
-                          <span className="text-xs text-muted">
-                            Last: {new Date(event.lastActionAt).toLocaleDateString()}
-                          </span>
-                          <button
-                            onClick={() => {
-                              if (drafting.eventId === event.id) {
-                                setDrafting({
-                                  eventId: null,
-                                  templateId: null,
-                                  connectionId: null,
-                                  message: "",
-                                  isLoading: false,
-                                  copied: false,
-                                });
-                              } else {
-                                setDrafting({
-                                  eventId: event.id,
-                                  templateId: settings?.messageTemplates[0]?.id || null,
-                                  connectionId: null,
-                                  message: event.messageDraft || "",
-                                  isLoading: false,
-                                  copied: false,
-                                });
-                              }
-                            }}
-                            className="text-muted hover:text-accent ml-auto"
-                            title="Draft message"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </button>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {event.contact.linkedinUrl && (
+                              <a href={event.contact.linkedinUrl} target="_blank" rel="noopener noreferrer"
+                                className="text-accent hover:underline">LinkedIn</a>
+                            )}
+                            <span className="text-muted whitespace-nowrap">
+                              Last: {new Date(event.lastActionAt).toLocaleDateString()}
+                            </span>
+                            <button
+                              onClick={() => {
+                                if (drafting.eventId === event.id) {
+                                  setDrafting({
+                                    eventId: null,
+                                    templateId: null,
+                                    connectionId: null,
+                                    message: "",
+                                    isLoading: false,
+                                    copied: false,
+                                  });
+                                } else {
+                                  setDrafting({
+                                    eventId: event.id,
+                                    templateId: settings?.messageTemplates[0]?.id || null,
+                                    connectionId: null,
+                                    message: event.messageDraft || "",
+                                    isLoading: false,
+                                    copied: false,
+                                  });
+                                }
+                              }}
+                              className="text-muted hover:text-accent ml-auto sm:ml-0 flex-shrink-0"
+                              title="Draft message"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
 
                       {/* Drafting Panel */}
                       {drafting.eventId === event.id && (
-                        <div className="border-t border-border bg-surface/30 p-4 space-y-3 max-h-[500px] overflow-y-auto">
-                          <div className="grid grid-cols-2 gap-3">
+                        <div className="border-t border-border bg-surface/30 p-3 sm:p-4 space-y-3 max-h-[500px] overflow-y-auto">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <Select
                               label="Template"
                               value={drafting.templateId || ""}
@@ -937,7 +947,7 @@ export default function JobDetailPage() {
                 {showAddInterview && (
                   <div className="rounded-lg border border-border p-4 space-y-3 mb-6 bg-surface/30">
                     <h4 className="font-medium text-sm">New Interview</h4>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <Select
                         id="stage" label="Stage" value={interviewForm.stage}
                         onChange={(e) => setInterviewForm({ ...interviewForm, stage: e.target.value })}
@@ -999,7 +1009,7 @@ export default function JobDetailPage() {
                       {interviews.map((interview) => (
                         <div
                           key={interview.id}
-                          className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full text-xs font-medium text-white ${stageColors[interview.stage as keyof typeof stageColors] || 'bg-gray-500'}`}
+                          className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full text-xs font-medium text-white ${stageColors[interview.stage as keyof typeof stageColors] || 'bg-muted'}`}
                           title={stageLabels[interview.stage as keyof typeof stageLabels] || interview.stage}
                         >
                           {interviews.indexOf(interview) + 1}
@@ -1014,11 +1024,11 @@ export default function JobDetailPage() {
                           key={interview.id}
                           className="rounded-lg border border-border p-4 hover:bg-surface/50 transition-colors"
                         >
-                          <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <div className="flex items-center gap-2">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <div
-                                  className={`w-3 h-3 rounded-full ${stageColors[interview.stage as keyof typeof stageColors] || 'bg-gray-500'}`}
+                                  className={`w-3 h-3 rounded-full flex-shrink-0 ${stageColors[interview.stage as keyof typeof stageColors] || 'bg-muted'}`}
                                 />
                                 <p className="font-medium text-sm">
                                   {stageLabels[interview.stage as keyof typeof stageLabels] || interview.stage}
@@ -1034,6 +1044,7 @@ export default function JobDetailPage() {
                                         ? 'info'
                                         : 'warning'
                                     }
+                                    className="text-xs"
                                   >
                                     {interview.outcome}
                                   </Badge>
@@ -1045,7 +1056,7 @@ export default function JobDetailPage() {
                                 </p>
                               )}
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-shrink-0">
                               <button
                                 onClick={() =>
                                   setExpandedInterview(
@@ -1179,7 +1190,7 @@ export default function JobDetailPage() {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Status */}
           <Card>
             <CardHeader>

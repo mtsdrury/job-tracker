@@ -62,7 +62,7 @@ export default function NewJobPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="rounded-lg bg-danger/10 border border-danger/20 px-4 py-3 text-sm text-danger">
+              <div className="rounded-lg bg-danger/10 border border-danger/20 px-4 py-3 text-sm text-danger" role="alert">
                 {error}
               </div>
             )}

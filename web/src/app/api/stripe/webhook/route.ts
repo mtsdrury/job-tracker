@@ -16,17 +16,20 @@ export async function POST(req: NextRequest) {
   let event;
 
   try {
-    // Skip verification if webhook secret is not set (local development)
-    if (process.env.STRIPE_WEBHOOK_SECRET) {
-      event = stripe.webhooks.constructEvent(
-        body,
-        signature,
-        process.env.STRIPE_WEBHOOK_SECRET
+    // Webhook secret is required in production; missing secret is a configuration error
+    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+      console.error("STRIPE_WEBHOOK_SECRET is not configured");
+      return NextResponse.json(
+        { error: "Webhook configuration error" },
+        { status: 503 }
       );
-    } else {
-      // For local development without webhook secret, parse JSON directly
-      event = JSON.parse(body);
     }
+
+    event = stripe.webhooks.constructEvent(
+      body,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
   } catch (error) {
     console.error("Webhook signature verification failed:", error);
     return NextResponse.json(

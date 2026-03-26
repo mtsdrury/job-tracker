@@ -117,11 +117,11 @@ export default function Home() {
     <div className="min-h-screen bg-background text-foreground">
       {/* Nav */}
       <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" className="text-xl font-bold text-foreground">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 py-4">
+          <Link href="/" className="text-lg sm:text-xl font-bold text-foreground">
             {APP_NAME}
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Link href="/login">
               <Button variant="ghost" size="sm">
                 Log in
@@ -137,22 +137,22 @@ export default function Home() {
       </nav>
 
       {/* Hero */}
-      <section className="mx-auto max-w-6xl px-6 pb-24 pt-20 md:pt-32">
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 pb-16 sm:pb-24 pt-16 sm:pt-20 md:pt-32">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="mb-4 text-sm font-medium uppercase tracking-widest text-accent">
+          <p className="mb-4 text-xs sm:text-sm font-medium uppercase tracking-widest text-accent">
             The referral-first job search platform
           </p>
-          <h1 className="text-4xl font-bold leading-tight tracking-tight text-foreground md:text-6xl md:leading-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight text-foreground md:leading-tight">
             In this market, it&apos;s not what you know.
             <br />
             <span className="text-accent">It&apos;s who you know.</span>
           </h1>
-          <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted">
+          <p className="mx-auto mt-4 sm:mt-6 max-w-xl text-base sm:text-lg leading-relaxed text-muted px-2">
             Cold applications disappear into the void. Referrals get interviews.
             {" "}{APP_NAME} is the only job search tool that puts networking first, guiding you
             from &quot;I found a role&quot; to &quot;someone on the inside is vouching for me.&quot;
           </p>
-          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <div className="mt-8 sm:mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row w-full px-4 sm:px-0">
             <Link href="/register">
               <Button size="lg" className="gap-2">
                 Start Free
@@ -169,19 +169,19 @@ export default function Home() {
 
       {/* Social proof / stat bar */}
       <section className="border-y border-border bg-surface/50 py-8">
-        <div className="mx-auto flex max-w-4xl flex-col items-center justify-center gap-8 px-6 sm:flex-row sm:gap-16">
+        <div className="mx-auto flex max-w-4xl flex-col items-center justify-center gap-6 px-4 sm:px-6 sm:flex-row sm:gap-8 md:gap-16">
           <div className="text-center">
-            <p className="text-3xl font-bold text-accent">5x</p>
+            <p className="text-2xl sm:text-3xl font-bold text-accent">5x</p>
             <p className="mt-1 text-xs text-muted">higher response rate with referrals vs. cold apply</p>
           </div>
           <div className="hidden sm:block h-8 w-px bg-border" />
           <div className="text-center">
-            <p className="text-3xl font-bold text-accent">70%</p>
+            <p className="text-2xl sm:text-3xl font-bold text-accent">70%</p>
             <p className="mt-1 text-xs text-muted">of jobs are filled through networking</p>
           </div>
           <div className="hidden sm:block h-8 w-px bg-border" />
           <div className="text-center">
-            <p className="text-3xl font-bold text-accent">10x</p>
+            <p className="text-2xl sm:text-3xl font-bold text-accent">10x</p>
             <p className="mt-1 text-xs text-muted">more likely to get hired with an internal referral</p>
           </div>
         </div>
@@ -190,18 +190,18 @@ export default function Home() {
       {/* How It Works */}
       <section
         id="how-it-works"
-        className="border-t border-border py-24"
+        className="border-t border-border py-16 sm:py-24"
       >
-        <div className="mx-auto max-w-6xl px-6">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold text-foreground md:text-4xl">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
               How {APP_NAME} works
             </h2>
-            <p className="mt-4 text-muted">
-              Four steps from &quot;interested&quot; to &quot;referred.&quot;
+            <p className="mt-4 text-sm sm:text-base text-muted">
+              Four steps from "interested" to "referred."
             </p>
           </div>
-          <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-12 sm:mt-16 grid gap-6 sm:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {steps.map((step, i) => (
               <div key={step.title} className="text-center">
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-accent/10 text-accent">
@@ -223,12 +223,12 @@ export default function Home() {
       </section>
 
       {/* Key differentiator callout */}
-      <section className="border-t border-border bg-accent/5 py-16">
-        <div className="mx-auto max-w-3xl px-6 text-center">
-          <h2 className="text-2xl font-bold text-foreground md:text-3xl">
+      <section className="border-t border-border bg-accent/5 py-12 sm:py-16">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
             The missing link in job search tools
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-muted leading-relaxed">
+          <p className="mx-auto mt-4 max-w-xl text-sm sm:text-base text-muted leading-relaxed">
             Other trackers let you log that you applied somewhere. {APP_NAME} tracks
             the entire referral journey: who you messaged, for which job, what they
             said, and whether it turned into an actual referral. That closed loop is
@@ -238,18 +238,18 @@ export default function Home() {
       </section>
 
       {/* Features */}
-      <section className="border-t border-border py-24">
-        <div className="mx-auto max-w-6xl px-6">
+      <section className="border-t border-border py-16 sm:py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold text-foreground md:text-4xl">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
               Built for the referral-first workflow
             </h2>
-            <p className="mt-4 text-muted">
+            <p className="mt-4 text-sm sm:text-base text-muted">
               Every feature is designed around one idea: talk to a person before
-              you click &quot;Apply.&quot;
+              you click "Apply."
             </p>
           </div>
-          <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-12 sm:mt-16 grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((feature) => (
               <Card key={feature.title} className="p-6">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-accent">
@@ -268,17 +268,17 @@ export default function Home() {
       </section>
 
       {/* Pricing */}
-      <section className="border-t border-border bg-surface py-24">
-        <div className="mx-auto max-w-6xl px-6">
+      <section className="border-t border-border bg-surface py-16 sm:py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold text-foreground md:text-4xl">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
               Simple, fair pricing
             </h2>
-            <p className="mt-4 text-muted">
+            <p className="mt-4 text-sm sm:text-base text-muted">
               Start free. Upgrade when your search gets serious.
             </p>
           </div>
-          <div className="mx-auto mt-16 grid max-w-4xl gap-8 md:grid-cols-3">
+          <div className="mx-auto mt-12 sm:mt-16 grid max-w-4xl gap-6 sm:gap-8 grid-cols-1 md:grid-cols-3">
             {/* Free Tier */}
             <Card className="flex flex-col p-8">
               <CardHeader className="mb-6">
@@ -394,12 +394,12 @@ export default function Home() {
       </section>
 
       {/* FAQ */}
-      <section className="border-t border-border py-24">
-        <div className="mx-auto max-w-3xl px-6">
-          <h2 className="text-center text-3xl font-bold text-foreground md:text-4xl">
+      <section className="border-t border-border py-16 sm:py-24">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6">
+          <h2 className="text-center text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
             Common questions
           </h2>
-          <div className="mt-12 space-y-6">
+          <div className="mt-8 sm:mt-12 space-y-4 sm:space-y-6">
             {[
               {
                 q: "How is this different from a spreadsheet?",
@@ -440,15 +440,15 @@ export default function Home() {
       </section>
 
       {/* Final CTA */}
-      <section className="border-t border-border py-24">
-        <div className="mx-auto max-w-3xl px-6 text-center">
-          <h2 className="text-3xl font-bold text-foreground md:text-4xl">
+      <section className="border-t border-border py-16 sm:py-24">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 text-center">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
             Your next job starts with someone you know
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-muted leading-relaxed">
+          <p className="mx-auto mt-4 max-w-xl text-sm sm:text-base text-muted leading-relaxed">
             Stop sending applications into the void. Start building the connections that actually get you hired.
           </p>
-          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <div className="mt-8 sm:mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row w-full px-4 sm:px-0">
             <Link href="/register">
               <Button size="lg" className="gap-2">
                 Get Started (It&apos;s Free)
@@ -461,12 +461,12 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border py-10">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 text-sm text-muted sm:flex-row">
+      <footer className="border-t border-border py-8 sm:py-10">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 sm:px-6 text-xs sm:text-sm text-muted sm:flex-row">
           <p>
             &copy; {new Date().getFullYear()} {APP_NAME}. All rights reserved.
           </p>
-          <div className="flex gap-6">
+          <div className="flex gap-4 sm:gap-6">
             <Link href="/privacy" className="hover:text-foreground">
               Privacy
             </Link>
