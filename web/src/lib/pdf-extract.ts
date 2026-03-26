@@ -94,9 +94,12 @@ export async function extractTextFromPdf(fileUrl: string): Promise<string> {
     }
 
     // Fetch the PDF file
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
     const response = await fetch(fileUrl, {
-      timeout: 30000, // 30 second timeout
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`Failed to fetch PDF: ${response.statusText}`);
