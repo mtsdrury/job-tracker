@@ -43,7 +43,7 @@ const ARCHETYPE_ICONS: Record<string, string> = {
 export default function QuizPage() {
   const { data: session } = useSession();
   const router = useRouter();
-  const { success, error } = useToast();
+  const toast = useToast();
 
   // State
   const [step, setStep] = useState<QuizStep>("loading");
@@ -59,10 +59,7 @@ export default function QuizPage() {
 
   // Load user data and initialize
   useEffect(() => {
-    if (!session?.user?.id) {
-      router.push("/");
-      return;
-    }
+    if (!session?.user?.id) return;
 
     fetch("/api/settings")
       .then((res) => res.json())
@@ -75,9 +72,8 @@ export default function QuizPage() {
       })
       .catch((err) => {
         console.error("Failed to load user data:", err);
-        error("Failed to load user data. Please try again.");
       });
-  }, [session, router, error]);
+  }, [session?.user?.id]);
 
   // Determine which questions to show based on step
   useEffect(() => {
@@ -219,14 +215,14 @@ export default function QuizPage() {
 
       if (res.ok) {
         setUserData((prev) => prev ? { ...prev, toneProfile: profile } : null);
-        success("Tone profile saved!");
+        toast.success("Tone profile saved!");
         setStep("final-results");
       } else {
-        error("Failed to save profile");
+        toast.error("Failed to save profile");
       }
     } catch (err) {
       console.error("Failed to save profile:", err);
-      error("Failed to save profile. Please try again.");
+      toast.error("Failed to save profile. Please try again.");
     } finally {
       setSaving(false);
     }
