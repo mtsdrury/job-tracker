@@ -19,6 +19,7 @@ import {
   Menu,
   X,
 } from "lucide-react";
+import { NotificationBell } from "./ui/notification-bell";
 
 const APP_NAME = "KnowSomeone";
 
@@ -95,6 +96,7 @@ export function Nav() {
           <div className="flex items-center gap-4">
             {session?.user && (
               <>
+                <NotificationBell />
                 {isDemo && (
                   <button
                     onClick={handleReset}

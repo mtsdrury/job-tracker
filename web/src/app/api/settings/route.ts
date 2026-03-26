@@ -19,7 +19,9 @@ export async function GET() {
       preferredLocations: true,
       remotePreference: true,
       experienceLevel: true,
-      resumeVersions: { select: { id: true, name: true, isDefault: true }, orderBy: { createdAt: "asc" } },
+      emailDigest: true,
+      emailDigestDay: true,
+      resumeVersions: { select: { id: true, name: true, isDefault: true, fileUrl: true }, orderBy: { createdAt: "asc" } },
       messageTemplates: { select: { id: true, name: true, body: true, category: true }, orderBy: { createdAt: "asc" } },
     },
   });
@@ -44,7 +46,9 @@ export async function PUT(req: NextRequest) {
       targetRoles,
       preferredLocations,
       remotePreference,
-      experienceLevel
+      experienceLevel,
+      emailDigest,
+      emailDigestDay
     } = body;
 
     // Update user
@@ -63,6 +67,8 @@ export async function PUT(req: NextRequest) {
         preferredLocations: preferredLocations || undefined,
         remotePreference: remotePreference || undefined,
         experienceLevel: experienceLevel || undefined,
+        emailDigest: emailDigest !== undefined ? emailDigest : undefined,
+        emailDigestDay: emailDigestDay !== undefined ? emailDigestDay : undefined,
         config: {
           ...currentConfig,
           schools: schools || currentConfig.schools || [],

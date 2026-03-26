@@ -39,3 +39,6 @@ Desktop.ini
 # Documents (user's personal files)
 *.docx
 *.pdf
+
+.vercel
+.env*.local

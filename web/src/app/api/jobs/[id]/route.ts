@@ -74,7 +74,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const updateData: Record<string, unknown> = {};
     const allowedFields = [
       "applied", "appliedAt", "resumeVersionId", "applicationMethod",
-      "applicationUrl", "notes", "interviewStage", "archived", "status",
+      "applicationUrl", "companyContactEmail", "notes", "interviewStage", "archived", "status",
       "title", "company", "url", "location", "salaryMin", "salaryMax",
     ];
     for (const field of allowedFields) {

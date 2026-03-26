@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ResumeUpload } from "@/components/ui/resume-upload";
 
 interface School {
   name: string;
@@ -27,6 +28,7 @@ interface ResumeVersion {
   id: string;
   name: string;
   isDefault: boolean;
+  fileUrl?: string | null;
 }
 
 export default function SettingsPage() {
@@ -58,6 +60,10 @@ export default function SettingsPage() {
 
   const [loadError, setLoadError] = useState("");
 
+  // Email preferences
+  const [emailDigest, setEmailDigest] = useState(true);
+  const [emailDigestDay, setEmailDigestDay] = useState(1);
+
   // Danger zone state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
@@ -80,6 +86,8 @@ export default function SettingsPage() {
         setPreferredLocations(data.preferredLocations || []);
         setRemotePreference(data.remotePreference || "");
         setExperienceLevel(data.experienceLevel || "");
+        setEmailDigest(data.emailDigest !== false);
+        setEmailDigestDay(data.emailDigestDay || 1);
       } else {
         setLoadError("Failed to load settings. Please refresh the page.");
       }
@@ -107,14 +115,23 @@ export default function SettingsPage() {
           preferredLocations,
           remotePreference: remotePreference || null,
           experienceLevel: experienceLevel || null,
+          emailDigest,
+          emailDigestDay,
         }),
       });
-      setSaving(false);
+
       if (res.ok) {
+        // Fetch updated resume versions to get the IDs assigned by database
+        const resumesRes = await fetch("/api/resumes");
+        if (resumesRes.ok) {
+          const updatedResumes = await resumesRes.json();
+          setResumeVersions(updatedResumes);
+        }
         success("Settings saved successfully");
       } else {
         error("Failed to save settings");
       }
+      setSaving(false);
     } catch {
       error("Network error while saving settings");
       setSaving(false);
@@ -130,8 +147,70 @@ export default function SettingsPage() {
 
   function addResume() {
     if (!newResume.trim()) return;
-    setResumeVersions([...resumeVersions, { id: "", name: newResume.trim(), isDefault: false }]);
+    setResumeVersions([...resumeVersions, { id: "", name: newResume.trim(), isDefault: false, fileUrl: null }]);
     setNewResume("");
+  }
+
+  async function createResumeAndSync(name: string) {
+    try {
+      // Create resume version in database via settings API
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          strategyMode: strategy,
+          stalledDays,
+          schools,
+          resumeVersions: [...resumeVersions.map((r) => r.name), name],
+          templates,
+          targetRoles,
+          preferredLocations,
+          remotePreference: remotePreference || null,
+          experienceLevel: experienceLevel || null,
+          emailDigest,
+          emailDigestDay,
+        }),
+      });
+
+      if (res.ok) {
+        // Fetch updated resume versions from API
+        const resData = await fetch("/api/resumes");
+        if (resData.ok) {
+          const data = await resData.json();
+          setResumeVersions(data);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to create resume:", err);
+    }
+  }
+
+  async function deleteResume(id: string) {
+    try {
+      const res = await fetch(`/api/resumes/${id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setResumeVersions(resumeVersions.filter((r) => r.id !== id));
+        success("Resume version deleted");
+      } else {
+        error("Failed to delete resume version");
+      }
+    } catch (err) {
+      console.error("Failed to delete resume:", err);
+      error("Failed to delete resume version");
+    }
+  }
+
+  async function handleResumeUploadSuccess(resumeId: string, fileUrl: string) {
+    // Update local state
+    setResumeVersions(
+      resumeVersions.map((r) =>
+        r.id === resumeId ? { ...r, fileUrl } : r
+      )
+    );
+    success("Resume uploaded successfully");
   }
 
   function addRole() {
@@ -348,6 +427,47 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      {/* Notifications */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Notifications</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3 pb-4 border-b border-border">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Weekly Email Digest</p>
+                <p className="text-xs text-muted mt-1">Get a summary of your job search activity each week</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={emailDigest}
+                onChange={(e) => setEmailDigest(e.target.checked)}
+                className="h-5 w-5 rounded border-border text-accent cursor-pointer"
+              />
+            </div>
+            {emailDigest && (
+              <div>
+                <label className="block text-sm font-medium mb-2">Send digest on</label>
+                <select
+                  value={emailDigestDay}
+                  onChange={(e) => setEmailDigestDay(parseInt(e.target.value))}
+                  className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground"
+                >
+                  <option value={0}>Sunday</option>
+                  <option value={1}>Monday</option>
+                  <option value={2}>Tuesday</option>
+                  <option value={3}>Wednesday</option>
+                  <option value={4}>Thursday</option>
+                  <option value={5}>Friday</option>
+                  <option value={6}>Saturday</option>
+                </select>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Strategy */}
       <Card>
         <CardHeader>
@@ -419,15 +539,36 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>Resume Versions</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-4">
           <div className="flex gap-2 items-end">
             <Input id="r-name" label="Version Name" value={newResume} onChange={(e) => setNewResume(e.target.value)} placeholder="ML Engineer" />
             <Button size="sm" onClick={addResume}>Add</Button>
           </div>
           {resumeVersions.map((r, i) => (
-            <div key={i} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm">
-              <span>{r.name}{r.isDefault ? " (default)" : ""}</span>
-              <button onClick={() => setResumeVersions(resumeVersions.filter((_, j) => j !== i))} className="text-muted hover:text-danger text-xs">Remove</button>
+            <div key={r.id || i} className="space-y-3 pb-4 border-b border-border last:border-0 last:pb-0">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">{r.name}{r.isDefault ? " (default)" : ""}</p>
+                  {r.fileUrl && <p className="text-xs text-success mt-1">PDF uploaded</p>}
+                  {!r.fileUrl && <p className="text-xs text-muted mt-1">No file uploaded</p>}
+                </div>
+                {r.id && (
+                  <button
+                    onClick={() => deleteResume(r.id)}
+                    className="text-muted hover:text-danger text-xs font-medium"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+              {r.id && (
+                <ResumeUpload
+                  resumeId={r.id}
+                  resumeName={r.name}
+                  currentFileUrl={r.fileUrl}
+                  onUploadSuccess={(fileUrl) => handleResumeUploadSuccess(r.id, fileUrl)}
+                />
+              )}
             </div>
           ))}
         </CardContent>

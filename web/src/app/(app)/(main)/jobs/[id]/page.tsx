@@ -18,6 +18,8 @@ import Link from "next/link";
 import { substituteTemplateVars, type TemplateContext } from "@/lib/template-substitution";
 import { useToast } from "@/components/ui/toast";
 import { JobDetailSkeleton } from "@/components/ui/skeleton";
+import { InterviewPrep } from "@/components/ui/interview-prep";
+import { MatchScore } from "@/components/ui/match-score";
 
 interface Contact {
   id: string;
@@ -110,8 +112,9 @@ interface Job {
   archived: boolean;
   applicationMethod: string | null;
   applicationUrl: string | null;
+  companyContactEmail: string | null;
   outreachEvents: OutreachEvent[];
-  resumeVersion: { id: string; name: string } | null;
+  resumeVersion: { id: string; name: string; keywords?: string[] } | null;
   interviews?: Interview[];
 }
 
@@ -639,6 +642,23 @@ export default function JobDetailPage() {
                   </div>
                 </div>
               )}
+              <div>
+                <p className="text-xs text-muted mb-1">Company Contact Email</p>
+                <div className="flex gap-2">
+                  <Input
+                    id="company-contact-email"
+                    type="email"
+                    value={job.companyContactEmail || ""}
+                    onChange={(e) => setJob({ ...job, companyContactEmail: e.target.value })}
+                    onBlur={() => updateJob({ companyContactEmail: job.companyContactEmail })}
+                    placeholder="recruiter@company.com"
+                    className="flex-1"
+                  />
+                </div>
+                <p className="text-xs text-muted mt-1">
+                  Add a recruiter or HR contact email to track communications
+                </p>
+              </div>
             </CardContent>
           </Card>
 
@@ -1143,6 +1163,16 @@ export default function JobDetailPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Interview Prep Section */}
+                <div className="mt-6 pt-6 border-t border-border">
+                  <InterviewPrep
+                    jobId={job.id}
+                    jobTitle={job.title}
+                    jobCompany={job.company}
+                    billingStatus={session?.user?.billingStatus || "free"}
+                  />
+                </div>
               </CardContent>
             </Card>
           )}
@@ -1192,6 +1222,17 @@ export default function JobDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* AI-Powered Match Score */}
+          {job && (
+            <MatchScore
+              jobId={job.id}
+              jobDescription={job.description}
+              resumeVersionId={job.resumeVersionId || undefined}
+              resumeVersionName={job.resumeVersion?.name}
+              userBillingStatus={session?.user?.billingStatus as "free" | "pro"}
+            />
+          )}
 
           {/* Notes */}
           <Card>

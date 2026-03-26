@@ -132,6 +132,8 @@ model User {
   preferredLocations String[]     @default([])
   remotePreference  String?
   experienceLevel   String?
+  emailDigest       Boolean       @default(true)
+  emailDigestDay    Int           @default(1)
 
   // NextAuth relations
   accounts Account[]
@@ -145,6 +147,7 @@ model User {
   outreachEvents   OutreachEvent[]
   interviews       Interview[]
   savedSearches    SavedSearch[]
+  notifications    Notification[]
 }
 
 // ---------------------------------------------------------------------------
@@ -219,15 +222,18 @@ model Job {
   // NOTE: The following fields have been added and require `prisma db push`:
   // - applicationMethod String? (company_website, linkedin_easy_apply, email, recruiter, other)
   // - applicationUrl String?
+  // - companyContactEmail String? (email for company contact/recruiter)
   applicationMethod  String?
   applicationUrl     String?
+  companyContactEmail String?
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @default(now()) @updatedAt
 
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  resumeVersion ResumeVersion? @relation(fields: [resumeVersionId], references: [id], onDelete: SetNull)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resumeVersion  ResumeVersion?  @relation(fields: [resumeVersionId], references: [id], onDelete: SetNull)
   outreachEvents OutreachEvent[]
   interviews     Interview[]
+  notifications  Notification[]
 
   @@unique([userId, externalId])
   @@index([userId])
@@ -331,4 +337,24 @@ model SavedSearch {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // "referral_responded", "interview_tomorrow", "stalled_job", "follow_up_due", "outreach_reminder"
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  jobId     String?  // optional link to relevant job
+  job       Job?     @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  data      Json?    // extra context
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
 }

@@ -49,7 +49,7 @@ export default function NewJobPage() {
     }
 
     const job = await res.json();
-    toast.success(`Added ${form.company} — ${form.title}`);
+    toast.success(`Added ${form.company} - ${form.title}`);
     router.push(`/jobs/${job.id}`);
   }
 
