@@ -207,13 +207,21 @@ export default function JobDetailPage() {
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   const fetchJob = useCallback(async () => {
-    const res = await fetch(`/api/jobs/${params.id}`);
-    if (res.ok) {
-      setJob(await res.json());
-    } else if (res.status === 404) {
-      setJob(null);
+    try {
+      const res = await fetch(`/api/jobs/${params.id}`);
+      if (res.ok) {
+        setJob(await res.json());
+        setError("");
+      } else if (res.status === 404) {
+        setJob(null);
+      } else {
+        setError("Failed to load job details");
+      }
+    } catch {
+      setError("Network error loading job");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [params.id]);
 
   const fetchInterviews = useCallback(async () => {
@@ -235,6 +243,18 @@ export default function JobDetailPage() {
     fetchInterviews();
     fetchSettings();
   }, [fetchJob, fetchInterviews, fetchSettings]);
+
+  // Listen for popup contact additions via postMessage
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === "contacts-updated" && event.data?.jobId === params.id) {
+        fetchJob();
+      }
+    }
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [params.id, fetchJob]);
 
   async function updateJob(data: Record<string, unknown>, message?: string) {
     setSaving(true);
@@ -273,8 +293,9 @@ export default function JobDetailPage() {
 
   function handleApplyClick() {
     // Open the job URL in a new tab if it exists
-    if (job?.url || job?.applicationUrl) {
-      window.open(job.url || job.applicationUrl, "_blank");
+    const urlToOpen = job?.url || job?.applicationUrl;
+    if (urlToOpen) {
+      window.open(urlToOpen, "_blank");
     }
     // Show the inline confirmation card
     setShowApplyChecklist(true);
@@ -630,18 +651,20 @@ export default function JobDetailPage() {
                 Apply
               </Button>
             ) : (
-              <div className="text-left sm:text-right w-full sm:w-auto">
-                <Button disabled className="opacity-50 w-full sm:w-auto">
-                  <Check className="h-4 w-4" />
-                  Apply
-                </Button>
-                <p className="text-xs text-muted mt-1">Find a connection first</p>
-                <button
+              <div className="space-y-2 w-full sm:w-auto">
+                <div className="rounded-lg bg-warning/10 border border-warning/20 p-3">
+                  <p className="text-xs text-warning font-medium">
+                    Referral-first mode: Find a connection first
+                  </p>
+                </div>
+                <Button
                   onClick={handleApplyClick}
-                  className="text-xs text-muted hover:text-foreground underline mt-1"
+                  disabled={saving}
+                  variant="ghost"
+                  className="w-full sm:w-auto"
                 >
-                  Override and apply anyway
-                </button>
+                  Override and Apply Anyway
+                </Button>
               </div>
             )
           )}
@@ -673,16 +696,15 @@ export default function JobDetailPage() {
         </div>
       )}
 
-      {/* Apply Checklist */}
+      {/* Apply Confirmation Card */}
       {showApplyChecklist && job && settings && (
         <ApplyChecklist
           jobId={job.id}
-          jobCompany={job.company}
-          jobTitle={job.title}
+          company={job.company}
+          title={job.title}
           resumeVersions={settings.resumeVersions}
           currentResumeVersionId={job.resumeVersionId}
-          hasOutreach={job.outreachEvents.length > 0}
-          strategyMode={settings.strategyMode}
+          applicationUrl={job.url || job.applicationUrl}
           onApply={handleApplyConfirm}
           onCancel={() => setShowApplyChecklist(false)}
           isLoading={saving}
@@ -900,7 +922,7 @@ export default function JobDetailPage() {
                               contactId={event.contact.id}
                               contactName={event.contact.name}
                               contactEmail={event.contact.email}
-                              companyDomain={undefined}
+                              companyDomain={event.contact.company || job.company || undefined}
                               onEmailFound={() => {
                                 fetchJob();
                               }}

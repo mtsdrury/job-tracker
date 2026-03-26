@@ -138,7 +138,7 @@ export default function AddContactsPopup({
 
       // Notify parent window to refresh contacts
       if (window.opener) {
-        window.opener.postMessage({ type: "contacts-updated", jobId }, "*");
+        window.opener.postMessage({ type: "contacts-updated", jobId }, window.location.origin);
       }
 
       // Focus back on URL input for quick next entry

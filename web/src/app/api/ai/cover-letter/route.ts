@@ -32,7 +32,6 @@ export async function POST(req: NextRequest) {
         toneProfile: true,
         writingSamples: true,
         targetRoles: true,
-        experienceLevel: true,
         resumeVersions: {
           select: { id: true, name: true, keywords: true },
         },
@@ -61,7 +60,7 @@ export async function POST(req: NextRequest) {
         location: true,
         resumeVersionId: true,
         resumeVersion: {
-          select: { name: true, keywords: true },
+          select: { name: true, keywords: true, experienceLevel: true },
         },
       },
     });
@@ -150,13 +149,14 @@ export async function POST(req: NextRequest) {
       ? job.description.substring(0, 2000)
       : "";
 
+    const experienceLevel = job.resumeVersion?.experienceLevel;
     const systemPrompt = `You are an expert cover letter writer. Your job is to produce a polished, professional cover letter that sounds like it was written by the applicant -- not by AI.
 
 APPLICANT INFORMATION:
 - Name: ${user.name || "The applicant"}
 - Email: ${user.email || "Not provided"}
 ${schoolsText ? `- Education: ${schoolsText}` : ""}
-${user.experienceLevel ? `- Experience Level: ${user.experienceLevel}` : ""}
+${experienceLevel ? `- Experience Level: ${experienceLevel}` : ""}
 ${user.targetRoles?.length ? `- Target Roles: ${(user.targetRoles as string[]).join(", ")}` : ""}
 ${keywordsText}
 
@@ -200,20 +200,27 @@ CRITICAL RULES:
       ],
     });
 
-    const content = message.content[0];
-    if (content.type !== "text") {
+    if (!message.content.length || message.content[0].type !== "text") {
       return NextResponse.json(
-        { error: "Unexpected response format" },
+        { error: "Unexpected response format from AI" },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ coverLetter: content.text });
+    return NextResponse.json({ coverLetter: message.content[0].text });
   } catch (error) {
     console.error("AI cover-letter error:", error);
-    return NextResponse.json(
-      { error: "Failed to generate cover letter" },
-      { status: 500 }
-    );
+    let status = 500;
+    let msg = "Failed to generate cover letter";
+    if (error instanceof Error) {
+      if (error.message.includes("rate_limit") || error.message.includes("429")) {
+        status = 429;
+        msg = "AI service is temporarily busy. Please try again in a moment.";
+      } else if (error.message.includes("authentication") || error.message.includes("401")) {
+        status = 500;
+        msg = "AI service configuration error. Please contact support.";
+      }
+    }
+    return NextResponse.json({ error: msg }, { status });
   }
 }

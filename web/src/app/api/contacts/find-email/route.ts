@@ -71,10 +71,13 @@ export async function POST(req: NextRequest) {
     let companyDomain = domain || "";
 
     if (!companyDomain && contact.company) {
-      // Guess domain from company name: "Google" -> "google.com"
+      // Guess domain from company name: "Google Inc." -> "google.com"
+      // Strip common corporate suffixes before converting to domain
       companyDomain = contact.company
+        .replace(/\b(inc\.?|llc\.?|ltd\.?|co\.?|corp\.?|corporation|company|group|holdings?|technologies|solutions)\b/gi, "")
+        .trim()
         .toLowerCase()
-        .replace(/[^a-z0-9]/g, "")
+        .replace(/[^a-z0-9]+/g, "")
         + ".com";
     }
 

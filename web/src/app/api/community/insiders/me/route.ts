@@ -56,6 +56,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Validate maxRequests: must be a number between 1 and 50
+  const sanitizedMaxRequests =
+    typeof maxRequests === "number" && maxRequests >= 1 && maxRequests <= 50
+      ? Math.floor(maxRequests)
+      : 5;
+
   const profile = await prisma.insiderProfile.upsert({
     where: { userId: session.user.id },
     create: {
@@ -65,7 +71,7 @@ export async function POST(req: NextRequest) {
       department: department || null,
       linkedinUrl: linkedinUrl || null,
       bio: bio || null,
-      maxRequests: maxRequests || 5,
+      maxRequests: sanitizedMaxRequests,
       active: active !== false,
     },
     update: {
@@ -74,7 +80,7 @@ export async function POST(req: NextRequest) {
       department: department || null,
       linkedinUrl: linkedinUrl || null,
       bio: bio || null,
-      maxRequests: maxRequests || 5,
+      maxRequests: sanitizedMaxRequests,
       active: active !== false,
     },
   });

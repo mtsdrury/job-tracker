@@ -69,10 +69,10 @@ function buildCacheKey(query: string, location: string, remote: boolean): string
  * Returns the original URL if resolution fails or times out.
  */
 async function resolveRedirectUrl(url: string): Promise<string> {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
 
+  try {
     const res = await fetch(url, {
       method: "HEAD",
       redirect: "follow",
@@ -82,11 +82,12 @@ async function resolveRedirectUrl(url: string): Promise<string> {
       },
     });
 
-    clearTimeout(timeout);
     // res.url is the final URL after all redirects
     return res.url || url;
   } catch {
     return url;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
