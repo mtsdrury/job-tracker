@@ -20,7 +20,7 @@ interface MatchScoreResponse {
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   try {
     const session = await getServerSession(authOptions);
@@ -28,6 +28,7 @@ export async function POST(
       return new Response("Unauthorized", { status: 401 });
     }
 
+    const { id } = await params;
     const body = (await req.json()) as MatchScoreRequest;
     const { resumeVersionId } = body;
 
@@ -55,7 +56,7 @@ export async function POST(
 
     // Fetch the job
     const job = await prisma.job.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: {
         id: true,
         title: true,
