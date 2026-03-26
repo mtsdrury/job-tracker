@@ -104,7 +104,7 @@ export async function PUT(req: NextRequest) {
             userId: session.user.id,
             name: t.name,
             body: t.body,
-            category: t.category || "initial_outreach",
+            category: (t.category as "initial_outreach" | "follow_up" | "thank_you" | "referral_request") || "initial_outreach",
           })),
         });
       }
