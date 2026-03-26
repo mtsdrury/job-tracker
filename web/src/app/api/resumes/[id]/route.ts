@@ -6,7 +6,7 @@ import { deleteResume } from "@/lib/supabase-storage";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -14,8 +14,10 @@ export async function GET(
   }
 
   try {
+    const { id } = await params;
+
     const resumeVersion = await prisma.resumeVersion.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: {
         id: true,
         name: true,
@@ -33,7 +35,7 @@ export async function GET(
 
     // Verify ownership
     const owns = await prisma.resumeVersion.count({
-      where: { id: params.id, userId: session.user.id },
+      where: { id, userId: session.user.id },
     });
 
     if (!owns) {
@@ -52,7 +54,7 @@ export async function GET(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -60,9 +62,11 @@ export async function DELETE(
   }
 
   try {
+    const { id } = await params;
+
     // Get the resume to check ownership and get fileUrl
     const resumeVersion = await prisma.resumeVersion.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { userId: true, fileUrl: true },
     });
 
@@ -88,7 +92,7 @@ export async function DELETE(
 
     // Delete from database
     await prisma.resumeVersion.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ success: true });

@@ -101,21 +101,20 @@ export function MatchScore({
   // Free user view
   if (userBillingStatus === "free") {
     return (
-      <Card className="bg-blue-50 border-blue-200">
+      <Card className="bg-accent/5 border-accent/20">
         <CardContent className="pt-6">
           <div className="flex items-start gap-4">
-            <Lock className="h-5 w-5 text-blue-600 mt-1 flex-shrink-0" />
+            <Lock className="h-5 w-5 text-accent mt-1 flex-shrink-0" />
             <div className="flex-1">
-              <h3 className="font-semibold text-blue-900 mb-1">
+              <h3 className="font-semibold mb-1">
                 AI-Powered Resume Matching
               </h3>
-              <p className="text-sm text-blue-700 mb-4">
-                Get Claude's expert analysis of how well your resume matches
-                this job. See your strengths, gaps, and personalized
-                suggestions.
+              <p className="text-sm text-muted mb-4">
+                Get AI analysis of how well your resume matches this job. See
+                your strengths, gaps, and personalized suggestions.
               </p>
               <Link href="/billing">
-                <Button size="sm" variant="default">
+                <Button size="sm">
                   Upgrade to Pro
                 </Button>
               </Link>
@@ -131,7 +130,7 @@ export function MatchScore({
     return (
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-3 text-sm text-gray-600">
+          <div className="flex items-center gap-3 text-sm text-muted">
             <AlertCircle className="h-5 w-5" />
             <span>Save a job from Job Search to get AI match analysis</span>
           </div>
@@ -145,7 +144,7 @@ export function MatchScore({
     return (
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-3 text-sm text-gray-600">
+          <div className="flex items-center gap-3 text-sm text-muted">
             <AlertCircle className="h-5 w-5" />
             <span>Select a resume version to analyze your match</span>
           </div>
@@ -157,15 +156,15 @@ export function MatchScore({
   // Error state
   if (error) {
     return (
-      <Card className="bg-red-50 border-red-200">
+      <Card className="bg-danger/5 border-danger/20">
         <CardContent className="pt-6">
           <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+            <AlertCircle className="h-5 w-5 text-danger mt-0.5 flex-shrink-0" />
             <div className="flex-1">
-              <p className="text-sm text-red-700">{error}</p>
+              <p className="text-sm text-danger">{error}</p>
               {error.includes("Pro") && (
                 <Link href="/billing" className="mt-2 block">
-                  <Button size="sm" variant="default">
+                  <Button size="sm">
                     Upgrade to Pro
                   </Button>
                 </Link>
@@ -184,12 +183,11 @@ export function MatchScore({
         <CardContent className="pt-6">
           <div className="text-center">
             <div className="flex justify-center mb-4">
-              <TrendingUp className="h-8 w-8 text-blue-600" />
+              <TrendingUp className="h-8 w-8 text-accent" />
             </div>
             <h3 className="font-semibold mb-2">Analyze Your Match</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Get Claude's expert assessment of how your resume matches this
-              job.
+            <p className="text-sm text-muted mb-4">
+              Get AI assessment of how your resume matches this job.
             </p>
             <Button
               onClick={handleAnalyzeMatch}
@@ -216,10 +214,10 @@ export function MatchScore({
 
   // Get score color and label
   const getScoreColor = () => {
-    if (matchData.score >= 80) return "text-green-600";
-    if (matchData.score >= 60) return "text-blue-600";
-    if (matchData.score >= 40) return "text-yellow-600";
-    return "text-red-600";
+    if (matchData.score >= 80) return "text-success";
+    if (matchData.score >= 60) return "text-accent";
+    if (matchData.score >= 40) return "text-warning";
+    return "text-danger";
   };
 
   const getScoreLabel = () => {
@@ -230,17 +228,17 @@ export function MatchScore({
   };
 
   const getScoreBgColor = () => {
-    if (matchData.score >= 80) return "bg-green-50";
-    if (matchData.score >= 60) return "bg-blue-50";
-    if (matchData.score >= 40) return "bg-yellow-50";
-    return "bg-red-50";
+    if (matchData.score >= 80) return "bg-success/5";
+    if (matchData.score >= 60) return "bg-accent/5";
+    if (matchData.score >= 40) return "bg-warning/5";
+    return "bg-danger/5";
   };
 
   const getScoreBorderColor = () => {
-    if (matchData.score >= 80) return "border-green-200";
-    if (matchData.score >= 60) return "border-blue-200";
-    if (matchData.score >= 40) return "border-yellow-200";
-    return "border-red-200";
+    if (matchData.score >= 80) return "border-success/20";
+    if (matchData.score >= 60) return "border-accent/20";
+    if (matchData.score >= 40) return "border-warning/20";
+    return "border-danger/20";
   };
 
   return (
@@ -259,7 +257,7 @@ export function MatchScore({
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
-                className="text-gray-200"
+                className="text-border"
               />
               {/* Progress circle */}
               <circle
@@ -278,7 +276,7 @@ export function MatchScore({
               <div className={`text-lg font-bold ${getScoreColor()}`}>
                 {matchData.score}
               </div>
-              <div className="text-xs text-gray-500">score</div>
+              <div className="text-xs text-muted">score</div>
             </div>
           </div>
 
@@ -287,9 +285,9 @@ export function MatchScore({
             <div className={`font-semibold ${getScoreColor()}`}>
               {getScoreLabel()}
             </div>
-            <div className="text-sm text-gray-600 mt-1">{matchData.verdict}</div>
+            <div className="text-sm text-muted mt-1">{matchData.verdict}</div>
             {resumeVersionName && (
-              <div className="text-xs text-gray-500 mt-2">{resumeVersionName}</div>
+              <div className="text-xs text-muted mt-2">{resumeVersionName}</div>
             )}
           </div>
         </div>
@@ -303,7 +301,7 @@ export function MatchScore({
               className="w-full flex items-center justify-between py-3 hover:bg-white/50 transition-colors"
             >
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-600" />
+                <div className="w-2 h-2 rounded-full bg-success" />
                 <span className="font-semibold text-sm">Your Strengths</span>
               </div>
               {expandedSections.strengths ? (
@@ -316,8 +314,8 @@ export function MatchScore({
               <div className="pb-3 space-y-2">
                 {matchData.strengths.map((strength, idx) => (
                   <div key={idx} className="flex gap-2 text-sm ml-4">
-                    <span className="text-green-600 font-bold">+</span>
-                    <span className="text-gray-700">{strength}</span>
+                    <span className="text-success font-bold">+</span>
+                    <span className="text-foreground">{strength}</span>
                   </div>
                 ))}
               </div>
@@ -331,7 +329,7 @@ export function MatchScore({
               className="w-full flex items-center justify-between py-3 hover:bg-white/50 transition-colors"
             >
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-orange-600" />
+                <div className="w-2 h-2 rounded-full bg-warning" />
                 <span className="font-semibold text-sm">Gaps</span>
               </div>
               {expandedSections.gaps ? (
@@ -344,8 +342,8 @@ export function MatchScore({
               <div className="pb-3 space-y-2">
                 {matchData.gaps.map((gap, idx) => (
                   <div key={idx} className="flex gap-2 text-sm ml-4">
-                    <span className="text-orange-600 font-bold">-</span>
-                    <span className="text-gray-700">{gap}</span>
+                    <span className="text-warning font-bold">-</span>
+                    <span className="text-foreground">{gap}</span>
                   </div>
                 ))}
               </div>
@@ -359,7 +357,7 @@ export function MatchScore({
               className="w-full flex items-center justify-between py-3 hover:bg-white/50 transition-colors"
             >
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-blue-600" />
+                <div className="w-2 h-2 rounded-full bg-accent" />
                 <span className="font-semibold text-sm">How to Improve</span>
               </div>
               {expandedSections.suggestions ? (
@@ -372,8 +370,8 @@ export function MatchScore({
               <div className="pb-3 space-y-2">
                 {matchData.suggestions.map((suggestion, idx) => (
                   <div key={idx} className="flex gap-2 text-sm ml-4">
-                    <span className="text-blue-600 font-bold">•</span>
-                    <span className="text-gray-700">{suggestion}</span>
+                    <span className="text-accent font-bold">•</span>
+                    <span className="text-foreground">{suggestion}</span>
                   </div>
                 ))}
               </div>

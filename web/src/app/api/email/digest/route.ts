@@ -101,9 +101,10 @@ export async function GET(req: NextRequest) {
     const userId = req.nextUrl.searchParams.get("userId");
 
     if (!userId) {
-      return NextResponse.json({
-        error: "userId query parameter required for GET",
-      });
+      return NextResponse.json(
+        { error: "userId query parameter required for GET" },
+        { status: 400 }
+      );
     }
 
     const user = await prisma.user.findUnique({

@@ -20,11 +20,11 @@ interface InterviewPrepProps {
   initialQuestions?: PrepQuestion[];
 }
 
-const categoryColors: Record<string, string> = {
-  behavioral: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  technical: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-  company: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  ask_interviewer: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+const categoryVariants: Record<string, "default" | "success" | "warning" | "danger" | "info"> = {
+  behavioral: "info",
+  technical: "default",
+  company: "success",
+  ask_interviewer: "warning",
 };
 
 const categoryLabels: Record<string, string> = {
@@ -160,7 +160,7 @@ export function InterviewPrep({
           return (
             <div key={category}>
               <div className="flex items-center gap-2 mb-3">
-                <Badge className={categoryColors[category]}>
+                <Badge variant={categoryVariants[category] || "default"}>
                   {categoryLabels[category]}
                 </Badge>
                 <span className="text-xs text-muted">

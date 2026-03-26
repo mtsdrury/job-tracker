@@ -11,6 +11,14 @@ export async function buildDigestData(userId: string): Promise<DigestData | null
     const weekEnd = new Date(now);
     weekEnd.setHours(23, 59, 59, 999);
 
+    // Fetch user's stalled threshold
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { stalledDays: true },
+    });
+
+    const stalledDaysThreshold = user?.stalledDays || 5;
+
     // Fetch all relevant data
     const jobs = await prisma.job.findMany({
       where: { userId, archived: false },
@@ -62,7 +70,6 @@ export async function buildDigestData(userId: string): Promise<DigestData | null
       .filter((j) => j.applied && j.appliedAt && j.appliedAt >= weekStart && j.appliedAt <= weekEnd)
       .map((j) => ({ company: j.company, title: j.title }));
 
-    const stalledDaysThreshold = 5; // Default stalled threshold
     const stalledJobs = jobs
       .filter((j) => {
         const daysSinceUpdate = Math.floor((now.getTime() - j.updatedAt.getTime()) / (1000 * 60 * 60 * 24));

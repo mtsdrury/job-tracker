@@ -6,7 +6,7 @@ import { uploadResume, deleteResume } from "@/lib/supabase-storage";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -14,9 +14,11 @@ export async function POST(
   }
 
   try {
+    const { id } = await params;
+
     // Get the resume to check ownership
     const resumeVersion = await prisma.resumeVersion.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { userId: true, fileUrl: true },
     });
 
@@ -61,7 +63,7 @@ export async function POST(
 
     // Update database with new file URL
     const updated = await prisma.resumeVersion.update({
-      where: { id: params.id },
+      where: { id },
       data: { fileUrl: uploadResult.fileUrl },
       select: {
         id: true,
@@ -72,18 +74,6 @@ export async function POST(
         createdAt: true,
         updatedAt: true,
       },
-    });
-
-    // Trigger keyword extraction in the background (don't wait for it)
-    // This allows the upload to complete quickly while keywords are extracted asynchronously
-    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-    fetch(`${baseUrl}/api/resumes/${params.id}/keywords`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${session.user.id}`,
-      },
-    }).catch((error) => {
-      console.error("Failed to trigger keyword extraction:", error);
     });
 
     return NextResponse.json(updated);
