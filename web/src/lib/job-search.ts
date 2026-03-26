@@ -1,20 +1,29 @@
 const JSEARCH_API_URL = "https://jsearch.p.rapidapi.com/search";
 
+interface JSearchApplyOption {
+  publisher: string;
+  apply_link: string;
+  is_direct: boolean;
+}
+
 interface JSearchResult {
   job_id: string;
   job_title: string;
   employer_name: string;
   employer_logo: string | null;
+  employer_website: string | null;
   job_city: string | null;
   job_state: string | null;
   job_country: string;
   job_employment_type: string | null;
   job_is_remote: boolean;
   job_apply_link: string | null;
+  job_apply_is_direct: boolean;
   job_description: string | null;
   job_min_salary: number | null;
   job_max_salary: number | null;
   job_posted_at_datetime_utc: string | null;
+  apply_options: JSearchApplyOption[] | null;
 }
 
 export interface JobSearchResult {
@@ -53,6 +62,31 @@ function buildCacheKey(query: string, location: string, remote: boolean): string
   return `${query}|${location}|${remote}`.toLowerCase();
 }
 
+/**
+ * Pick the best application URL: prefer a direct company link over
+ * third-party job board redirects (JoobRapido, Talent.com, etc.).
+ */
+function pickBestUrl(r: JSearchResult): string | null {
+  // If the main apply link is already direct, use it
+  if (r.job_apply_link && r.job_apply_is_direct) {
+    return r.job_apply_link;
+  }
+
+  // Check apply_options for a direct link
+  if (r.apply_options?.length) {
+    const direct = r.apply_options.find((o) => o.is_direct);
+    if (direct) return direct.apply_link;
+  }
+
+  // Fall back to employer website if available
+  if (r.employer_website) {
+    return r.employer_website;
+  }
+
+  // Last resort: the (possibly indirect) apply link
+  return r.job_apply_link;
+}
+
 function mapResult(r: JSearchResult): JobSearchResult {
   const parts = [r.job_city, r.job_state, r.job_country].filter(Boolean);
   return {
@@ -62,7 +96,7 @@ function mapResult(r: JSearchResult): JobSearchResult {
     companyLogo: r.employer_logo,
     location: parts.join(", ") || "Unknown",
     remoteType: r.job_is_remote ? "Remote" : (r.job_employment_type || null),
-    url: r.job_apply_link,
+    url: pickBestUrl(r),
     description: r.job_description,
     salaryMin: r.job_min_salary,
     salaryMax: r.job_max_salary,
