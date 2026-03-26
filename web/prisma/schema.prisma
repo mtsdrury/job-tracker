@@ -150,6 +150,9 @@ model User {
   interviews       Interview[]
   savedSearches    SavedSearch[]
   notifications    Notification[]
+  insiderProfile   InsiderProfile?
+  referralRequests ReferralRequest[] @relation("requester")
+  referralOffers   ReferralRequest[] @relation("insider")
 }
 
 // ---------------------------------------------------------------------------
@@ -371,4 +374,54 @@ model Notification {
 
   @@index([userId, read])
   @@index([userId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Insider Profiles (Referral Exchange)
+// ---------------------------------------------------------------------------
+// Users who got hired can opt in to refer others at their company.
+model InsiderProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company     String   // Where they work now
+  role        String   // Their current role/title
+  department  String?  // Engineering, Sales, etc.
+  linkedinUrl String?  // Public LinkedIn for credibility
+  bio         String?  @db.Text // Short intro about themselves
+  maxRequests Int      @default(5) // Max active referral requests they'll accept
+  active      Boolean  @default(true) // Can pause without deleting
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  referralRequests ReferralRequest[]
+
+  @@index([company])
+  @@index([active, company])
+}
+
+// ---------------------------------------------------------------------------
+// Referral Requests
+// ---------------------------------------------------------------------------
+// A job seeker requests an intro/referral from an insider.
+model ReferralRequest {
+  id                String   @id @default(cuid())
+  requesterId       String   // The job seeker
+  requester         User     @relation("requester", fields: [requesterId], references: [id], onDelete: Cascade)
+  insiderProfileId  String   // The insider they're requesting from
+  insiderProfile    InsiderProfile @relation(fields: [insiderProfileId], references: [id], onDelete: Cascade)
+  insiderId         String   // The insider's user ID (for easy querying)
+  insider           User     @relation("insider", fields: [insiderId], references: [id], onDelete: Cascade)
+  targetRole        String   // What role the seeker is applying for
+  message           String   @db.Text // Why they're a good fit, intro message
+  resumeUrl         String?  // Optional resume link
+  status            String   @default("pending") // pending, accepted, declined, completed
+  insiderNote       String?  @db.Text // Insider's response/note
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt
+
+  @@index([requesterId])
+  @@index([insiderProfileId])
+  @@index([insiderId, status])
+  @@index([status, createdAt])
 }

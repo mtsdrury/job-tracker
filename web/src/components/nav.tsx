@@ -15,6 +15,7 @@ import {
   Loader2,
   CreditCard,
   BarChart3,
+  Globe,
   Menu,
   X,
 } from "lucide-react";
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/jobs", label: "Jobs", icon: Briefcase },
   { href: "/contacts", label: "Contacts", icon: Users },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/community", label: "Community", icon: Globe },
   { href: "/billing", label: "Billing", icon: CreditCard },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
