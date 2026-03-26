@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { ApplyChecklist } from "@/components/ui/apply-checklist";
+import { LinkedInSearchLinks } from "@/components/ui/linkedin-search";
 import {
   ArrowLeft, ExternalLink, Users, Plus, Search,
   Check, Trash2, Edit2, Copy, Sparkles, Calendar, ChevronDown, ChevronUp,
@@ -18,6 +19,7 @@ import {
 import Link from "next/link";
 import { substituteTemplateVars, type TemplateContext } from "@/lib/template-substitution";
 import { useToast } from "@/components/ui/toast";
+import { useCelebration } from "@/components/celebration-provider";
 import { JobDetailSkeleton } from "@/components/ui/skeleton";
 
 const InterviewPrep = dynamic(
@@ -160,6 +162,7 @@ export default function JobDetailPage() {
   });
 
   const toast = useToast();
+  const celebration = useCelebration();
 
   // Add contact form
   const [showAddContact, setShowAddContact] = useState(false);
@@ -216,6 +219,9 @@ export default function JobDetailPage() {
   async function updateJob(data: Record<string, unknown>, message?: string) {
     setSaving(true);
     try {
+      const previousInterviewStage = job?.interviewStage;
+      const previousApplied = job?.applied;
+
       const res = await fetch(`/api/jobs/${params.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -224,6 +230,17 @@ export default function JobDetailPage() {
       if (res.ok) {
         const updated = await res.json();
         setJob((prev) => prev ? { ...prev, ...updated } : prev);
+
+        // Trigger celebrations for milestones
+        if (data.interviewStage && !previousInterviewStage) {
+          celebration.celebrate("interview");
+        } else if (data.interviewStage === "offer" && previousInterviewStage !== "offer") {
+          celebration.celebrate("offer");
+        }
+        if (data.applied === true && !previousApplied) {
+          celebration.celebrate("applied");
+        }
+
         if (message) toast.success(message);
       } else {
         toast.error("Failed to update job");
@@ -612,6 +629,14 @@ export default function JobDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
         {/* Main Content */}
         <div className="md:col-span-2 space-y-4 sm:space-y-6">
+          {/* LinkedIn Search Links */}
+          {settings?.config && (
+            <LinkedInSearchLinks
+              companyName={job.company}
+              schools={(settings.config as Record<string, unknown>)?.schools as any}
+            />
+          )}
+
           {/* Job Details */}
           <Card>
             <CardHeader>

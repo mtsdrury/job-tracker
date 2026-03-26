@@ -18,6 +18,7 @@ import {
   BarChart3,
   Menu,
   X,
+  Upload,
 } from "lucide-react";
 import { NotificationBell } from "./ui/notification-bell";
 
@@ -26,6 +27,7 @@ const APP_NAME = "KnowSomeone";
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/jobs", label: "My Jobs", icon: Briefcase },
+  { href: "/import", label: "Import", icon: Upload },
   { href: "/jobs/search", label: "Job Search", icon: Search },
   { href: "/contacts", label: "Contacts", icon: Users },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
