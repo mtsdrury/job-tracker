@@ -290,7 +290,7 @@ export default async function DashboardPage() {
                 Saved Searches
               </CardTitle>
               <Link
-                href="/jobs/search"
+                href="/jobs?tab=search"
                 className="text-sm text-accent hover:underline"
               >
                 Manage

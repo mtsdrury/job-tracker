@@ -13,12 +13,10 @@ import {
   LogOut,
   RotateCcw,
   Loader2,
-  Search,
   CreditCard,
   BarChart3,
   Menu,
   X,
-  Upload,
   Sparkles,
 } from "lucide-react";
 import { NotificationBell } from "./ui/notification-bell";
@@ -27,9 +25,7 @@ const APP_NAME = "KnowSomeone";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/jobs", label: "My Jobs", icon: Briefcase },
-  { href: "/import", label: "Import", icon: Upload },
-  { href: "/jobs/search", label: "Job Search", icon: Search },
+  { href: "/jobs", label: "Jobs", icon: Briefcase },
   { href: "/contacts", label: "Contacts", icon: Users },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/quiz", label: "Tone Quiz", icon: Sparkles },

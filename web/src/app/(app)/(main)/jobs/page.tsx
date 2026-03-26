@@ -2,12 +2,15 @@
 
 import { useState, useEffect, useCallback, memo } from "react";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, ExternalLink } from "lucide-react";
+import { Plus, Search, ExternalLink, Upload } from "lucide-react";
 import { JobsListSkeleton } from "@/components/ui/skeleton";
 import { EmptyJobs, EmptySearchResults } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
+import { JobSearch } from "@/components/jobs/job-search";
+import { JobImport } from "@/components/jobs/job-import";
 
 interface OutreachEvent {
   id: string;
@@ -30,6 +33,14 @@ interface Job {
   outreachEvents: OutreachEvent[];
   resumeVersion: { id: string; name: string } | null;
 }
+
+const TABS = [
+  { id: "my-jobs", label: "My Jobs" },
+  { id: "search", label: "Search" },
+  { id: "import", label: "Import" },
+] as const;
+
+type TabId = (typeof TABS)[number]["id"];
 
 const JobCard = memo(function JobCard({ job }: { job: Job }) {
   const getStatusBadge = (job: Job) => {
@@ -76,7 +87,7 @@ const JobCard = memo(function JobCard({ job }: { job: Job }) {
   );
 });
 
-export default function JobsPage() {
+function MyJobsTab() {
   const toast = useToast();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -130,9 +141,8 @@ export default function JobsPage() {
   }, [search, appliedFilter, referralFilter, fetchJobs]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-2xl sm:text-3xl font-bold">My Jobs</h1>
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
         <Link href="/jobs/new">
           <Button size="sm">
             <Plus className="h-4 w-4" />
@@ -217,6 +227,54 @@ export default function JobsPage() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+export default function JobsPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const tabParam = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState<TabId>(
+    (tabParam === "search" || tabParam === "import") ? tabParam : "my-jobs"
+  );
+
+  function switchTab(tab: TabId) {
+    setActiveTab(tab);
+    const url = tab === "my-jobs" ? "/jobs" : `/jobs?tab=${tab}`;
+    router.replace(url, { scroll: false });
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold">Jobs</h1>
+      </div>
+
+      {/* Sub-tabs */}
+      <div className="flex gap-1 border-b border-border">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => switchTab(tab.id)}
+            className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${
+              activeTab === tab.id
+                ? "text-accent"
+                : "text-muted hover:text-foreground"
+            }`}
+          >
+            {tab.label}
+            {activeTab === tab.id && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent rounded-full" />
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      {activeTab === "my-jobs" && <MyJobsTab />}
+      {activeTab === "search" && <JobSearch />}
+      {activeTab === "import" && <JobImport />}
     </div>
   );
 }
