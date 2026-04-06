@@ -14,7 +14,7 @@ export default function PrivacyPolicy() {
       <div className="mb-12">
         <h1 className="text-4xl font-bold text-foreground mb-4">Privacy Policy</h1>
         <p className="text-muted">
-          Last Updated: March 2026
+          Last Updated: April 2026
         </p>
       </div>
 
@@ -231,12 +231,12 @@ export default function PrivacyPolicy() {
             grant you these rights:
           </p>
           <ul className="space-y-3 text-muted list-disc list-inside">
-            <li><strong className="text-foreground">Right to Know:</strong> Request what personal information {APP_NAME} collects, uses, and shares</li>
-            <li><strong className="text-foreground">Right to Delete:</strong> Request deletion of personal information (with legal exceptions)</li>
-            <li><strong className="text-foreground">Right to Correct:</strong> Request correction of inaccurate personal information</li>
-            <li><strong className="text-foreground">Right to Opt-Out:</strong> Opt out of any "sale" or "sharing" of your personal information (note: {APP_NAME} does not sell or share your data)</li>
-            <li><strong className="text-foreground">Right to Limit Use:</strong> Limit how we use your sensitive personal information</li>
-            <li><strong className="text-foreground">Right to Non-Discrimination:</strong> We will not discriminate against you for exercising your privacy rights</li>
+            <li><strong className="text-foreground">Right to Know:</strong> Request what personal information {APP_NAME} collects, uses, and shares about you. We will provide a notice describing our collection, use, and sharing practices in the preceding 12 months</li>
+            <li><strong className="text-foreground">Right to Delete:</strong> Request deletion of personal information we have collected about you (with legal exceptions for information we need to provide the service or comply with law)</li>
+            <li><strong className="text-foreground">Right to Correct:</strong> Request correction of inaccurate personal information we hold about you</li>
+            <li><strong className="text-foreground">Right to Opt-Out:</strong> Opt out of any "sale" or "sharing" of your personal information for targeted advertising (note: {APP_NAME} does not sell or share your data for any purpose)</li>
+            <li><strong className="text-foreground">Right to Limit Use:</strong> Limit how we use your sensitive personal information (education history, employment records). We will honor requests to use such data only to provide the service or for security purposes</li>
+            <li><strong className="text-foreground">Right to Non-Discrimination:</strong> We will not discriminate against you, deny you service, charge different prices, or provide different quality of service based on exercising your privacy rights. However, we may offer you financial incentives for certain data practices permitted by law</li>
           </ul>
         </div>
 
@@ -311,7 +311,7 @@ export default function PrivacyPolicy() {
           <li><strong className="text-foreground">Password Security:</strong> Passwords are hashed and salted using industry-standard algorithms (bcrypt); we never store passwords in plain text</li>
           <li><strong className="text-foreground">Access Controls:</strong> Only authorized employees with a legitimate business need can access user data; we implement role-based access controls and the principle of least privilege</li>
           <li><strong className="text-foreground">Regular Security Audits:</strong> We conduct third-party security audits and penetration testing annually</li>
-          <li><strong className="text-foreground">Incident Response Plan:</strong> In the unlikely event of a data breach, we will notify affected users and regulatory authorities within the legally required timeframe (72 hours for GDPR, 30 days for CCPA)</li>
+          <li><strong className="text-foreground">Incident Response Plan:</strong> In the unlikely event of a data breach, we will notify affected users and regulatory authorities within the legally required timeframe (72 hours for GDPR, without unreasonable delay for California residents under California's data breach notification law, typically within 30-45 days)</li>
         </ul>
 
         <p className="text-muted mt-6">
@@ -320,19 +320,26 @@ export default function PrivacyPolicy() {
         </p>
       </section>
 
-      {/* International Data Transfers */}
+      {/* International Data Transfers & California Data Storage */}
       <section className="mb-12">
-        <h2 className="text-2xl font-bold text-foreground mb-6">8. International Data Transfers</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-6">8. Data Storage & International Transfers</h2>
 
-        <p className="text-muted">
-          {APP_NAME} is based in the United States. If you're in the EU or another jurisdiction, your data may be
-          transferred to and stored in the US. We rely on Data Processing Agreements with our processors (Supabase, Vercel,
+        <p className="text-muted mb-4">
+          {APP_NAME} is based in California, USA. Your data is primarily stored in the United States. If you're in the EU or another jurisdiction, your data may be
+          transferred to and stored in the US for processing and service delivery. We rely on Data Processing Agreements with our processors (Supabase, Vercel,
           Stripe, Anthropic) to ensure adequate protection under Standard Contractual Clauses or similar legal mechanisms.
-          If you request an EU data region, Supabase can store your data in eu-west-1 (Ireland).
         </p>
 
-        <p className="text-muted mt-4">
-          By using {APP_NAME}, you consent to the transfer of your data to the US and other countries for processing and storage.
+        <p className="text-muted mb-4">
+          <strong>For EU Users:</strong> If you request an EU data region, Supabase can store your data in eu-west-1 (Ireland) to comply with GDPR localization preferences. To request this, email{" "}
+          <a href="mailto:privacy@knowsomeone.com" className="text-accent hover:text-accent-hover transition-colors">
+            privacy@knowsomeone.com
+          </a>
+          .
+        </p>
+
+        <p className="text-muted">
+          By using {APP_NAME}, you consent to the transfer of your data to the US and other countries for processing and storage as described in this Policy.
         </p>
       </section>
 
@@ -370,9 +377,9 @@ export default function PrivacyPolicy() {
         </div>
       </section>
 
-      {/* CCPA-Specific Disclosures */}
+      {/* CCPA/CPRA-Specific Disclosures */}
       <section className="mb-12">
-        <h2 className="text-2xl font-bold text-foreground mb-6">10. CCPA-Specific Disclosures</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-6">10. CCPA/CPRA-Specific Disclosures</h2>
 
         <div className="mb-8">
           <h3 className="text-lg font-semibold text-foreground mb-3">10.1 Categories of Personal Information Disclosed to Service Providers</h3>
@@ -384,6 +391,7 @@ export default function PrivacyPolicy() {
             <li><strong className="text-foreground">Commercial Information</strong> (job titles, target companies, salary expectations) → Supabase, Vercel, Anthropic</li>
             <li><strong className="text-foreground">Internet/Network Activity</strong> (IP address, device type, usage analytics) → Supabase, Vercel</li>
             <li><strong className="text-foreground">Professional Information</strong> (schools, resume versions) → Supabase, Vercel</li>
+            <li><strong className="text-foreground">Sensitive Personal Information</strong> (resume content containing educational and employment history) → Supabase, Anthropic</li>
           </ul>
         </div>
 
@@ -391,15 +399,48 @@ export default function PrivacyPolicy() {
           <h3 className="text-lg font-semibold text-foreground mb-3">10.2 Sales/Sharing of Personal Information</h3>
           <p className="text-muted">
             <strong className="text-foreground">KnowSomeone does not sell or share your personal information.</strong> We do not
-            sell data to third parties for their direct marketing or other purposes. If you receive a "Do Not Sell/Share My
+            sell data to third parties for their direct marketing or other purposes, and we do not use your data for behavioral advertising. If you receive a "Do Not Sell/Share My
             Personal Information" request via Global Privacy Control (GPC), we honor it automatically.
+          </p>
+          <p className="text-muted mt-4">
+            You can submit a "Do Not Sell/Share My Personal Information" request by emailing{" "}
+            <a href="mailto:privacy@knowsomeone.com" className="text-accent hover:text-accent-hover transition-colors">
+              privacy@knowsomeone.com
+            </a>
+            {" "}with that request in the subject line.
+          </p>
+        </div>
+
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-foreground mb-3">10.3 Sensitive Personal Information (CPRA)</h3>
+          <p className="text-muted mb-4">
+            Under the California Privacy Rights Act (CPRA), we collect and use the following sensitive personal information:
+          </p>
+          <ul className="space-y-2 text-muted list-disc list-inside">
+            <li><strong className="text-foreground">Education Information:</strong> Your schools and universities attended (disclosed in your profile and to Supabase)</li>
+            <li><strong className="text-foreground">Employment History:</strong> Job titles, target companies, and professional experience (disclosed in your profile and to Supabase, Vercel, Anthropic)</li>
+            <li><strong className="text-foreground">Inferences:</strong> Inferences about your interests, preferences, and job search behavior based on your activity</li>
+          </ul>
+          <p className="text-muted mt-4">
+            You have the right to limit our use of sensitive personal information. You can request this by emailing{" "}
+            <a href="mailto:privacy@knowsomeone.com" className="text-accent hover:text-accent-hover transition-colors">
+              privacy@knowsomeone.com
+            </a>
+            {" "}with "Limit Sensitive Information" in the subject line. We will limit our use to what is necessary to provide the Service.
+          </p>
+        </div>
+
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-foreground mb-3">10.4 Automated Decision-Making Technology (ADMT)</h3>
+          <p className="text-muted">
+            {APP_NAME} does not use ADMT to make significant decisions about you that have legal effects or similarly affect you.
           </p>
         </div>
 
         <div>
-          <h3 className="text-lg font-semibold text-foreground mb-3">10.3 Automated Decision-Making Technology (ADMT)</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-3">10.5 Data Minimization & Storage Limitation (CPRA)</h3>
           <p className="text-muted">
-            {APP_NAME} does not use ADMT to make significant decisions about you that have legal effects or similarly affect you.
+            In compliance with CPRA data minimization principles, we collect and retain only the personal information necessary to provide KnowSomeone's services. We do not retain data longer than needed, except where required by law (e.g., tax and billing records retained for 7 years). You can request deletion of your data at any time.
           </p>
         </div>
       </section>
@@ -488,7 +529,7 @@ export default function PrivacyPolicy() {
         </div>
 
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-foreground mb-3">Dispute Resolution</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-3">Dispute Resolution & Regulatory Complaints</h3>
           <p className="text-muted mb-4">
             If you have concerns about our privacy practices, please contact us first at{" "}
             <a href="mailto:privacy@knowsomeone.com" className="text-accent hover:text-accent-hover transition-colors">
@@ -498,18 +539,42 @@ export default function PrivacyPolicy() {
           </p>
           <ul className="space-y-2 text-muted list-disc list-inside">
             <li><strong className="text-foreground">GDPR (EU users):</strong> You have the right to lodge a complaint with your local data protection authority (DPA)</li>
-            <li><strong className="text-foreground">CCPA (California users):</strong> You can contact the California Attorney General at{" "}
-              <a href="https://www.ca.gov/about-ca/agencies-departments/attorney-general/" className="text-accent hover:text-accent-hover transition-colors" target="_blank">
-                oag.ca.gov
+            <li><strong className="text-foreground">CCPA/CPRA (California residents):</strong> You can contact the California Attorney General's Consumer Complaint Hotline at 1-800-952-5225 (toll-free) or file a complaint at{" "}
+              <a href="https://oag.ca.gov/consumer" className="text-accent hover:text-accent-hover transition-colors" target="_blank" rel="noopener noreferrer">
+                oag.ca.gov/consumer
               </a>
             </li>
           </ul>
         </div>
       </section>
 
+      {/* California Data Breach Notification */}
+      <section className="mb-12">
+        <h2 className="text-2xl font-bold text-foreground mb-6">15. California Data Breach Notification</h2>
+
+        <p className="text-muted mb-4">
+          <strong>California Civil Code Section 1798.82</strong> requires us to notify you without unreasonable delay if we discover a breach of security involving your unencrypted or unredacted personal information.
+        </p>
+
+        <p className="text-muted">
+          In the event of a data breach affecting California residents, we will:
+        </p>
+
+        <ul className="space-y-2 text-muted list-disc list-inside mt-4">
+          <li>Notify affected California residents without unreasonable delay (typically within 30-45 days)</li>
+          <li>Notify the California Attorney General if the breach affects more than 500 California residents</li>
+          <li>Provide information about what data was breached, what we're doing to investigate, and steps you can take to protect yourself</li>
+          <li>Not require affected individuals to pay for credit monitoring services if it's included in our response</li>
+        </ul>
+
+        <p className="text-muted mt-4">
+          We take data security seriously and maintain incident response procedures to comply with California breach notification requirements.
+        </p>
+      </section>
+
       {/* Updates to This Policy */}
       <section className="mb-12">
-        <h2 className="text-2xl font-bold text-foreground mb-6">15. Updates to This Policy</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-6">16. Updates to This Policy</h2>
 
         <p className="text-muted mb-4">
           We may update this Privacy Policy from time to time to reflect changes in our practices, technology, legal
@@ -528,14 +593,36 @@ export default function PrivacyPolicy() {
         </p>
       </section>
 
+      {/* California Consumer Legal Notice */}
+      <section className="mb-12">
+        <h2 className="text-2xl font-bold text-foreground mb-6">17. Additional California Consumer Rights</h2>
+
+        <p className="text-muted mb-4">
+          <strong>California Residents - Right to Request a Summary:</strong> Under California Civil Code Section 1798.100(d), you may request a summary of specific information regarding the categories of personal information we've collected about you, the sources of that information, and our business purposes for collecting it.
+        </p>
+
+        <p className="text-muted mb-4">
+          <strong>California Online Privacy Protection Act (CalOPPE) Compliance:</strong> This Privacy Policy is designed to comply with California's laws regarding online privacy and consumer protection. California residents have the right to know what information we collect, how it's used, and to whom it's disclosed.
+        </p>
+
+        <p className="text-muted">
+          <strong>Shine the Light Law:</strong> California residents may request information about whether we share personal information with third parties for their direct marketing purposes. If you're a California resident and would like to make such a request, email{" "}
+          <a href="mailto:privacy@knowsomeone.com" className="text-accent hover:text-accent-hover transition-colors">
+            privacy@knowsomeone.com
+          </a>
+          {" "}with "California Shine the Light" in the subject line. Please include your name and email address. We will respond within 30 days.
+        </p>
+      </section>
+
       {/* Final Note */}
       <section className="border-t border-border pt-12">
         <p className="text-muted text-sm">
-          <strong className="text-foreground">Last Updated:</strong> March 2026
+          <strong className="text-foreground">Last Updated:</strong> April 2026
         </p>
         <p className="text-muted text-sm mt-2">
           Thank you for trusting {APP_NAME} with your job search journey. We're committed to protecting your privacy
-          and giving you control over your data.
+          and giving you control over your data. This Privacy Policy is designed to comply with federal laws and California's
+          comprehensive consumer privacy framework (CCPA/CPRA).
         </p>
       </section>
     </article>

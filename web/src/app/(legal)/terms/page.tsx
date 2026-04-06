@@ -16,7 +16,7 @@ export default function TermsOfService() {
             Terms of Service
           </h1>
           <p className="mt-4 text-sm text-muted">
-            Last Updated: March 2026
+            Last Updated: April 2026
           </p>
         </div>
 
@@ -473,9 +473,9 @@ export default function TermsOfService() {
             </h2>
             <p className="mt-4 leading-relaxed text-muted">
               These Terms are governed by and construed in accordance with the laws
-              of the State of Delaware, without regard to its conflict of laws
+              of the State of California, without regard to its conflict of laws
               principles. You agree to submit to the exclusive jurisdiction of the
-              courts located in Delaware for any disputes arising from these Terms or
+              courts located in California for any disputes arising from these Terms or
               the Service.
             </p>
           </section>
@@ -499,10 +499,20 @@ export default function TermsOfService() {
             </p>
           </section>
 
-          {/* Section 15: Changes to Terms */}
+          {/* Section 15: Waiver of Jury Trial and Class Action (California Limitation) */}
           <section>
             <h2 className="text-2xl font-bold text-foreground md:text-3xl">
-              15. Changes to Terms
+              15. Limitation on Dispute Resolution
+            </h2>
+            <p className="mt-4 leading-relaxed text-muted">
+              While KnowSomeone prefers to resolve disputes informally, California law permits both parties to pursue legal remedies in court. Neither party waives its right to a jury trial or to pursue individual claims in California courts. Class actions and representative actions are permitted where allowed by law.
+            </p>
+          </section>
+
+          {/* Section 16: Changes to Terms */}
+          <section>
+            <h2 className="text-2xl font-bold text-foreground md:text-3xl">
+              16. Changes to Terms
             </h2>
             <p className="mt-4 leading-relaxed text-muted">
               KnowSomeone reserves the right to modify these Terms at any time.
@@ -513,10 +523,35 @@ export default function TermsOfService() {
             </p>
           </section>
 
-          {/* Section 16: Contact Information */}
+          {/* Section 17: California Consumer Rights Disclosure */}
           <section>
             <h2 className="text-2xl font-bold text-foreground md:text-3xl">
-              16. Contact Information
+              17. California Consumer Rights Disclosure
+            </h2>
+            <p className="mt-4 leading-relaxed text-muted">
+              <strong>For California Residents (Civil Code Section 1789.3):</strong> If you are a California resident and have a complaint or dispute related to this service, you may contact the California Attorney General's office at:
+            </p>
+            <div className="mt-4 space-y-2 text-muted">
+              <p>California Attorney General's Consumer Complaint Hotline</p>
+              <p>1-800-952-5225 (toll-free)</p>
+              <p>
+                Website:{" "}
+                <a
+                  href="https://oag.ca.gov/consumer"
+                  className="text-accent hover:text-accent-hover"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  oag.ca.gov/consumer
+                </a>
+              </p>
+            </div>
+          </section>
+
+          {/* Section 18: Contact Information */}
+          <section>
+            <h2 className="text-2xl font-bold text-foreground md:text-3xl">
+              18. Contact Information
             </h2>
             <p className="mt-4 leading-relaxed text-muted">
               If you have questions about these Terms, privacy practices, or wish to
