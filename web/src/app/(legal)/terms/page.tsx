@@ -489,10 +489,10 @@ export default function TermsOfService() {
               Before initiating litigation, you agree to attempt to resolve any
               dispute by contacting KnowSomeone's support team at{" "}
               <a
-                href="mailto:support@knowsomeone.com"
+                href="mailto:support@know-someone.com"
                 className="text-accent hover:text-accent-hover"
               >
-                support@knowsomeone.com
+                support@know-someone.com
               </a>
               . If the dispute cannot be resolved informally within 30 days, either
               party may pursue legal remedies.
@@ -564,19 +564,19 @@ export default function TermsOfService() {
               <p>
                 Email:{" "}
                 <a
-                  href="mailto:support@knowsomeone.com"
+                  href="mailto:support@know-someone.com"
                   className="text-accent hover:text-accent-hover"
                 >
-                  support@knowsomeone.com
+                  support@know-someone.com
                 </a>
               </p>
               <p>
                 Legal Notices:{" "}
                 <a
-                  href="mailto:legal@knowsomeone.com"
+                  href="mailto:legal@know-someone.com"
                   className="text-accent hover:text-accent-hover"
                 >
-                  legal@knowsomeone.com
+                  legal@know-someone.com
                 </a>
               </p>
             </div>

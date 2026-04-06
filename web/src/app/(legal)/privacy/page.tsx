@@ -27,8 +27,8 @@ export default function PrivacyPolicy() {
         </p>
         <p className="mt-4 text-muted">
           If you have questions about this policy or our privacy practices, you can reach us at{" "}
-          <a href="mailto:privacy@knowsomeone.com" className="text-accent hover:text-accent-hover transition-colors">
-            privacy@knowsomeone.com
+          <a href="mailto:privacy@know-someone.com" className="text-accent hover:text-accent-hover transition-colors">
+            privacy@know-someone.com
           </a>
           .
         </p>
@@ -254,8 +254,8 @@ export default function PrivacyPolicy() {
           <h3 className="text-lg font-semibold text-foreground mb-3">5.4 How to Exercise Your Rights</h3>
           <p className="text-muted">
             To exercise any of these rights, email us at{" "}
-            <a href="mailto:privacy@knowsomeone.com" className="text-accent hover:text-accent-hover transition-colors">
-              privacy@knowsomeone.com
+            <a href="mailto:privacy@know-someone.com" className="text-accent hover:text-accent-hover transition-colors">
+              privacy@know-someone.com
             </a>
             {" "}with "Data Subject Request" in the subject line. Include:
           </p>
@@ -290,8 +290,8 @@ export default function PrivacyPolicy() {
 
         <p className="text-muted mt-6">
           If you want faster deletion (e.g., immediately after submitting a deletion request), contact us at{" "}
-          <a href="mailto:privacy@knowsomeone.com" className="text-accent hover:text-accent-hover transition-colors">
-            privacy@knowsomeone.com
+          <a href="mailto:privacy@know-someone.com" className="text-accent hover:text-accent-hover transition-colors">
+            privacy@know-someone.com
           </a>
           .
         </p>
@@ -332,8 +332,8 @@ export default function PrivacyPolicy() {
 
         <p className="text-muted mb-4">
           <strong>For EU Users:</strong> If you request an EU data region, Supabase can store your data in eu-west-1 (Ireland) to comply with GDPR localization preferences. To request this, email{" "}
-          <a href="mailto:privacy@knowsomeone.com" className="text-accent hover:text-accent-hover transition-colors">
-            privacy@knowsomeone.com
+          <a href="mailto:privacy@know-someone.com" className="text-accent hover:text-accent-hover transition-colors">
+            privacy@know-someone.com
           </a>
           .
         </p>
@@ -404,8 +404,8 @@ export default function PrivacyPolicy() {
           </p>
           <p className="text-muted mt-4">
             You can submit a "Do Not Sell/Share My Personal Information" request by emailing{" "}
-            <a href="mailto:privacy@knowsomeone.com" className="text-accent hover:text-accent-hover transition-colors">
-              privacy@knowsomeone.com
+            <a href="mailto:privacy@know-someone.com" className="text-accent hover:text-accent-hover transition-colors">
+              privacy@know-someone.com
             </a>
             {" "}with that request in the subject line.
           </p>
@@ -423,8 +423,8 @@ export default function PrivacyPolicy() {
           </ul>
           <p className="text-muted mt-4">
             You have the right to limit our use of sensitive personal information. You can request this by emailing{" "}
-            <a href="mailto:privacy@knowsomeone.com" className="text-accent hover:text-accent-hover transition-colors">
-              privacy@knowsomeone.com
+            <a href="mailto:privacy@know-someone.com" className="text-accent hover:text-accent-hover transition-colors">
+              privacy@know-someone.com
             </a>
             {" "}with "Limit Sensitive Information" in the subject line. We will limit our use to what is necessary to provide the Service.
           </p>
@@ -477,8 +477,8 @@ export default function PrivacyPolicy() {
           from children under 13 (as required by the Children's Online Privacy Protection Act, COPPA). If we discover that a
           child under 13 has created an account, we will delete their account and all associated data immediately.
           Parents or guardians who believe their child has provided us with personal information should contact us at{" "}
-          <a href="mailto:privacy@knowsomeone.com" className="text-accent hover:text-accent-hover transition-colors">
-            privacy@knowsomeone.com
+          <a href="mailto:privacy@know-someone.com" className="text-accent hover:text-accent-hover transition-colors">
+            privacy@know-someone.com
           </a>
           .
         </p>
@@ -519,8 +519,8 @@ export default function PrivacyPolicy() {
           <p className="text-foreground font-semibold mb-2">Privacy Officer</p>
           <p className="text-muted">
             Email:{" "}
-            <a href="mailto:privacy@knowsomeone.com" className="text-accent hover:text-accent-hover transition-colors">
-              privacy@knowsomeone.com
+            <a href="mailto:privacy@know-someone.com" className="text-accent hover:text-accent-hover transition-colors">
+              privacy@know-someone.com
             </a>
           </p>
           <p className="text-muted mt-2">
@@ -532,8 +532,8 @@ export default function PrivacyPolicy() {
           <h3 className="text-lg font-semibold text-foreground mb-3">Dispute Resolution & Regulatory Complaints</h3>
           <p className="text-muted mb-4">
             If you have concerns about our privacy practices, please contact us first at{" "}
-            <a href="mailto:privacy@knowsomeone.com" className="text-accent hover:text-accent-hover transition-colors">
-              privacy@knowsomeone.com
+            <a href="mailto:privacy@know-someone.com" className="text-accent hover:text-accent-hover transition-colors">
+              privacy@know-someone.com
             </a>
             . If you're not satisfied:
           </p>
@@ -607,8 +607,8 @@ export default function PrivacyPolicy() {
 
         <p className="text-muted">
           <strong>Shine the Light Law:</strong> California residents may request information about whether we share personal information with third parties for their direct marketing purposes. If you're a California resident and would like to make such a request, email{" "}
-          <a href="mailto:privacy@knowsomeone.com" className="text-accent hover:text-accent-hover transition-colors">
-            privacy@knowsomeone.com
+          <a href="mailto:privacy@know-someone.com" className="text-accent hover:text-accent-hover transition-colors">
+            privacy@know-someone.com
           </a>
           {" "}with "California Shine the Light" in the subject line. Please include your name and email address. We will respond within 30 days.
         </p>

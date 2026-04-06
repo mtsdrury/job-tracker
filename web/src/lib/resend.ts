@@ -10,7 +10,7 @@ export async function sendEmail(to: string, subject: string, html: string) {
 
   try {
     const result = await resend.emails.send({
-      from: "KnowSomeone <noreply@knowsomeone.com>",
+      from: "KnowSomeone <noreply@know-someone.com>",
       to,
       subject,
       html,
@@ -418,7 +418,7 @@ function generateDigestHtml(userName: string, data: DigestData): string {
             }
 
             <div style="text-align: center; margin-top: 32px;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://knowsomeone.com"}/dashboard" class="cta-button">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://know-someone.com"}/dashboard" class="cta-button">
                 Open KnowSomeone
               </a>
             </div>
@@ -429,7 +429,7 @@ function generateDigestHtml(userName: string, data: DigestData): string {
               You're receiving this because you're signed up for weekly digests on KnowSomeone.
             </div>
             <div class="unsubscribe">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://knowsomeone.com"}/settings">Manage email preferences</a>
+              <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://know-someone.com"}/settings">Manage email preferences</a>
             </div>
           </div>
         </div>
