@@ -21,8 +21,13 @@ import {
   X,
   Link2,
   Sparkles,
+  XCircle,
 } from "lucide-react";
 import { DemoButton } from "@/components/demo-button";
+import {
+  getFreeFeatures,
+  getProOnlyFeatures,
+} from "@/lib/pricing-constants";
 
 const APP_NAME = "KnowSomeone";
 
@@ -92,25 +97,6 @@ const features = [
   },
 ];
 
-const freeFeatures = [
-  "Track up to 25 jobs",
-  "Full referral workflow",
-  "Message templates",
-  "Pipeline dashboard",
-  "Smart nudges & follow-ups",
-];
-
-const proFeatures = [
-  "Unlimited jobs",
-  "Full referral workflow",
-  "Message templates",
-  "Pipeline dashboard",
-  "Smart nudges & follow-ups",
-  "AI message drafting",
-  "Job board search",
-  "Advanced analytics",
-  "Priority support",
-];
 
 export default function Home() {
   return (
@@ -295,16 +281,22 @@ export default function Home() {
                   </span>
                 </p>
                 <ul className="mt-8 flex-1 space-y-3">
-                  {freeFeatures.map((f) => (
-                    <li key={f} className="flex items-center gap-3 text-sm text-muted">
+                  {getFreeFeatures().map((f) => (
+                    <li key={f.text} className="flex items-center gap-3 text-sm text-muted">
                       <Check className="h-4 w-4 shrink-0 text-success" />
-                      {f}
+                      {f.text}
+                    </li>
+                  ))}
+                  {getProOnlyFeatures().map((f) => (
+                    <li key={f.text} className="flex items-center gap-3 text-sm text-muted opacity-60">
+                      <XCircle className="h-4 w-4 shrink-0 text-danger" />
+                      {f.text}
                     </li>
                   ))}
                 </ul>
                 <Link href="/register" className="mt-8 block">
                   <Button variant="secondary" size="lg" className="w-full">
-                    Get Started
+                    Start Free, Upgrade Anytime (or not)
                   </Button>
                 </Link>
               </CardContent>
@@ -329,16 +321,22 @@ export default function Home() {
                   </span>
                 </p>
                 <ul className="mt-8 flex-1 space-y-3">
-                  {proFeatures.map((f) => (
-                    <li key={f} className="flex items-center gap-3 text-sm text-muted">
+                  {getFreeFeatures().map((f) => (
+                    <li key={f.text} className="flex items-center gap-3 text-sm text-muted">
                       <Check className="h-4 w-4 shrink-0 text-success" />
-                      {f}
+                      {f.text}
+                    </li>
+                  ))}
+                  {getProOnlyFeatures().map((f) => (
+                    <li key={f.text} className="flex items-center gap-3 text-sm text-muted">
+                      <Check className="h-4 w-4 shrink-0 text-success" />
+                      {f.text}
                     </li>
                   ))}
                 </ul>
                 <Link href="/register" className="mt-8 block">
                   <Button size="lg" className="w-full">
-                    Start Free, Upgrade Anytime
+                    Get Hired
                   </Button>
                 </Link>
               </CardContent>
@@ -353,40 +351,41 @@ export default function Home() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-1 flex-col">
-                <div className="space-y-4">
-                  <div className="rounded-lg border border-border p-4">
+                <div className="flex flex-1 flex-col space-y-4">
+                  <Link href="/register?plan=quarterly" className="flex flex-1 flex-col justify-center rounded-lg border border-border p-6 transition-colors hover:border-accent hover:bg-accent/5 cursor-pointer">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground">3 months</span>
+                      <span className="text-base font-medium text-foreground">3 months</span>
                       <span className="rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
                         Save 19%
                       </span>
                     </div>
-                    <p className="mt-1 text-2xl font-bold text-foreground">
+                    <p className="mt-2 text-3xl font-bold text-foreground">
                       $29
                       <span className="text-sm font-normal text-muted"> ($9.67/mo)</span>
                     </p>
-                  </div>
-                  <div className="rounded-lg border border-border p-4">
+                    <p className="mt-3 text-sm text-muted">
+                      Most job searches take 2-3 months. This covers you through the finish line.
+                    </p>
+                  </Link>
+                  <Link href="/register?plan=semiannual" className="flex flex-1 flex-col justify-center rounded-lg border border-border p-6 transition-colors hover:border-accent hover:bg-accent/5 cursor-pointer">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground">6 months</span>
+                      <span className="text-base font-medium text-foreground">6 months</span>
                       <span className="rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
                         Save 32%
                       </span>
                     </div>
-                    <p className="mt-1 text-2xl font-bold text-foreground">
+                    <p className="mt-2 text-3xl font-bold text-foreground">
                       $49
                       <span className="text-sm font-normal text-muted"> ($8.17/mo)</span>
                     </p>
-                  </div>
+                    <p className="mt-3 text-sm text-muted">
+                      Best value. One payment, six months of referrals, zero pressure.
+                    </p>
+                  </Link>
                 </div>
                 <p className="mt-6 text-xs text-center text-muted">
                   All Pro features included. One-time payment, no auto-renewal.
                 </p>
-                <Link href="/register" className="mt-6 block">
-                  <Button variant="secondary" size="lg" className="w-full">
-                    Get Started
-                  </Button>
-                </Link>
               </CardContent>
             </Card>
           </div>

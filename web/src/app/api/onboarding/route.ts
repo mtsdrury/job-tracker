@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { schools, resumeVersions, strategy, templates, targetRoles, experienceLevel } = await req.json();
+    const { schools, resumeVersions, strategy, templates, targetRoles } = await req.json();
 
     // Update user config, strategy, and profile fields
     await prisma.user.update({
@@ -18,7 +18,6 @@ export async function POST(req: NextRequest) {
       data: {
         strategyMode: strategy || "referral_first",
         targetRoles: targetRoles || [],
-        experienceLevel: experienceLevel || null,
         config: {
           schools: schools || [],
           connections: (schools || []).map(
@@ -32,12 +31,13 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Create resume versions
+    // Create resume versions with experience level
     if (resumeVersions && resumeVersions.length > 0) {
       await prisma.resumeVersion.createMany({
-        data: resumeVersions.map((name: string, i: number) => ({
+        data: resumeVersions.map((rv: { name: string; experienceLevel?: string }, i: number) => ({
           userId: session.user.id,
-          name,
+          name: rv.name,
+          experienceLevel: rv.experienceLevel || null,
           isDefault: i === 0,
         })),
       });

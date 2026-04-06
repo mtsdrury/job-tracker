@@ -42,13 +42,14 @@ export default async function DashboardPage() {
       udata,
       ssearches,
     ] = await Promise.all([
-      prisma.job.count({ where: { userId, archived: false } }),
-      prisma.job.count({ where: { userId, applied: true, archived: false } }),
+      prisma.job.count({ where: { userId, archived: false, isClosed: false } }),
+      prisma.job.count({ where: { userId, applied: true, archived: false, isClosed: false } }),
       prisma.job.count({
         where: {
           userId,
           interviewStage: "interviewing",
           archived: false,
+          isClosed: false,
         },
       }),
       prisma.contact.count({ where: { userId } }),
@@ -61,7 +62,7 @@ export default async function DashboardPage() {
         },
       }),
       prisma.job.findMany({
-        where: { userId, archived: false },
+        where: { userId, archived: false, isClosed: false },
         include: {
           outreachEvents: {
             include: { contact: true },

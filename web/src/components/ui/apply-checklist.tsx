@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { CheckCircle2, Circle, X } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { X } from "lucide-react";
 
 interface ResumeVersion {
   id: string;
@@ -16,12 +16,11 @@ interface ResumeVersion {
 
 interface ApplyChecklistProps {
   jobId: string;
-  jobCompany: string;
-  jobTitle: string;
+  company: string;
+  title: string;
   resumeVersions: ResumeVersion[];
   currentResumeVersionId: string | null;
-  hasOutreach: boolean;
-  strategyMode: string;
+  applicationUrl: string | null;
   onApply: (data: {
     resumeVersionId: string;
     applicationMethod: string;
@@ -40,14 +39,22 @@ const APPLICATION_METHODS = [
   { value: "other", label: "Other" },
 ];
 
+function detectApplicationMethod(url: string | null): string {
+  if (!url) return "company_website";
+
+  const domain = url.toLowerCase();
+  if (domain.includes("linkedin.com")) return "linkedin_easy_apply";
+  if (domain.includes("email") || domain.includes("mail")) return "email";
+  return "company_website";
+}
+
 export function ApplyChecklist({
   jobId,
-  jobCompany,
-  jobTitle,
+  company,
+  title,
   resumeVersions,
   currentResumeVersionId,
-  hasOutreach,
-  strategyMode,
+  applicationUrl,
   onApply,
   onCancel,
   isLoading,
@@ -55,57 +62,25 @@ export function ApplyChecklist({
   const [resumeVersionId, setResumeVersionId] = useState(
     currentResumeVersionId || resumeVersions[0]?.id || ""
   );
-  const [applicationMethod, setApplicationMethod] = useState("company_website");
-  const [applicationUrl, setApplicationUrl] = useState("");
+  const [applicationMethod, setApplicationMethod] = useState(
+    detectApplicationMethod(applicationUrl)
+  );
+  const [newApplicationUrl, setNewApplicationUrl] = useState("");
   const [applicationNotes, setApplicationNotes] = useState("");
 
-  const isReferralFirst = strategyMode === "referral_first";
-  const showOutreachWarning = isReferralFirst && !hasOutreach;
+  // Only show URL input if no existing URL
+  const showUrlInput = !applicationUrl;
 
-  const canApply =
-    resumeVersionId && applicationMethod && (!showOutreachWarning || true);
-
-  const checklist = [
-    {
-      id: "resume",
-      title: "Resume version",
-      completed: !!resumeVersionId,
-      optional: false,
-    },
-    {
-      id: "method",
-      title: "Application method",
-      completed: !!applicationMethod,
-      optional: false,
-    },
-    {
-      id: "url",
-      title: "Application URL",
-      completed: !!applicationUrl,
-      optional: true,
-    },
-    {
-      id: "notes",
-      title: "Application notes",
-      completed: !!applicationNotes,
-      optional: true,
-    },
-  ];
-
-  const completedCount = checklist.filter((item) => item.completed).length;
-  const requiredCount = checklist.filter((item) => !item.optional).length;
-  const allRequiredCompleted = checklist
-    .filter((item) => !item.optional)
-    .every((item) => item.completed);
+  const canApply = resumeVersionId && applicationMethod;
 
   async function handleConfirm() {
-    if (!allRequiredCompleted) return;
+    if (!canApply) return;
 
     try {
       await onApply({
         resumeVersionId,
         applicationMethod,
-        applicationUrl,
+        applicationUrl: newApplicationUrl || applicationUrl || "",
         applicationNotes,
       });
     } catch (error) {
@@ -114,54 +89,25 @@ export function ApplyChecklist({
   }
 
   return (
-    <Card className="border-accent/50 bg-accent/20 mb-4">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center justify-between">
-          <span>Apply to {jobCompany}</span>
+    <Card className="border-success/20 bg-accent/10 mb-4">
+      <CardContent className="pt-6 space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-foreground">
+              Applying to {company}...
+            </h3>
+            <p className="text-xs text-muted mt-1">{title}</p>
+          </div>
           <button
             onClick={onCancel}
             disabled={isLoading}
-            className="p-1 hover:bg-white/10 rounded"
+            className="p-1 hover:bg-white/10 rounded transition-colors"
             aria-label="Cancel"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 text-muted" />
           </button>
-        </CardTitle>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        {/* Progress indicator */}
-        <div className="flex items-center gap-2 text-sm text-muted mb-4">
-          <div className="flex gap-1">
-            {checklist.map((item) => (
-              <div
-                key={item.id}
-                className="relative"
-                title={item.title}
-              >
-                {item.completed ? (
-                  <CheckCircle2 className="w-5 h-5 text-success" />
-                ) : (
-                  <Circle className="w-5 h-5 text-muted" />
-                )}
-              </div>
-            ))}
-          </div>
-          <span>
-            {completedCount} of {checklist.length} steps
-          </span>
         </div>
-
-        {/* Outreach warning */}
-        {showOutreachWarning && (
-          <div className="rounded-lg bg-warning/10 border border-warning/20 p-3 text-sm text-warning">
-            <div className="font-semibold mb-1">Referral-First Mode</div>
-            <p>
-              You haven't reached out to any contacts yet. Consider finding a
-              referral first for better odds.
-            </p>
-          </div>
-        )}
 
         {/* Resume version */}
         <div>
@@ -201,19 +147,21 @@ export function ApplyChecklist({
           </Select>
         </div>
 
-        {/* Application URL */}
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            Application URL
-          </label>
-          <Input
-            type="url"
-            placeholder="https://..."
-            value={applicationUrl}
-            onChange={(e) => setApplicationUrl(e.target.value)}
-            disabled={isLoading}
-          />
-        </div>
+        {/* Application URL -- only shown if no existing URL */}
+        {showUrlInput && (
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Application URL
+            </label>
+            <Input
+              type="url"
+              placeholder="https://..."
+              value={newApplicationUrl}
+              onChange={(e) => setNewApplicationUrl(e.target.value)}
+              disabled={isLoading}
+            />
+          </div>
+        )}
 
         {/* Application notes */}
         <div>
@@ -225,15 +173,15 @@ export function ApplyChecklist({
             value={applicationNotes}
             onChange={(e) => setApplicationNotes(e.target.value)}
             disabled={isLoading}
-            rows={3}
+            rows={2}
           />
         </div>
 
         {/* Action buttons */}
-        <div className="flex gap-2 pt-4">
+        <div className="flex gap-2 pt-2">
           <Button
             onClick={handleConfirm}
-            disabled={!allRequiredCompleted || isLoading}
+            disabled={!canApply || isLoading}
             className="flex-1"
           >
             {isLoading ? "Confirming..." : "Confirm Application"}

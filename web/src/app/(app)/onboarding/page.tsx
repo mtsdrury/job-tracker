@@ -19,6 +19,11 @@ interface Template {
   category: "initial_outreach" | "follow_up" | "thank_you" | "referral_request";
 }
 
+interface ResumeVersionData {
+  name: string;
+  experienceLevel: string;
+}
+
 const DEFAULT_TEMPLATE: Template = {
   name: "Alumni Outreach",
   body: `Hi {first_name},
@@ -57,7 +62,6 @@ export default function OnboardingPage() {
   // Step 1: About You
   const [targetRoles, setTargetRoles] = useState<string[]>([]);
   const [newRole, setNewRole] = useState("");
-  const [experienceLevel, setExperienceLevel] = useState("");
 
   // Step 2: Schools
   const [schools, setSchools] = useState<School[]>([]);
@@ -66,8 +70,9 @@ export default function OnboardingPage() {
   const [schoolStatus, setSchoolStatus] = useState<"Student" | "Alum">("Alum");
 
   // Step 3: Resume Versions
-  const [resumeVersions, setResumeVersions] = useState<string[]>([]);
+  const [resumeVersions, setResumeVersions] = useState<ResumeVersionData[]>([]);
   const [newResume, setNewResume] = useState("");
+  const [newResumeExperienceLevel, setNewResumeExperienceLevel] = useState("");
 
   // Step 4: Strategy
   const [strategy, setStrategy] = useState<"referral_first" | "speed_first">(
@@ -111,13 +116,20 @@ export default function OnboardingPage() {
 
   function addResume() {
     const trimmed = newResume.trim();
-    if (!trimmed || resumeVersions.includes(trimmed)) return;
-    setResumeVersions([...resumeVersions, trimmed]);
+    if (!trimmed || resumeVersions.some(r => r.name === trimmed)) return;
+    setResumeVersions([...resumeVersions, { name: trimmed, experienceLevel: newResumeExperienceLevel }]);
     setNewResume("");
+    setNewResumeExperienceLevel("");
   }
 
   function removeResume(idx: number) {
     setResumeVersions(resumeVersions.filter((_, i) => i !== idx));
+  }
+
+  function updateResumeExperienceLevel(idx: number, level: string) {
+    const updated = [...resumeVersions];
+    updated[idx] = { ...updated[idx], experienceLevel: level };
+    setResumeVersions(updated);
   }
 
   function updateTemplate(idx: number, field: keyof Template, value: string) {
@@ -135,7 +147,6 @@ export default function OnboardingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           targetRoles,
-          experienceLevel: experienceLevel || null,
           schools,
           resumeVersions,
           strategy,
@@ -206,7 +217,7 @@ export default function OnboardingPage() {
                     About You
                   </h2>
                   <p className="text-sm text-muted mt-1">
-                    Tell us about the roles and experience level you&apos;re looking for. This helps personalize your job recommendations.
+                    Tell us about the roles you&apos;re looking for. This helps personalize your job recommendations.
                   </p>
                 </div>
 
@@ -246,24 +257,7 @@ export default function OnboardingPage() {
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Experience Level
-                  </label>
-                  <select
-                    value={experienceLevel}
-                    onChange={(e) => setExperienceLevel(e.target.value)}
-                    className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground w-full hover:border-border-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
-                  >
-                    <option value="">Select your experience level</option>
-                    <option value="entry">Entry Level</option>
-                    <option value="mid">Mid-Level</option>
-                    <option value="senior">Senior</option>
-                    <option value="executive">Executive</option>
-                  </select>
-                </div>
-
-                {(targetRoles.length === 0 || !experienceLevel) && (
+                {targetRoles.length === 0 && (
                   <p className="text-sm text-muted italic">
                     You can skip this step and add details later in settings.
                   </p>
@@ -367,23 +361,40 @@ export default function OnboardingPage() {
                     Resume Versions
                   </h2>
                   <p className="text-sm text-muted mt-1">
-                    Name your resume variants so you can track which version you
-                    send to each company. You can upload the actual files later.
+                    Name your resume variants and assign an experience level to each. You can upload the actual files later.
                   </p>
                 </div>
-                <div className="flex gap-2 items-end">
-                  <div className="flex-1">
-                    <Input
-                      id="resume-name"
-                      label="Version Name"
-                      value={newResume}
-                      onChange={(e) => setNewResume(e.target.value)}
-                      placeholder="Software Engineer"
-                      onKeyDown={(e) => e.key === "Enter" && addResume()}
-                    />
+                <div className="space-y-3 rounded-lg border border-border bg-surface/50 p-4">
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <Input
+                        id="resume-name"
+                        label="Version Name"
+                        value={newResume}
+                        onChange={(e) => setNewResume(e.target.value)}
+                        placeholder="Software Engineer"
+                        onKeyDown={(e) => e.key === "Enter" && addResume()}
+                      />
+                    </div>
                   </div>
-                  <Button onClick={addResume} size="sm" className="shrink-0">
-                    Add
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">
+                      Experience Level
+                    </label>
+                    <select
+                      value={newResumeExperienceLevel}
+                      onChange={(e) => setNewResumeExperienceLevel(e.target.value)}
+                      className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground w-full hover:border-border-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
+                    >
+                      <option value="">Select experience level</option>
+                      <option value="0-2 years">0-2 years</option>
+                      <option value="3-5 years">3-5 years</option>
+                      <option value="6-10 years">6-10 years</option>
+                      <option value="10+ years">10+ years</option>
+                    </select>
+                  </div>
+                  <Button onClick={addResume} size="sm" className="w-full">
+                    Add Version
                   </Button>
                 </div>
                 {resumeVersions.length > 0 && (
@@ -391,15 +402,33 @@ export default function OnboardingPage() {
                     {resumeVersions.map((r, i) => (
                       <div
                         key={i}
-                        className="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-2"
+                        className="rounded-lg border border-border bg-surface px-4 py-3 space-y-2"
                       >
-                        <span className="text-sm text-foreground">{r}</span>
-                        <button
-                          onClick={() => removeResume(i)}
-                          className="text-muted hover:text-danger text-sm transition-colors"
-                        >
-                          Remove
-                        </button>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-foreground">{r.name}</span>
+                          <button
+                            onClick={() => removeResume(i)}
+                            className="text-muted hover:text-danger text-sm transition-colors"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                        <div className="ml-0">
+                          <label className="block text-xs font-medium text-muted mb-1">
+                            Experience Level
+                          </label>
+                          <select
+                            value={r.experienceLevel}
+                            onChange={(e) => updateResumeExperienceLevel(i, e.target.value)}
+                            className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground w-full hover:border-border-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
+                          >
+                            <option value="">Select experience level</option>
+                            <option value="0-2 years">0-2 years</option>
+                            <option value="3-5 years">3-5 years</option>
+                            <option value="6-10 years">6-10 years</option>
+                            <option value="10+ years">10+ years</option>
+                          </select>
+                        </div>
                       </div>
                     ))}
                   </div>

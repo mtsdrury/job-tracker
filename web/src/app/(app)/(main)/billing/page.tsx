@@ -7,8 +7,12 @@ import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, XCircle } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
+import {
+  getFreeFeatures,
+  getProOnlyFeatures,
+} from "@/lib/pricing-constants";
 
 const plans = [
   {
@@ -293,7 +297,7 @@ export default function BillingPage() {
         </div>
       )}
 
-      {/* Free Plan Features */}
+      {/* Free Plan Features -- with Pro features shown as unavailable */}
       {!isPro && !isDemo && (
         <Card>
           <CardHeader>
@@ -301,17 +305,19 @@ export default function BillingPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {[
-                "Up to 25 jobs",
-                "Template-based messaging",
-                "Referral tracking",
-                "Contact management",
-                "Onboarding wizard",
-                "Basic nudges",
-              ].map((feature, idx) => (
-                <div key={idx} className="flex items-start gap-3">
-                  <Check className="h-4 w-4 text-muted mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-muted">{feature}</span>
+              {getFreeFeatures().map((feature) => (
+                <div key={feature.text} className="flex items-start gap-3">
+                  <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+                  <span className="text-sm text-foreground">{feature.text}</span>
+                </div>
+              ))}
+              {getProOnlyFeatures().map((feature) => (
+                <div
+                  key={feature.text}
+                  className="flex items-start gap-3 opacity-60"
+                >
+                  <XCircle className="h-4 w-4 text-danger mt-0.5 flex-shrink-0" />
+                  <span className="text-sm text-muted">{feature.text}</span>
                 </div>
               ))}
             </div>

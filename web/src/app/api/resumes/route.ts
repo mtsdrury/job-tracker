@@ -18,6 +18,7 @@ export async function GET() {
         fileUrl: true,
         keywords: true,
         isDefault: true,
+        experienceLevel: true,
         createdAt: true,
         updatedAt: true,
       },

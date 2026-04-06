@@ -29,6 +29,7 @@ interface Job {
   interviewStage: string | null;
   nextAction: string | null;
   archived: boolean;
+  isClosed: boolean;
   createdAt: string;
   outreachEvents: OutreachEvent[];
   resumeVersion: { id: string; name: string } | null;
@@ -60,17 +61,20 @@ const JobCard = memo(function JobCard({ job }: { job: Job }) {
 
   return (
     <Link href={`/jobs/${job.id}`}>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-xl border border-border bg-surface px-4 sm:px-5 py-3 sm:py-4 hover:bg-surface-hover transition-colors cursor-pointer gap-2 sm:gap-0">
+      <div className={`flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-xl border border-border px-4 sm:px-5 py-3 sm:py-4 transition-colors cursor-pointer gap-2 sm:gap-0 ${job.isClosed ? "bg-surface/50 opacity-60" : "bg-surface hover:bg-surface-hover"}`}>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p className="font-medium truncate text-sm sm:text-base">{job.company}</p>
+            <p className={`truncate text-sm sm:text-base ${job.isClosed ? "line-through text-muted" : "font-medium"}`}>{job.company}</p>
             {job.url && <ExternalLink className="h-3 w-3 text-muted flex-shrink-0" />}
           </div>
-          <p className="text-sm text-muted truncate">{job.title}</p>
-          {job.location && <p className="text-xs text-muted">{job.location}</p>}
+          <p className={`text-sm truncate ${job.isClosed ? "line-through text-muted" : "text-muted"}`}>{job.title}</p>
+          {job.location && <p className={`text-xs ${job.isClosed ? "line-through text-muted" : "text-muted"}`}>{job.location}</p>}
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          {job.nextAction && (
+          {job.isClosed && (
+            <Badge variant="default">Closed</Badge>
+          )}
+          {job.nextAction && !job.isClosed && (
             <Badge variant={
               job.nextAction.includes("Follow up") ? "warning" :
               job.nextAction.includes("Apply") ? "danger" :
@@ -94,16 +98,18 @@ function MyJobsTab() {
   const [search, setSearch] = useState("");
   const [appliedFilter, setAppliedFilter] = useState("all");
   const [referralFilter, setReferralFilter] = useState("all");
+  const [showClosed, setShowClosed] = useState(false);
   const [error, setError] = useState("");
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  const fetchJobs = useCallback(async (searchVal: string, appliedVal: string, referralVal: string) => {
+  const fetchJobs = useCallback(async (searchVal: string, appliedVal: string, referralVal: string, showClosedVal: boolean) => {
     setLoading(true);
     setError("");
     const params = new URLSearchParams();
     if (searchVal) params.set("search", searchVal);
     if (appliedVal === "applied") params.set("applied", "true");
     if (appliedVal === "not_applied") params.set("applied", "false");
+    if (showClosedVal) params.set("includeClosed", "true");
 
     try {
       const res = await fetch(`/api/jobs?${params.toString()}`);
@@ -131,14 +137,14 @@ function MyJobsTab() {
       clearTimeout(searchTimeout);
     }
     const timer = setTimeout(() => {
-      fetchJobs(search, appliedFilter, referralFilter);
+      fetchJobs(search, appliedFilter, referralFilter, showClosed);
     }, 300);
     setSearchTimeout(timer);
 
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, [search, appliedFilter, referralFilter, fetchJobs]);
+  }, [search, appliedFilter, referralFilter, showClosed, fetchJobs]);
 
   return (
     <div className="space-y-4">
@@ -201,6 +207,19 @@ function MyJobsTab() {
               <option value="has_referral">Has referral</option>
               <option value="no_referral">No referral</option>
             </select>
+          </div>
+          <div className="flex-1 sm:flex-initial">
+            <label htmlFor="closed-toggle" className="flex items-center gap-2 cursor-pointer">
+              <input
+                id="closed-toggle"
+                type="checkbox"
+                checked={showClosed}
+                onChange={(e) => setShowClosed(e.target.checked)}
+                className="rounded border-border"
+                aria-label="Show closed jobs"
+              />
+              <span className="text-sm text-foreground">Show Closed</span>
+            </label>
           </div>
         </div>
       </div>

@@ -15,11 +15,16 @@ export async function GET(req: NextRequest) {
   const archived = searchParams.get("archived") === "true";
   const applied = searchParams.get("applied");
   const search = searchParams.get("search");
+  const includeClosed = searchParams.get("includeClosed") === "true";
 
   const where: Record<string, unknown> = {
     userId: session.user.id,
     archived,
   };
+
+  if (!includeClosed) {
+    where.isClosed = false;
+  }
 
   if (applied !== null) {
     where.applied = applied === "true";

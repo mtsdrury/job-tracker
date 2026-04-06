@@ -39,6 +39,50 @@ This document tracks every task completed during implementation sessions. Update
 
 ## Session Log
 
+### Session: 2026-03-26 (Continued)
+
+**UX Refactors:**
+- ✅ Unified Jobs page -- combined My Jobs, Search, and Import into one tabbed page at `/jobs`
+- ✅ Nav consolidation -- reduced from 9 items to 6 (Dashboard, Jobs, Contacts, Analytics, Billing, Settings)
+- ✅ Moved Tone Quiz out of top nav into Settings page link
+- ✅ Set up redirect routes for old `/import` and `/jobs/search` paths
+
+**Features Added:**
+- ✅ Tone Quiz enhanced -- added 3 writing sample prompts between free/pro MC questions
+- ✅ Writing samples fed into AI draft message system prompt
+- ✅ Em dash ban added to all AI system prompts (draft-message, interview-prep, match-score)
+- ✅ Apollo.io contact enrichment (`/api/contacts/[id]/enrich`, Pro-only, user-provided API key)
+- ✅ Celebration/confetti system (canvas-confetti + CelebrationProvider context)
+- ✅ CSV/XLSX import (PapaParse + SheetJS with column mapping)
+- ✅ Memoized dashboard job cards for performance
+
+**Find Connections Refactor:**
+- ✅ Created `/jobs/[id]/add-contacts` popup page (paste LinkedIn URLs, auto-extract names, Enter to add)
+- ✅ Replaced redundant LinkedInSearchLinks card + "Find Alumni" button with unified "Find Connections" button
+- ✅ Button opens LinkedIn search AND popup window simultaneously
+- ✅ Popup communicates back to parent via postMessage for real-time contact refresh
+
+**Job Search Improvements:**
+- ✅ JSearch URL resolution -- follows redirect chains to get actual company careers page URLs
+- ✅ Added `apply_options`, `employer_website`, `job_apply_is_direct` to JSearch mapping
+- ✅ Priority: direct link > apply_options direct > employer website > resolved redirect
+
+**Bug Fixes:**
+- ✅ Quiz page infinite re-render crash (useToast error function in useEffect deps)
+- ✅ Vercel build: missing @types/papaparse
+- ✅ Vercel build: TemplateCategory type mismatch (cast to enum union)
+- ✅ dotenv chicken-and-egg npm install issue (install with --ignore-scripts first)
+
+**Documentation:**
+- ✅ Bug tracker system created (`bugs/BUG_TRACKER.md` + `bugs/BUG_TRACKER_AGENT_PROMPT.md`)
+- ✅ Competitive landscape research (Refer.me, Jobright, Teal, Apollo.io)
+- ✅ Phase 4 power features defined (warm intro chains, referral culture scores, timing intelligence)
+- ✅ Implementation Flowchart updated to v2.0 (reflects all completed work + new phases)
+
+**Branding Research:**
+- Researched alternatives: ShoeIn (too similar to SHEIN), InsideTrack (taken), InnerCircle (crowded)
+- Decision: staying with KnowSomeone
+
 ### Session: 2026-03-26
 
 **Completed:**
