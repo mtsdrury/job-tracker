@@ -5,6 +5,11 @@ import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 
+// Emails that are always treated as admin
+const ADMIN_EMAILS = [
+  "mackenziedrury17@gmail.com",
+];
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as NextAuthOptions["adapter"],
   session: { strategy: "jwt" },
@@ -118,7 +123,7 @@ export const authOptions: NextAuthOptions = {
       if (token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { billingStatus: true, strategyMode: true, config: true },
+          select: { billingStatus: true, strategyMode: true, config: true, role: true, email: true },
         });
         if (dbUser) {
           token.billingStatus = dbUser.billingStatus;
@@ -126,6 +131,16 @@ export const authOptions: NextAuthOptions = {
           token.onboardingCompleted = config?.onboarding_completed === true;
           token.isDemo = config?.is_demo === true;
           token.strategyMode = dbUser.strategyMode;
+          // Admin: check role field OR hardcoded email list
+          token.isAdmin = dbUser.role === "admin" || ADMIN_EMAILS.includes(dbUser.email);
+
+          // Auto-promote hardcoded admins in DB if not already set
+          if (ADMIN_EMAILS.includes(dbUser.email) && dbUser.role !== "admin") {
+            await prisma.user.update({
+              where: { id: token.id as string },
+              data: { role: "admin" },
+            });
+          }
         }
       }
       return token;
@@ -138,6 +153,7 @@ export const authOptions: NextAuthOptions = {
           token.onboardingCompleted as boolean;
         session.user.isDemo = (token.isDemo as boolean) || false;
         session.user.strategyMode = (token.strategyMode as string) || "referral_first";
+        session.user.isAdmin = (token.isAdmin as boolean) || false;
       }
       return session;
     },

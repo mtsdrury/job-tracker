@@ -121,6 +121,7 @@ model User {
   password_hash     String?
   emailVerified     DateTime?
   image             String?
+  role              String        @default("user") // "user" | "admin"
   createdAt         DateTime      @default(now())
   billingStatus     BillingStatus @default(free)
   stripeCustomerId  String?       @unique

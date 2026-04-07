@@ -12,6 +12,7 @@ declare module "next-auth" {
       onboardingCompleted: boolean;
       isDemo: boolean;
       strategyMode: string;
+      isAdmin: boolean;
     };
   }
 }
@@ -23,5 +24,6 @@ declare module "next-auth/jwt" {
     onboardingCompleted?: boolean;
     isDemo?: boolean;
     strategyMode?: string;
+    isAdmin?: boolean;
   }
 }
