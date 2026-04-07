@@ -216,7 +216,7 @@ export default function AdminUserDetail() {
                       {job.isClosed && <Badge variant="danger">Closed</Badge>}
                       {job.archived && <Badge variant="default">Archived</Badge>}
                       {job.interviewStage && (
-                        <Badge variant="primary">{job.interviewStage}</Badge>
+                        <Badge variant="info">{job.interviewStage}</Badge>
                       )}
                       {job.nextAction && (
                         <span className="text-xs text-muted">{job.nextAction}</span>
