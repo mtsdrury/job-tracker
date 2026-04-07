@@ -87,7 +87,7 @@ export default function AdminUserDetail() {
             <h1 className="text-2xl font-bold">{user.name}</h1>
             {user.role === "admin" && <Badge variant="danger">Admin</Badge>}
             {isDemo && <Badge variant="warning">Demo</Badge>}
-            <Badge variant={user.billingStatus === "pro" ? "success" : "secondary"}>
+            <Badge variant={user.billingStatus === "pro" ? "success" : "default"}>
               {user.billingStatus}
             </Badge>
           </div>
@@ -214,7 +214,7 @@ export default function AdminUserDetail() {
                     <div className="flex items-center gap-2">
                       {job.applied && <Badge variant="success">Applied</Badge>}
                       {job.isClosed && <Badge variant="danger">Closed</Badge>}
-                      {job.archived && <Badge variant="secondary">Archived</Badge>}
+                      {job.archived && <Badge variant="default">Archived</Badge>}
                       {job.interviewStage && (
                         <Badge variant="primary">{job.interviewStage}</Badge>
                       )}
@@ -245,7 +245,7 @@ export default function AdminUserDetail() {
                         {[contact.title, contact.company].filter(Boolean).join(" at ")}
                       </p>
                     </div>
-                    <Badge variant="secondary">{contact.connectionType}</Badge>
+                    <Badge variant="default">{contact.connectionType}</Badge>
                   </div>
                 </CardContent>
               </Card>
@@ -270,7 +270,7 @@ export default function AdminUserDetail() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary">{event.status}</Badge>
+                      <Badge variant="default">{event.status}</Badge>
                       <span className="text-xs text-muted">
                         {new Date(event.lastActionAt).toLocaleDateString()}
                       </span>

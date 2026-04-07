@@ -175,7 +175,7 @@ export default function AdminUsersPage() {
                       <p className="font-medium truncate">{user.name}</p>
                       {user.role === "admin" && <Badge variant="danger">Admin</Badge>}
                       {user.isDemo && <Badge variant="warning">Demo</Badge>}
-                      <Badge variant={user.billingStatus === "pro" ? "success" : "secondary"}>
+                      <Badge variant={user.billingStatus === "pro" ? "success" : "default"}>
                         {user.billingStatus}
                       </Badge>
                     </div>
