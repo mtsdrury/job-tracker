@@ -234,6 +234,7 @@ model Job {
   applicationMethod  String?
   applicationUrl     String?
   companyContactEmail String?
+  applyOptions       Json?           // [{publisher, applyLink, isDirect}] from JSearch
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @default(now()) @updatedAt
 

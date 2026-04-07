@@ -133,6 +133,7 @@ interface Job {
   applicationMethod: string | null;
   applicationUrl: string | null;
   companyContactEmail: string | null;
+  applyOptions: Array<{ publisher: string; applyLink: string; isDirect: boolean }> | null;
   outreachEvents: OutreachEvent[];
   resumeVersion: { id: string; name: string; keywords?: string[] } | null;
   interviews?: Interview[];
@@ -292,13 +293,60 @@ export default function JobDetailPage() {
   }
 
   function handleApplyClick() {
-    // Open the job URL in a new tab if it exists
+    // Open the best available URL in a new tab
     const urlToOpen = job?.url || job?.applicationUrl;
     if (urlToOpen) {
       window.open(urlToOpen, "_blank");
     }
     // Show the inline confirmation card
     setShowApplyChecklist(true);
+  }
+
+  function buildGoogleSearchUrl(title: string, company: string) {
+    const q = encodeURIComponent(`${title} ${company} job apply`);
+    return `https://www.google.com/search?q=${q}`;
+  }
+
+  function getApplyLinks(): Array<{ label: string; url: string; isDirect: boolean }> {
+    const links: Array<{ label: string; url: string; isDirect: boolean }> = [];
+    const seen = new Set<string>();
+
+    // Add stored apply options
+    if (job?.applyOptions && Array.isArray(job.applyOptions)) {
+      for (const opt of job.applyOptions) {
+        if (opt.applyLink && !seen.has(opt.applyLink)) {
+          seen.add(opt.applyLink);
+          links.push({
+            label: opt.publisher || "Job Board",
+            url: opt.applyLink,
+            isDirect: opt.isDirect,
+          });
+        }
+      }
+    }
+
+    // Add main url if not already included
+    if (job?.url && !seen.has(job.url)) {
+      seen.add(job.url);
+      links.push({ label: "Primary Link", url: job.url, isDirect: false });
+    }
+
+    // Add applicationUrl if not already included
+    if (job?.applicationUrl && !seen.has(job.applicationUrl)) {
+      seen.add(job.applicationUrl);
+      links.push({ label: "Application Link", url: job.applicationUrl, isDirect: false });
+    }
+
+    // Always add Google search fallback
+    if (job) {
+      links.push({
+        label: "Search Google",
+        url: buildGoogleSearchUrl(job.title, job.company),
+        isDirect: false,
+      });
+    }
+
+    return links;
   }
 
   async function handleApplyConfirm(data: {
@@ -636,8 +684,8 @@ export default function JobDetailPage() {
           <p className="text-sm sm:text-base text-muted truncate">{job.title}</p>
         </div>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-shrink-0">
-          {job.url && (
-            <a href={job.url} target="_blank" rel="noopener noreferrer">
+          {(job.url || (job.applyOptions?.length && job.applyOptions[0]?.applyLink)) && (
+            <a href={job.url || job.applyOptions?.[0]?.applyLink || "#"} target="_blank" rel="noopener noreferrer">
               <Button variant="ghost" size="sm" className="w-full sm:w-auto">
                 <ExternalLink className="h-4 w-4" />
                 View Posting
@@ -709,6 +757,33 @@ export default function JobDetailPage() {
           onCancel={() => setShowApplyChecklist(false)}
           isLoading={saving}
         />
+      )}
+
+      {/* Apply Links - Multiple job board options */}
+      {job && !job.isClosed && !job.applied && (job.applyOptions?.length || job.url) && (
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <p className="text-xs text-muted mb-3 font-medium uppercase tracking-wide">Apply on</p>
+            <div className="flex flex-wrap gap-2">
+              {getApplyLinks().map((link, idx) => (
+                <a
+                  key={idx}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant={link.isDirect ? "primary" : "secondary"} size="sm">
+                    <ExternalLink className="h-3 w-3" />
+                    {link.label}
+                    {link.isDirect && (
+                      <Badge variant="success" className="ml-1 text-[10px] px-1 py-0">Direct</Badge>
+                    )}
+                  </Button>
+                </a>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Close Job Confirmation Dialog */}

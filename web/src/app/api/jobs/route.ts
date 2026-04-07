@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { title, company, location, remoteType, salaryMin, salaryMax, description, url, source, externalId, datePosted } = body;
+    const { title, company, location, remoteType, salaryMin, salaryMax, description, url, applyOptions, source, externalId, datePosted } = body;
 
     if (!title || !company) {
       return NextResponse.json({ error: "Title and company are required" }, { status: 400 });
@@ -126,6 +126,7 @@ export async function POST(req: NextRequest) {
         salaryMax: salaryMax ? parseInt(salaryMax) : null,
         description,
         url,
+        applyOptions: applyOptions || undefined,
         source: source || "manual",
         externalId,
         datePosted: datePosted ? new Date(datePosted) : null,

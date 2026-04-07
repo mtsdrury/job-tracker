@@ -8,6 +8,12 @@ import { Search, MapPin, Loader2, Plus, ExternalLink, Check, X, Bookmark } from 
 import { useToast } from "@/components/ui/toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
+interface ApplyOption {
+  publisher: string;
+  applyLink: string;
+  isDirect: boolean;
+}
+
 interface JobResult {
   externalId: string;
   title: string;
@@ -16,6 +22,7 @@ interface JobResult {
   location: string;
   remoteType: string | null;
   url: string | null;
+  applyOptions: ApplyOption[];
   description: string | null;
   salaryMin: number | null;
   salaryMax: number | null;
@@ -160,6 +167,7 @@ export function JobSearch() {
           location: result.location,
           remoteType: result.remoteType,
           url: result.url,
+          applyOptions: result.applyOptions,
           description: result.description,
           salaryMin: result.salaryMin,
           salaryMax: result.salaryMax,

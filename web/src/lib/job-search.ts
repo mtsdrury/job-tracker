@@ -26,6 +26,12 @@ interface JSearchResult {
   apply_options: JSearchApplyOption[] | null;
 }
 
+export interface ApplyOption {
+  publisher: string;
+  applyLink: string;
+  isDirect: boolean;
+}
+
 export interface JobSearchResult {
   externalId: string;
   title: string;
@@ -34,6 +40,7 @@ export interface JobSearchResult {
   location: string;
   remoteType: string | null;
   url: string | null;
+  applyOptions: ApplyOption[];
   description: string | null;
   salaryMin: number | null;
   salaryMax: number | null;
@@ -116,6 +123,34 @@ function pickBestUrl(r: JSearchResult): string | null {
   return r.job_apply_link;
 }
 
+function mapApplyOptions(r: JSearchResult): ApplyOption[] {
+  const options: ApplyOption[] = [];
+
+  // Add the main apply link if it exists
+  if (r.job_apply_link) {
+    options.push({
+      publisher: r.job_apply_is_direct ? r.employer_name : "Job Board",
+      applyLink: r.job_apply_link,
+      isDirect: r.job_apply_is_direct,
+    });
+  }
+
+  // Add all apply_options from JSearch (avoid duplicates)
+  if (r.apply_options?.length) {
+    for (const opt of r.apply_options) {
+      if (!options.some((o) => o.applyLink === opt.apply_link)) {
+        options.push({
+          publisher: opt.publisher,
+          applyLink: opt.apply_link,
+          isDirect: opt.is_direct,
+        });
+      }
+    }
+  }
+
+  return options;
+}
+
 function mapResult(r: JSearchResult): JobSearchResult {
   const parts = [r.job_city, r.job_state, r.job_country].filter(Boolean);
   return {
@@ -126,6 +161,7 @@ function mapResult(r: JSearchResult): JobSearchResult {
     location: parts.join(", ") || "Unknown",
     remoteType: r.job_is_remote ? "Remote" : (r.job_employment_type || null),
     url: pickBestUrl(r),
+    applyOptions: mapApplyOptions(r),
     description: r.job_description,
     salaryMin: r.job_min_salary,
     salaryMax: r.job_max_salary,
