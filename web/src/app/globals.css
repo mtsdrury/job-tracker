@@ -1,26 +1,88 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-background: #0a0a0a;
-  --color-foreground: #ededed;
-  --color-surface: #141414;
-  --color-surface-hover: #1a1a1a;
-  --color-border: #262626;
-  --color-border-hover: #383838;
-  --color-muted: #737373;
-  --color-accent: #3b82f6;
-  --color-accent-hover: #2563eb;
-  --color-success: #22c55e;
-  --color-warning: #eab308;
-  --color-danger: #ef4444;
-  --font-sans: var(--font-geist-sans);
+  /* ── Deep jewel-tone palette ── */
+  --color-background: #0f1219;
+  --color-foreground: #e8ecf2;
+  --color-surface: #171c28;
+  --color-surface-hover: #1e2535;
+  --color-surface-elevated: #263040;
+  --color-border: #2a3244;
+  --color-border-hover: #3a4a60;
+  --color-muted: #7a8ba0;
+
+  /* Emerald primary — growth, opportunity, warmth */
+  --color-accent: #10b981;
+  --color-accent-hover: #059669;
+  --color-accent-glow: rgba(16, 185, 129, 0.15);
+
+  /* Sapphire secondary — links, depth, trust */
+  --color-secondary: #6366f1;
+  --color-secondary-hover: #4f46e5;
+
+  /* Gold tertiary — highlights, milestones, badges */
+  --color-tertiary: #d97706;
+  --color-tertiary-hover: #b45309;
+
+  /* Semantic — jewel-tone family */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #e11d48;
+
+  /* Fonts — serif headings + friendly sans body */
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-lora);
   --font-mono: var(--font-geist-mono);
+
+  /* ── Modular type scale (1.25 ratio) ── */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.563rem;
+  --text-2xl: 1.953rem;
+  --text-3xl: 2.441rem;
+  --text-4xl: 3.052rem;
 }
 
 body {
   background: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+  line-height: 1.6;
+}
+
+/* Subtle ambient background glow — makes it feel lived-in */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(ellipse at 15% 50%, rgba(16, 185, 129, 0.04) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 20%, rgba(99, 102, 241, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 90%, rgba(217, 119, 6, 0.02) 0%, transparent 45%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Ensure content sits above the background glow */
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Heading font utility */
+.font-heading {
+  font-family: var(--font-heading), Georgia, serif;
+}
+
+/* Label utility — uppercase tracking for editorial feel */
+.label-caps {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
 }
 
 /* Scrollbar styling */
@@ -70,32 +132,54 @@ body {
   white-space: normal;
 }
 
-/* Toast slide-in animation */
+/* ── Animations ── */
+
+/* Toast: multi-dimensional slide-in with depth */
 @keyframes slide-in-right {
   from {
     opacity: 0;
-    transform: translateX(100%);
+    transform: translateX(100%) scale(0.92);
+    filter: blur(4px);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateX(0) scale(1);
+    filter: blur(0);
   }
 }
-
 .animate-slide-in-right {
-  animation: slide-in-right 0.25s ease-out;
+  animation: slide-in-right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Skeleton shimmer animation */
+/* Toast exit */
+@keyframes slide-out-right {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%) scale(0.92);
+  }
+}
+.animate-slide-out-right {
+  animation: slide-out-right 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Skeleton shimmer — staggered and softer */
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.9;
   }
   100% {
     background-position: 200% 0;
+    opacity: 0.6;
   }
 }
-
 .animate-shimmer {
   background: linear-gradient(
     90deg,
@@ -104,5 +188,138 @@ body {
     var(--color-surface) 75%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  animation: shimmer 2s ease-in-out infinite;
+}
+/* Stagger children for shimmer groups */
+.animate-shimmer:nth-child(2) { animation-delay: 0.1s; }
+.animate-shimmer:nth-child(3) { animation-delay: 0.2s; }
+.animate-shimmer:nth-child(4) { animation-delay: 0.3s; }
+
+/* Page transition: gentle fade + slide up */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-page-enter {
+  animation: page-enter 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Card stagger entrance */
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-card-enter {
+  animation: card-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-card-enter:nth-child(1) { animation-delay: 0s; }
+.animate-card-enter:nth-child(2) { animation-delay: 0.05s; }
+.animate-card-enter:nth-child(3) { animation-delay: 0.1s; }
+.animate-card-enter:nth-child(4) { animation-delay: 0.15s; }
+.animate-card-enter:nth-child(5) { animation-delay: 0.2s; }
+.animate-card-enter:nth-child(6) { animation-delay: 0.25s; }
+
+/* Notification badge pulse */
+@keyframes badge-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(225, 29, 72, 0);
+  }
+}
+.animate-badge-pulse {
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+/* Hover lift — reusable card/button hover */
+.hover-lift {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--color-border-hover);
+}
+
+/* Button press feedback */
+.active-press:active {
+  transform: translateY(0) scale(0.98);
+  transition: transform 0.1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Smooth underline for links */
+.link-underline {
+  position: relative;
+  text-decoration: none;
+}
+.link-underline::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 0;
+  height: 1.5px;
+  background: var(--color-accent);
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.link-underline:hover::after {
+  width: 100%;
+}
+
+/* Focus ring — animated entrance */
+@keyframes focus-ring-in {
+  from {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+  to {
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+  }
+}
+.focus-ring-animated:focus-visible {
+  outline: none;
+  animation: focus-ring-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Page transition — fade-in + slide-up on mount/route change */
+@keyframes page-transition-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.page-transition {
+  animation: page-transition-in 350ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.page-transition-stagger > * {
+  animation: page-transition-in 350ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.page-transition-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.page-transition-stagger > *:nth-child(2) { animation-delay: 60ms; }
+.page-transition-stagger > *:nth-child(3) { animation-delay: 120ms; }
+.page-transition-stagger > *:nth-child(4) { animation-delay: 180ms; }
+.page-transition-stagger > *:nth-child(5) { animation-delay: 240ms; }
+.page-transition-stagger > *:nth-child(6) { animation-delay: 300ms; }
+.page-transition-stagger > *:nth-child(n + 7) { animation-delay: 360ms; }
+@media (prefers-reduced-motion: reduce) {
+  .page-transition,
+  .page-transition-stagger > * {
+    animation: none;
+  }
 }

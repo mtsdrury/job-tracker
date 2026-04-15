@@ -11,11 +11,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-accent text-white hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed",
+    "bg-gradient-to-r from-accent to-accent-hover text-white hover:shadow-lg hover:shadow-accent-glow disabled:opacity-50 disabled:cursor-not-allowed",
   secondary:
-    "bg-surface text-foreground border border-border hover:bg-surface-hover hover:border-border-hover",
+    "bg-surface text-foreground border border-border hover:bg-surface-hover hover:border-border-hover hover:shadow-md",
   ghost:
-    "text-muted hover:text-foreground hover:bg-surface",
+    "text-muted hover:text-foreground hover:bg-surface-hover",
   danger:
     "bg-danger/10 text-danger hover:bg-danger/20 border border-danger/20",
 };
@@ -32,7 +32,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={clsx(
-          "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background hover:scale-[1.02] active:scale-[0.98]",
           variantStyles[variant],
           sizeStyles[size],
           className

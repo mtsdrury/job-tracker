@@ -130,9 +130,12 @@ export default async function DashboardPage() {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
+    <div className="space-y-12">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl sm:text-4xl font-heading font-bold tracking-tight">Dashboard</h1>
+          <p className="mt-2 text-sm text-muted leading-relaxed">Your referral pipeline at a glance.</p>
+        </div>
         <Link href="/jobs/new">
           <Button size="sm">
             <Plus className="h-4 w-4" />
@@ -154,7 +157,7 @@ export default async function DashboardPage() {
       {/* Pipeline Summary */}
       <section aria-labelledby="pipeline-summary-heading">
       <h2 id="pipeline-summary-heading" className="sr-only">Pipeline Summary</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
@@ -252,7 +255,7 @@ export default async function DashboardPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle id="recent-jobs-heading">Recent Jobs</CardTitle>
-            <Link href="/jobs" className="text-sm text-accent hover:underline">
+            <Link href="/jobs" className="text-sm text-accent link-underline">
               View all
             </Link>
           </div>
@@ -270,7 +273,7 @@ export default async function DashboardPage() {
               </Link>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {activeJobs.slice(0, 5).map((job) => (
                 <DashboardJobCard key={job.id} job={job} />
               ))}
@@ -292,7 +295,7 @@ export default async function DashboardPage() {
               </CardTitle>
               <Link
                 href="/jobs?tab=search"
-                className="text-sm text-accent hover:underline"
+                className="text-sm text-accent link-underline"
               >
                 Manage
               </Link>

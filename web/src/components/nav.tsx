@@ -58,13 +58,13 @@ export function Nav() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
+    <nav className="sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur-xl shadow-lg shadow-black/10">
       <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
         <div className="flex h-14 items-center justify-between gap-2">
           <div className="flex items-center gap-3 sm:gap-8 min-w-0">
             <Link
               href="/dashboard"
-              className="text-base sm:text-lg font-bold text-foreground flex-shrink-0"
+              className="text-base sm:text-lg font-heading font-bold text-foreground flex-shrink-0 tracking-tight"
             >
               {APP_NAME}
             </Link>
@@ -82,10 +82,10 @@ export function Nav() {
                     key={item.href}
                     href={item.href}
                     className={clsx(
-                      "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
                       isActive
-                        ? "bg-accent/10 text-accent"
-                        : "text-muted hover:text-foreground hover:bg-surface"
+                        ? "bg-gradient-to-r from-accent/15 to-accent/5 text-accent border-b-2 border-accent"
+                        : "text-muted hover:text-foreground hover:bg-surface-hover"
                     )}
                   >
                     <Icon className="h-4 w-4" />

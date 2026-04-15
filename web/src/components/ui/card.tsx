@@ -8,7 +8,7 @@ export function Card({
   return (
     <div
       className={clsx(
-        "rounded-xl border border-border bg-surface p-6",
+        "rounded-2xl border border-border bg-gradient-to-br from-surface to-surface-hover/50 p-8 transition-all duration-250",
         className
       )}
       {...props}
@@ -29,7 +29,7 @@ export function CardTitle({
 }: HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h3
-      className={clsx("text-lg font-semibold text-foreground", className)}
+      className={clsx("text-xl font-heading font-semibold text-foreground tracking-tight leading-snug", className)}
       {...props}
     />
   );
@@ -40,7 +40,7 @@ export function CardDescription({
   ...props
 }: HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <p className={clsx("text-sm text-muted", className)} {...props} />
+    <p className={clsx("text-sm text-muted leading-relaxed", className)} {...props} />
   );
 }
 

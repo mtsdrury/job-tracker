@@ -39,12 +39,12 @@ export function EmptyState({
   className,
 }: EmptyStateProps) {
   return (
-    <div className={clsx("text-center py-12 px-6 max-w-md mx-auto", className)}>
-      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10">
-        <Icon className="h-7 w-7 text-accent" />
+    <div className={clsx("text-center py-16 px-6 max-w-lg mx-auto", className)}>
+      <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-accent/20 to-secondary/10 shadow-lg shadow-accent-glow">
+        <Icon className="h-8 w-8 text-accent" />
       </div>
-      <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
-      <p className="text-sm text-muted mb-6 leading-relaxed">{description}</p>
+      <h3 className="text-xl font-heading font-semibold text-foreground mb-3 tracking-tight">{title}</h3>
+      <p className="text-sm text-muted mb-8 leading-relaxed">{description}</p>
 
       {steps && steps.length > 0 && (
         <div className="mb-6 text-left space-y-3">

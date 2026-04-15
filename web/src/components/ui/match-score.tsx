@@ -249,6 +249,12 @@ export function MatchScore({
           {/* Score circle */}
           <div className="relative w-20 h-20 flex items-center justify-center flex-shrink-0">
             <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 100 100">
+              <defs>
+                <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="var(--color-accent)" />
+                  <stop offset="100%" stopColor="var(--color-secondary)" />
+                </linearGradient>
+              </defs>
               {/* Background circle */}
               <circle
                 cx="50"
@@ -265,11 +271,13 @@ export function MatchScore({
                 cy="50"
                 r="45"
                 fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
+                stroke="url(#scoreGradient)"
+                strokeWidth="3"
+                strokeLinecap="round"
                 strokeDasharray={`${2 * Math.PI * 45}`}
                 strokeDashoffset={`${2 * Math.PI * 45 * (1 - matchData.score / 100)}`}
-                className={`${getScoreColor()} transition-all`}
+                className="transition-all duration-700"
+                style={{ filter: "drop-shadow(0 0 6px rgba(16, 185, 129, 0.3))" }}
               />
             </svg>
             <div className="absolute text-center">

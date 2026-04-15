@@ -102,9 +102,9 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Nav */}
-      <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+      <nav className="sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur-xl shadow-lg shadow-black/10">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 py-4">
-          <Link href="/" className="text-lg sm:text-xl font-bold text-foreground">
+          <Link href="/" className="text-lg sm:text-xl font-heading font-bold text-foreground tracking-tight">
             {APP_NAME}
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
@@ -128,10 +128,10 @@ export default function Home() {
           <p className="mb-4 text-xs sm:text-sm font-medium uppercase tracking-widest text-accent">
             The referral-first job search platform
           </p>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight text-foreground md:leading-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-heading font-bold leading-tight tracking-tight text-foreground md:leading-tight">
             In this market, it&apos;s not what you know.
             <br />
-            <span className="text-accent">It&apos;s who you know.</span>
+            <span className="bg-gradient-to-r from-accent to-secondary bg-clip-text text-transparent">It&apos;s who you know.</span>
           </h1>
           <p className="mx-auto mt-4 sm:mt-6 max-w-xl text-base sm:text-lg leading-relaxed text-muted px-2">
             Cold applications disappear into the void. Referrals get interviews.
@@ -154,7 +154,7 @@ export default function Home() {
       </section>
 
       {/* Social proof / stat bar */}
-      <section className="border-y border-border bg-surface/50 py-8">
+      <section className="border-y border-border/60 bg-gradient-to-r from-surface/50 via-surface to-surface/50 py-8">
         <div className="mx-auto flex max-w-4xl flex-col items-center justify-center gap-6 px-4 sm:px-6 sm:flex-row sm:gap-8 md:gap-16">
           <div className="text-center">
             <p className="text-2xl sm:text-3xl font-bold text-accent">5x</p>
@@ -180,7 +180,7 @@ export default function Home() {
       >
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-heading font-bold text-foreground tracking-tight">
               How {APP_NAME} works
             </h2>
             <p className="mt-4 text-sm sm:text-base text-muted">
@@ -190,13 +190,13 @@ export default function Home() {
           <div className="mt-12 sm:mt-16 grid gap-6 sm:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {steps.map((step, i) => (
               <div key={step.title} className="text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-accent/15 to-secondary/10 text-accent">
                   <step.icon className="h-7 w-7" />
                 </div>
                 <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-muted">
                   Step {i + 1}
                 </p>
-                <h3 className="mt-2 text-lg font-semibold text-foreground">
+                <h3 className="mt-2 text-lg font-heading font-semibold text-foreground">
                   {step.title}
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted">
@@ -209,9 +209,9 @@ export default function Home() {
       </section>
 
       {/* Key differentiator callout */}
-      <section className="border-t border-border bg-accent/5 py-12 sm:py-16">
+      <section className="border-t border-border/60 bg-gradient-to-br from-accent/5 to-secondary/5 py-12 sm:py-16">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
+          <h2 className="text-2xl sm:text-3xl font-heading font-bold text-foreground tracking-tight">
             The missing link in job search tools
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm sm:text-base text-muted leading-relaxed">
@@ -227,7 +227,7 @@ export default function Home() {
       <section className="border-t border-border py-16 sm:py-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-heading font-bold text-foreground tracking-tight">
               Built for the referral-first workflow
             </h2>
             <p className="mt-4 text-sm sm:text-base text-muted">
@@ -238,10 +238,10 @@ export default function Home() {
           <div className="mt-12 sm:mt-16 grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((feature) => (
               <Card key={feature.title} className="p-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-accent">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-accent/15 to-secondary/10 text-accent">
                   <feature.icon className="h-5 w-5" />
                 </div>
-                <h3 className="mt-4 text-base font-semibold text-foreground">
+                <h3 className="mt-4 text-base font-heading font-semibold text-foreground">
                   {feature.title}
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted">
@@ -254,10 +254,10 @@ export default function Home() {
       </section>
 
       {/* Pricing */}
-      <section className="border-t border-border bg-surface py-16 sm:py-24">
+      <section className="border-t border-border/60 bg-gradient-to-b from-surface to-background py-16 sm:py-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-heading font-bold text-foreground tracking-tight">
               Simple, fair pricing
             </h2>
             <p className="mt-4 text-sm sm:text-base text-muted">
@@ -395,7 +395,7 @@ export default function Home() {
       {/* FAQ */}
       <section className="border-t border-border py-16 sm:py-24">
         <div className="mx-auto max-w-3xl px-4 sm:px-6">
-          <h2 className="text-center text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
+          <h2 className="text-center text-2xl sm:text-3xl md:text-4xl font-heading font-bold text-foreground tracking-tight">
             Common questions
           </h2>
           <div className="mt-8 sm:mt-12 space-y-4 sm:space-y-6">
@@ -441,7 +441,7 @@ export default function Home() {
       {/* Final CTA */}
       <section className="border-t border-border py-16 sm:py-24">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 text-center">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-heading font-bold text-foreground tracking-tight">
             Your next job starts with someone you know
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm sm:text-base text-muted leading-relaxed">
