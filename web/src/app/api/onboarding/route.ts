@@ -31,32 +31,48 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Create resume versions with experience level
+    // Upsert resume versions (handles re-running onboarding gracefully)
     if (resumeVersions && resumeVersions.length > 0) {
-      await prisma.resumeVersion.createMany({
-        data: resumeVersions.map((rv: { name: string; experienceLevel?: string }, i: number) => ({
-          userId: session.user.id,
-          name: rv.name,
-          experienceLevel: rv.experienceLevel || null,
-          isDefault: i === 0,
-        })),
-      });
+      for (let i = 0; i < resumeVersions.length; i++) {
+        const rv = resumeVersions[i] as { name: string; experienceLevel?: string };
+        await prisma.resumeVersion.upsert({
+          where: {
+            userId_name: { userId: session.user.id, name: rv.name },
+          },
+          update: {
+            experienceLevel: rv.experienceLevel || null,
+            isDefault: i === 0,
+          },
+          create: {
+            userId: session.user.id,
+            name: rv.name,
+            experienceLevel: rv.experienceLevel || null,
+            isDefault: i === 0,
+          },
+        });
+      }
     }
 
-    // Create message templates
+    // Upsert message templates (handles re-running onboarding gracefully)
     if (templates && templates.length > 0) {
-      await prisma.messageTemplate.createMany({
-        data: templates
-          .filter((t: { name: string; body: string }) => t.name && t.body)
-          .map(
-            (t: { name: string; body: string; category?: string }) => ({
-              userId: session.user.id,
-              name: t.name,
-              body: t.body,
-              category: t.category || "initial_outreach",
-            })
-          ),
-      });
+      for (const t of templates.filter((t: { name: string; body: string }) => t.name && t.body)) {
+        const tmpl = t as { name: string; body: string; category?: string };
+        await prisma.messageTemplate.upsert({
+          where: {
+            userId_name: { userId: session.user.id, name: tmpl.name },
+          },
+          update: {
+            body: tmpl.body,
+            category: tmpl.category || "initial_outreach",
+          },
+          create: {
+            userId: session.user.id,
+            name: tmpl.name,
+            body: tmpl.body,
+            category: tmpl.category || "initial_outreach",
+          },
+        });
+      }
     }
 
     return NextResponse.json({ success: true });

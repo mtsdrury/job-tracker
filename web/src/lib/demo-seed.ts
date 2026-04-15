@@ -53,7 +53,7 @@ export const seedResumeVersions = [
 export const seedTemplates = [
   {
     name: "Alumni Intro",
-    body: "Hi {first_name},\n\nI am a fellow {connection} and noticed you work at {company}. I am currently exploring {role} opportunities and would love to hear about your experience there.\n\nWould you have 15 minutes for a quick chat?\n\nBest,\nDemo User",
+    body: "Hi {first_name},\n\n{connection_line} I noticed you work at {company} and I am currently exploring {role} opportunities. I would love to hear about your experience there.\n\nWould you have 15 minutes for a quick chat?\n\nBest,\nDemo User",
     category: "initial_outreach" as const,
   },
   {

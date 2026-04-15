@@ -28,7 +28,7 @@ const DEFAULT_TEMPLATE: Template = {
   name: "Alumni Outreach",
   body: `Hi {first_name},
 
-I noticed you work at {company} and I'm very interested in the {role} position. {connection}
+I noticed you work at {company} and I'm very interested in the {role} position. {connection_line}
 
 I'd love to hear about your experience there and any advice you might have. Would you be open to a quick chat?
 
@@ -42,7 +42,7 @@ const SAMPLE_PREVIEW: Record<string, string> = {
   "{first_name}": "Alex",
   "{company}": "Google",
   "{role}": "Software Engineer",
-  "{connection}": "I'm also a State University alum.",
+  "{connection_line}": "I'm also a State University alum.",
 };
 
 function renderPreview(body: string): string {
@@ -517,7 +517,7 @@ export default function OnboardingPage() {
                     </code>
                     ,{" "}
                     <code className="text-xs bg-surface-hover px-1 py-0.5 rounded">
-                      {"{connection}"}
+                      {"{connection_line}"}
                     </code>
                     . You can edit these anytime in settings.
                   </p>

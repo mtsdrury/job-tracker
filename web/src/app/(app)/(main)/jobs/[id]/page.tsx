@@ -457,7 +457,7 @@ export default function JobDetailPage() {
       firstName,
       company: job.company,
       role: job.title,
-      connection: drafting.connectionId ? getConnectionLine(drafting.connectionId) : "",
+      connectionLine: drafting.connectionId ? getConnectionLine(drafting.connectionId) : "",
     };
 
     const substituted = substituteTemplateVars(template.body, context);
