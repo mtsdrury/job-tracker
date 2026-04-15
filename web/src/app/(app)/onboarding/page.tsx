@@ -131,13 +131,17 @@ export default function OnboardingPage() {
   }
 
   function openLinkedInSchoolSearch() {
-    // Open LinkedIn people search prefilled with the school name as keywords.
-    // User then clicks "All filters" -> Education -> selects school, and the
-    // resulting URL contains schoolFilter=["1234"] which we extract on paste.
-    const name = schoolName.trim();
-    const base = "https://www.linkedin.com/search/results/people/";
-    const url = name ? `${base}?keywords=${encodeURIComponent(name)}` : base;
-    window.open(url, "_blank", "noopener,noreferrer");
+    // Open a generalized LinkedIn people search. Do NOT pass keywords, that
+    // just does a full-text match on profiles and never produces a
+    // schoolFilter param in the URL. The user needs to click "All filters"
+    // -> Education -> type the school name -> select, which LinkedIn resolves
+    // against its school database and encodes as schoolFilter=["1234"] in the
+    // address bar. We extract that ID when the URL is pasted back.
+    window.open(
+      "https://www.linkedin.com/search/results/people/",
+      "_blank",
+      "noopener,noreferrer"
+    );
   }
 
   function removeSchool(idx: number) {
@@ -303,14 +307,17 @@ export default function OnboardingPage() {
                     Your Schools
                   </h2>
                   <p className="text-sm text-muted mt-1">
-                    Add your schools to find alumni at target companies. Type a
-                    school name and click <strong>Find on LinkedIn</strong>.
-                    On LinkedIn, click <em>All filters</em> &rarr;{" "}
-                    <em>Education</em>, select your school, then click{" "}
-                    <em>Show results</em>. Copy the URL from the address bar
-                    and paste it into the <strong>LinkedIn ID or URL</strong>{" "}
-                    field below. We&apos;ll extract the ID automatically. This
-                    powers the &quot;Find Alumni&quot; button on each job.
+                    Add your schools to find alumni at target companies. Click{" "}
+                    <strong>Find on LinkedIn</strong> to open LinkedIn&apos;s
+                    people search in a new tab. Do NOT type the school in the
+                    search bar, that won&apos;t give us the filter code.
+                    Instead, click <em>All filters</em> &rarr;{" "}
+                    <em>Education</em>, type your school, select it from the
+                    dropdown, and click <em>Show results</em>. Then copy the
+                    URL from the address bar and paste it into the{" "}
+                    <strong>LinkedIn ID or URL</strong> field below. We&apos;ll
+                    extract the ID automatically. This powers the &quot;Find
+                    Alumni&quot; button on each job.
                   </p>
                 </div>
                 <div className="flex gap-2 items-end">
@@ -339,6 +346,15 @@ export default function OnboardingPage() {
                       <option value="Alum">Alum</option>
                     </select>
                   </div>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    onClick={openLinkedInSchoolSearch}
+                    className="shrink-0"
+                  >
+                    Find on LinkedIn
+                  </Button>
                 </div>
                 <div className="flex gap-2 items-end">
                   <div className="flex-1 min-w-0">
@@ -351,15 +367,6 @@ export default function OnboardingPage() {
                       onKeyDown={(e) => e.key === "Enter" && addSchool()}
                     />
                   </div>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={openLinkedInSchoolSearch}
-                    className="shrink-0"
-                  >
-                    Find on LinkedIn
-                  </Button>
                   <Button onClick={addSchool} size="sm" className="shrink-0">
                     Add
                   </Button>
