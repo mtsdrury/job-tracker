@@ -38,6 +38,26 @@ Thanks so much!`,
 
 const STEPS = ["About You", "Schools", "Resumes", "Strategy", "Templates"];
 
+function extractSchoolId(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+  if (/^\d+$/.test(trimmed)) return trimmed;
+  const decoded = (() => {
+    try {
+      return decodeURIComponent(trimmed);
+    } catch {
+      return trimmed;
+    }
+  })();
+  // linkedin.com/school/1234/ or linkedin.com/school/name-1234/
+  const schoolPath = decoded.match(/linkedin\.com\/school\/[^/?#]*?(\d+)(?:\/|$|\?|#)/i);
+  if (schoolPath) return schoolPath[1];
+  // schoolFilter=1234 or schoolFilter=["1234"]
+  const filter = decoded.match(/schoolFilter=\[?"?(\d+)"?/i);
+  if (filter) return filter[1];
+  return "";
+}
+
 const SAMPLE_PREVIEW: Record<string, string> = {
   "{first_name}": "Alex",
   "{company}": "Google",
@@ -102,12 +122,22 @@ export default function OnboardingPage() {
       ...schools,
       {
         name: schoolName.trim(),
-        linkedin_id: schoolId.trim(),
+        linkedin_id: extractSchoolId(schoolId),
         status: schoolStatus,
       },
     ]);
     setSchoolName("");
     setSchoolId("");
+  }
+
+  function openLinkedInSchoolSearch() {
+    // Open LinkedIn people search prefilled with the school name as keywords.
+    // User then clicks "All filters" -> Education -> selects school, and the
+    // resulting URL contains schoolFilter=["1234"] which we extract on paste.
+    const name = schoolName.trim();
+    const base = "https://www.linkedin.com/search/results/people/";
+    const url = name ? `${base}?keywords=${encodeURIComponent(name)}` : base;
+    window.open(url, "_blank", "noopener,noreferrer");
   }
 
   function removeSchool(idx: number) {
@@ -273,15 +303,18 @@ export default function OnboardingPage() {
                     Your Schools
                   </h2>
                   <p className="text-sm text-muted mt-1">
-                    Add your schools to find alumni at target companies.
-                    To find the LinkedIn ID: go to LinkedIn, search for your
-                    school, open its page, and grab the number from the URL
-                    (e.g. linkedin.com/school/<strong>1234</strong>/).
-                    This powers the &quot;Find Alumni&quot; button on each job.
+                    Add your schools to find alumni at target companies. Type a
+                    school name and click <strong>Find on LinkedIn</strong>.
+                    On LinkedIn, click <em>All filters</em> &rarr;{" "}
+                    <em>Education</em>, select your school, then click{" "}
+                    <em>Show results</em>. Copy the URL from the address bar
+                    and paste it into the <strong>LinkedIn ID or URL</strong>{" "}
+                    field below. We&apos;ll extract the ID automatically. This
+                    powers the &quot;Find Alumni&quot; button on each job.
                   </p>
                 </div>
                 <div className="flex gap-2 items-end">
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <Input
                       id="school-name"
                       label="School Name"
@@ -291,17 +324,7 @@ export default function OnboardingPage() {
                       onKeyDown={(e) => e.key === "Enter" && addSchool()}
                     />
                   </div>
-                  <div className="w-28">
-                    <Input
-                      id="school-id"
-                      label="LinkedIn ID"
-                      value={schoolId}
-                      onChange={(e) => setSchoolId(e.target.value)}
-                      placeholder="1234"
-                      onKeyDown={(e) => e.key === "Enter" && addSchool()}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 shrink-0">
                     <label className="block text-sm font-medium text-foreground">
                       Status
                     </label>
@@ -316,10 +339,37 @@ export default function OnboardingPage() {
                       <option value="Alum">Alum</option>
                     </select>
                   </div>
+                </div>
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1 min-w-0">
+                    <Input
+                      id="school-id"
+                      label="LinkedIn ID or URL"
+                      value={schoolId}
+                      onChange={(e) => setSchoolId(e.target.value)}
+                      placeholder="Paste LinkedIn URL or enter numeric ID"
+                      onKeyDown={(e) => e.key === "Enter" && addSchool()}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={openLinkedInSchoolSearch}
+                    className="shrink-0"
+                  >
+                    Find on LinkedIn
+                  </Button>
                   <Button onClick={addSchool} size="sm" className="shrink-0">
                     Add
                   </Button>
                 </div>
+                {schoolId.trim() && !extractSchoolId(schoolId) && (
+                  <p className="text-xs text-danger">
+                    Couldn&apos;t find a school ID in that input. Paste a
+                    linkedin.com/school/... URL or a numeric ID.
+                  </p>
+                )}
                 {schools.length > 0 && (
                   <div className="space-y-2">
                     {schools.map((s, i) => (
