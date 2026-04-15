@@ -2,6 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { TemplateCategory } from "@/generated/prisma/enums";
+
+const VALID_CATEGORIES = new Set<string>([
+  TemplateCategory.initial_outreach,
+  TemplateCategory.follow_up,
+  TemplateCategory.thank_you,
+  TemplateCategory.referral_request,
+]);
+
+function toCategory(value: string | undefined): TemplateCategory {
+  return value && VALID_CATEGORIES.has(value)
+    ? (value as TemplateCategory)
+    : TemplateCategory.initial_outreach;
+}
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -63,13 +77,13 @@ export async function POST(req: NextRequest) {
           },
           update: {
             body: tmpl.body,
-            category: tmpl.category || "initial_outreach",
+            category: toCategory(tmpl.category),
           },
           create: {
             userId: session.user.id,
             name: tmpl.name,
             body: tmpl.body,
-            category: tmpl.category || "initial_outreach",
+            category: toCategory(tmpl.category),
           },
         });
       }
