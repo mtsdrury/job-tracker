@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/toast";
 
 interface School {
   name: string;
@@ -75,6 +76,7 @@ function renderPreview(body: string): string {
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const toast = useToast();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -130,18 +132,36 @@ export default function OnboardingPage() {
     setSchoolId("");
   }
 
+  function slugifySchoolName(name: string): string {
+    return name
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "") // strip diacritics
+      .replace(/&/g, "and")
+      .replace(/[^\w\s-]/g, "") // drop punctuation
+      .trim()
+      .replace(/\s+/g, "-");
+  }
+
   function openLinkedInSchoolSearch() {
-    // Open a generalized LinkedIn people search. Do NOT pass keywords, that
-    // just does a full-text match on profiles and never produces a
-    // schoolFilter param in the URL. The user needs to click "All filters"
-    // -> Education -> type the school name -> select, which LinkedIn resolves
-    // against its school database and encodes as schoolFilter=["1234"] in the
-    // address bar. We extract that ID when the URL is pasted back.
-    window.open(
-      "https://www.linkedin.com/search/results/people/",
-      "_blank",
-      "noopener,noreferrer"
+    const name = schoolName.trim();
+    if (!name) {
+      toast.error("Type the school name first, then click Find on LinkedIn");
+      return;
+    }
+    const slug = slugifySchoolName(name);
+    // linkedin.com/school/<slug>/people/ lands on the school-scoped alumni
+    // view. Once the page loads, any interaction with the alumni search
+    // (typing in the search box, clicking a year/region filter) causes
+    // LinkedIn to switch its URL to /search/results/people/?schoolFilter=["1234"]...
+    // at which point the numeric ID is visible in the address bar.
+    const url = slug
+      ? `https://www.linkedin.com/school/${slug}/people/`
+      : "https://www.linkedin.com/search/results/people/";
+    toast.info(
+      "LinkedIn will open with your school's alumni. Type any name in the alumni search box to reveal the school ID in the URL, then copy the URL and paste it into the LinkedIn ID field below."
     );
+    window.open(url, "_blank", "noopener,noreferrer");
   }
 
   function removeSchool(idx: number) {
@@ -307,15 +327,12 @@ export default function OnboardingPage() {
                     Your Schools
                   </h2>
                   <p className="text-sm text-muted mt-1">
-                    Add your schools to find alumni at target companies. Click{" "}
-                    <strong>Find on LinkedIn</strong> to open LinkedIn&apos;s
-                    people search in a new tab. Do NOT type the school in the
-                    search bar, that won&apos;t give us the filter code.
-                    Instead, click <em>All filters</em> &rarr;{" "}
-                    <em>Education</em>, type your school, select it from the
-                    dropdown, and click <em>Show results</em>. Then copy the
-                    URL from the address bar and paste it into the{" "}
-                    <strong>LinkedIn ID or URL</strong> field below. We&apos;ll
+                    Add your schools to find alumni at target companies. Type
+                    the school name, then click <strong>Find on LinkedIn</strong>.
+                    LinkedIn will open on your school&apos;s alumni page. Type
+                    any name in the alumni search box, and the URL will update
+                    with a 4-7 digit school ID. Copy the URL and paste it into
+                    the <strong>LinkedIn ID or URL</strong> field, we&apos;ll
                     extract the ID automatically. This powers the &quot;Find
                     Alumni&quot; button on each job.
                   </p>
