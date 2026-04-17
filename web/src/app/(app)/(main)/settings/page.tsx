@@ -795,10 +795,7 @@ export default function SettingsPage() {
 
       {/* Danger Zone */}
       <Card className="border-danger/30 bg-danger/5">
-        <CardHeader>
-          <CardTitle className="text-danger">Danger Zone</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-6">
           <div className="space-y-2">
             <p className="text-sm text-muted">Export all your data in JSON format for backup or migration.</p>
             <Button
