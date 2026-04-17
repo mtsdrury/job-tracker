@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { generateNudges, deriveNextAction } from "@/lib/next-action";
 import { EmptyDashboard } from "@/components/ui/empty-state";
 import { DashboardJobCard } from "@/components/dashboard-job-card";
+import { AnalyticsContent } from "@/components/analytics-content";
 
 export default async function DashboardPage() {
   const session = await requireOnboarding();
@@ -333,6 +334,13 @@ export default async function DashboardPage() {
         </Card>
         </section>
       )}
+      {/* Analytics */}
+      <section aria-labelledby="analytics-heading">
+        <h2 id="analytics-heading" className="text-2xl font-heading font-bold tracking-tight mb-6">
+          Analytics
+        </h2>
+        <AnalyticsContent heading="" />
+      </section>
       </>
       )}
     </div>
