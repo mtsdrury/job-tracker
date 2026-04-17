@@ -299,12 +299,12 @@ export default function BillingPage() {
 
       {/* Free Plan Features -- with Pro features shown as unavailable */}
       {!isPro && !isDemo && (
-        <Card>
+        <Card className="max-w-2xl mx-auto w-full">
           <CardHeader>
-            <CardTitle>What&apos;s included in Free</CardTitle>
+            <CardTitle className="text-center">What&apos;s included in Free</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
               {getFreeFeatures().map((feature) => (
                 <div key={feature.text} className="flex items-start gap-3">
                   <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
